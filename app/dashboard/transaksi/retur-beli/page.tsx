@@ -65,22 +65,23 @@ import {
   ShoppingCart,
 } from 'lucide-react'
 import { toast } from 'sonner'
-import { ReturBeliPrint, type ReturBeliPrintRef } from '@/components/print'
+import { ReturBeliPrint, type ReturBeliPrintData, type ReturBeliPrintRef } from '@/components/print'
 import { ReturBeliFormData, returBeliSchema } from '@/lib/validations'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
+import { z } from 'zod'
 
-interface ReturBeli {
+type ReturBeliDetail = ReturBeliPrintData['detail'][number] & {
+  currentStock?: number
+}
+
+interface ReturBeli extends ReturBeliPrintData {
   id: string
   noRetur: string
   tanggal: string
   supplierId: string
-  supplier: {
-    id: string
-    kode: string
-    nama: string
-  }
-  barangMasukRef?: string
+  supplier: ReturBeliPrintData['supplier'] & { id: string; kode: string }
+  barangMasukRef?: string | null
   totalQty: number
   totalNilai: number
   alasan: string
@@ -88,21 +89,7 @@ interface ReturBeli {
   createdBy: string
   createdAt: string
   updatedAt: string
-  detail: Array<{
-    id: string
-    barangId: string
-    barang: {
-      id: string
-      kode: string
-      nama: string
-      satuan: string
-    }
-    qty: number
-    harga: number
-    subtotal: number
-    alasan: string
-    currentStock?: number
-  }>
+  detail: Array<ReturBeliDetail & { barangId: string }>
 }
 
 interface Supplier {
@@ -156,6 +143,16 @@ interface FormData {
   alasan: string
 }
 
+type ReturBeliFormValues = z.input<typeof returBeliSchema>
+const defaultReturBeliFormValues: ReturBeliFormValues = {
+  noRetur: '',
+  tanggal: new Date(),
+  supplierId: '',
+  barangMasukRef: '',
+  alasan: '',
+  items: [],
+}
+
 export default function ReturBeliPage() {
   const printRef = useRef<ReturBeliPrintRef>(null)
   const [returBelis, setReturBelis] = useState<ReturBeli[]>([])
@@ -198,8 +195,9 @@ export default function ReturBeliPage() {
     setValue,
     watch,
     formState: { errors },
-  } = useForm<ReturBeliFormData>({
+  } = useForm<ReturBeliFormValues>({
     resolver: zodResolver(returBeliSchema),
+    defaultValues: defaultReturBeliFormValues,
   })
 
   const watchedValues = watch()
@@ -268,7 +266,7 @@ export default function ReturBeliPage() {
     fetchReturBelis()
   }, [pagination.page, search, selectedSupplier, selectedStatus, startDate, endDate])
 
-  const onSubmit = async (data: ReturBeliFormData) => {
+  const onSubmit = async (data: ReturBeliFormValues) => {
     if (items.length === 0 || items.every(item => !item.barangId)) {
       toast.error('Minimal harus ada 1 item yang valid')
       return
@@ -276,10 +274,10 @@ export default function ReturBeliPage() {
 
     setSubmitting(true)
     try {
-      const submitData = {
+      const payload = returBeliSchema.parse({
         ...data,
         items: items.filter(item => item.barangId && item.alasan),
-      }
+      })
 
       const url = editingReturBeli
         ? `/api/transaksi/retur-beli/${editingReturBeli.id}`
@@ -291,7 +289,7 @@ export default function ReturBeliPage() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(submitData),
+        body: JSON.stringify(payload),
       })
 
       const result = await response.json()
@@ -303,7 +301,11 @@ export default function ReturBeliPage() {
             : 'Retur Beli berhasil dibuat'
         )
         setDialogOpen(false)
-        reset()
+        reset({
+          ...defaultReturBeliFormValues,
+          tanggal: new Date(),
+          items: [],
+        })
         setEditingReturBeli(null)
         setItems([{ barangId: '', qty: 1, harga: 0, alasan: '' }])
         fetchReturBelis()
@@ -363,11 +365,10 @@ export default function ReturBeliPage() {
 
     setEditingReturBeli(returBeli)
     setValue('supplierId', returBeli.supplierId)
-    setValue('tanggal', new Date(returBeli.tanggal).toISOString().split('T')[0])
+    setValue('tanggal', new Date(returBeli.tanggal))
+    setValue('noRetur', returBeli.noRetur ?? '')
     setValue('alasan', returBeli.alasan)
-    if (returBeli.barangMasukRef) {
-      setValue('barangMasukRef', returBeli.barangMasukRef)
-    }
+    setValue('barangMasukRef', returBeli.barangMasukRef ?? '')
 
     const formItems = returBeli.detail.map(detail => ({
       barangId: detail.barangId,
@@ -426,8 +427,11 @@ export default function ReturBeliPage() {
 
   const openAddDialog = () => {
     setEditingReturBeli(null)
-    reset()
-    setValue('tanggal', new Date().toISOString().split('T')[0])
+    reset({
+      ...defaultReturBeliFormValues,
+      tanggal: new Date(),
+      items: [],
+    })
     setItems([{ barangId: '', qty: 1, harga: 0, alasan: '' }])
     setDialogOpen(true)
   }

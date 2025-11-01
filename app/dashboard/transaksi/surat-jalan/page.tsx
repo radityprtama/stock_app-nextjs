@@ -78,65 +78,42 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { SuratJalanFormData, suratJalanSchema } from '@/lib/validations'
-import { SuratJalanPrint, type SuratJalanPrintRef } from '@/components/print'
+import { SuratJalanPrint, type SuratJalanPrintRef, type SuratJalanPrintData } from '@/components/print'
 import jsPDF from 'jspdf'
 import 'jspdf-autotable'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
+import { z } from 'zod'
 
-interface SuratJalan {
+type SuratJalanDetail = SuratJalanPrintData['detail'][number] & {
+  id: string
+  barangId: string
+  supplierId?: string
+  statusDropship?: string
+  currentStock?: number
+  stockStatus?: string
+  dropshipSupplier?: {
+    id: string
+    kode: string
+    nama: string
+  }
+}
+
+interface SuratJalan extends SuratJalanPrintData {
   id: string
   noSJ: string
-  tanggal: string
   customerId: string
-  customer: {
-    id: string
-    kode: string
-    nama: string
-    alamat: string
-    telepon: string
-  }
+  customer: SuratJalanPrintData['customer'] & { id: string; kode: string }
   gudangId: string
-  gudang: {
-    id: string
-    kode: string
-    nama: string
-  }
-  alamatKirim: string
-  namaSupir: string
-  nopolKendaraan: string
+  gudang: SuratJalanPrintData['gudang'] & { id: string; kode: string }
   totalQty: number
   totalNilai: number
-  keterangan?: string
   status: 'draft' | 'in_transit' | 'delivered' | 'cancelled'
   deliveryOption?: 'partial' | 'complete'
   createdBy: string
   createdAt: string
   updatedAt: string
-  detail: Array<{
-    id: string
-    barangId: string
-    barang: {
-      id: string
-      kode: string
-      nama: string
-      satuan: string
-    }
-    qty: number
-    hargaJual: number
-    subtotal: number
-    isDropship: boolean
-    supplierId?: string
-    statusDropship?: string
-    keterangan?: string
-    currentStock?: number
-    stockStatus?: string
-    dropshipSupplier?: {
-      id: string
-      kode: string
-      nama: string
-    }
-  }>
+  detail: SuratJalanDetail[]
   dropshipSummary?: {
     totalItems: number
     normalItems: number
@@ -207,6 +184,20 @@ interface FormData {
   statusDropship?: string
 }
 
+type SuratJalanFormValues = z.input<typeof suratJalanSchema>
+const defaultSuratJalanFormValues: SuratJalanFormValues = {
+  noSJ: '',
+  tanggal: new Date(),
+  customerId: '',
+  gudangId: '',
+  alamatKirim: '',
+  namaSupir: '',
+  nopolKendaraan: '',
+  keterangan: '',
+  deliveryOption: 'complete',
+  items: [],
+}
+
 export default function SuratJalanPage() {
   const printRef = useRef<SuratJalanPrintRef>(null)
   const [suratJalans, setSuratJalans] = useState<SuratJalan[]>([])
@@ -261,8 +252,9 @@ export default function SuratJalanPage() {
     setValue,
     watch,
     formState: { errors },
-  } = useForm<SuratJalanFormData>({
+  } = useForm<SuratJalanFormValues>({
     resolver: zodResolver(suratJalanSchema),
+    defaultValues: defaultSuratJalanFormValues,
   })
 
   const watchedValues = watch()
@@ -335,7 +327,7 @@ export default function SuratJalanPage() {
     fetchSuratJalans()
   }, [pagination.page, search, selectedCustomer, selectedGudang, selectedStatus, startDate, endDate])
 
-  const onSubmit = async (data: SuratJalanFormData) => {
+  const onSubmit = async (data: SuratJalanFormValues) => {
     if (items.length === 0 || items.every(item => !item.barangId)) {
       toast.error('Minimal harus ada 1 item yang valid')
       return
@@ -343,11 +335,11 @@ export default function SuratJalanPage() {
 
     setSubmitting(true)
     try {
-      const submitData = {
+      const payload = suratJalanSchema.parse({
         ...data,
         deliveryOption,
         items: items.filter(item => item.barangId),
-      }
+      })
 
       const url = editingSuratJalan
         ? `/api/transaksi/surat-jalan/${editingSuratJalan.id}`
@@ -359,7 +351,7 @@ export default function SuratJalanPage() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(submitData),
+        body: JSON.stringify(payload),
       })
 
       const result = await response.json()
@@ -371,10 +363,16 @@ export default function SuratJalanPage() {
             : result.message || 'Surat Jalan berhasil dibuat'
         )
         setDialogOpen(false)
-        reset()
+        reset({
+          ...defaultSuratJalanFormValues,
+          tanggal: new Date(),
+          items: [],
+          deliveryOption: 'complete',
+        })
         setEditingSuratJalan(null)
         setItems([{ barangId: '', qty: 1, hargaJual: 0 }])
         setDeliveryOption('complete')
+        setValue('deliveryOption', 'complete')
         fetchSuratJalans()
 
         // Show dropship summary if applicable
@@ -455,11 +453,12 @@ export default function SuratJalanPage() {
     setEditingSuratJalan(suratJalan)
     setValue('customerId', suratJalan.customerId)
     setValue('gudangId', suratJalan.gudangId)
-    setValue('tanggal', new Date(suratJalan.tanggal).toISOString().split('T')[0])
+    setValue('tanggal', new Date(suratJalan.tanggal))
+    setValue('noSJ', suratJalan.noSJ ?? '')
     setValue('alamatKirim', suratJalan.alamatKirim)
     setValue('namaSupir', suratJalan.namaSupir)
     setValue('nopolKendaraan', suratJalan.nopolKendaraan)
-    setValue('keterangan', suratJalan.keterangan || '')
+    setValue('keterangan', suratJalan.keterangan ?? '')
 
     const formItems = suratJalan.detail.map(detail => ({
       barangId: detail.barangId,
@@ -472,7 +471,9 @@ export default function SuratJalanPage() {
     }))
     setItems(formItems)
 
-    setDeliveryOption(suratJalan.deliveryOption || 'complete')
+    const option = suratJalan.deliveryOption || 'complete'
+    setDeliveryOption(option)
+    setValue('deliveryOption', option)
     setDialogOpen(true)
   }
 
@@ -522,10 +523,15 @@ export default function SuratJalanPage() {
 
   const openAddDialog = () => {
     setEditingSuratJalan(null)
-    reset()
-    setValue('tanggal', new Date().toISOString().split('T')[0])
+    reset({
+      ...defaultSuratJalanFormValues,
+      tanggal: new Date(),
+      items: [],
+      deliveryOption: 'complete',
+    })
     setItems([{ barangId: '', qty: 1, hargaJual: 0 }])
     setDeliveryOption('complete')
+    setValue('deliveryOption', 'complete')
     setDialogOpen(true)
   }
 

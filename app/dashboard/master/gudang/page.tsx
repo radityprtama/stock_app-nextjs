@@ -50,6 +50,7 @@ import { formatPhoneNumber } from '@/lib/utils'
 import { GudangFormData, gudangSchema } from '@/lib/validations'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
+import { z } from 'zod'
 
 interface Gudang {
   id: string
@@ -66,6 +67,16 @@ interface Gudang {
     barangMasuk: number
     suratJalan: number
   }
+}
+
+type GudangFormValues = z.input<typeof gudangSchema>
+const defaultGudangFormValues: GudangFormValues = {
+  kode: '',
+  nama: '',
+  alamat: '',
+  telepon: '',
+  pic: '',
+  aktif: true,
 }
 
 export default function GudangPage() {
@@ -88,8 +99,9 @@ export default function GudangPage() {
     reset,
     setValue,
     formState: { errors },
-  } = useForm<GudangFormData>({
+  } = useForm<GudangFormValues>({
     resolver: zodResolver(gudangSchema),
+    defaultValues: defaultGudangFormValues,
   })
 
   const fetchGudangs = async () => {
@@ -121,9 +133,10 @@ export default function GudangPage() {
     fetchGudangs()
   }, [pagination.page, search])
 
-  const onSubmit = async (data: GudangFormData) => {
+  const onSubmit = async (data: GudangFormValues) => {
     setSubmitting(true)
     try {
+      const payload: GudangFormData = gudangSchema.parse(data)
       const url = editingGudang
         ? `/api/master/gudang/${editingGudang.id}`
         : '/api/master/gudang'
@@ -134,7 +147,7 @@ export default function GudangPage() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(data),
+        body: JSON.stringify(payload),
       })
 
       const result = await response.json()
@@ -146,7 +159,7 @@ export default function GudangPage() {
             : 'Gudang berhasil ditambahkan'
         )
         setDialogOpen(false)
-        reset()
+        reset(defaultGudangFormValues)
         setEditingGudang(null)
         fetchGudangs()
       } else {
@@ -164,8 +177,8 @@ export default function GudangPage() {
     setValue('kode', gudang.kode)
     setValue('nama', gudang.nama)
     setValue('alamat', gudang.alamat)
-    setValue('telepon', gudang.telepon || '')
-    setValue('pic', gudang.pic || '')
+    setValue('telepon', gudang.telepon ?? '')
+    setValue('pic', gudang.pic ?? '')
     setValue('aktif', gudang.aktif)
     setDialogOpen(true)
   }
@@ -195,8 +208,7 @@ export default function GudangPage() {
 
   const openAddDialog = () => {
     setEditingGudang(null)
-    reset()
-    setValue('aktif', true)
+    reset(defaultGudangFormValues)
     setDialogOpen(true)
   }
 

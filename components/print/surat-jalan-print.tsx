@@ -2,10 +2,50 @@ import React, { forwardRef, useImperativeHandle } from 'react'
 import { useReactToPrint } from 'react-to-print'
 import { format } from 'date-fns'
 import { id } from 'date-fns/locale'
-import type { SuratJalanWithDetails } from '@/src/types'
+type SuratJalanPrintDetail = {
+  id: string
+  barang: {
+    nama: string
+    satuan: string
+    ukuran?: string | null
+    tipe?: string | null
+    merk?: string | null
+  }
+  qty: number
+  hargaJual: number | string
+  subtotal: number | string
+  isDropship?: boolean
+  keterangan?: string | null
+}
+
+export interface SuratJalanPrintData {
+  id: string
+  noSJ: string
+  tanggal: Date | string
+  customer: {
+    nama: string
+    alamat: string
+    telepon: string
+    email?: string | null
+  }
+  alamatKirim: string
+  gudang: {
+    nama: string
+  }
+  namaSupir: string
+  nopolKendaraan: string
+  status: string
+  detail: SuratJalanPrintDetail[]
+  deliveryOption?: 'partial' | 'complete'
+  tanggalKirim?: Date | string | null
+  tanggalTerima?: Date | string | null
+  namaPenerima?: string | null
+  createdBy?: string | null
+  keterangan?: string | null
+}
 
 interface SuratJalanPrintProps {
-  data: SuratJalanWithDetails
+  data: SuratJalanPrintData
   onPrintComplete?: () => void
 }
 
@@ -143,10 +183,10 @@ const SuratJalanPrint = forwardRef<SuratJalanPrintRef, SuratJalanPrintProps>(
                   <td className="center">{item.qty}</td>
                   <td className="center">{item.barang.satuan}</td>
                   <td className="number">
-                    Rp {parseFloat(item.hargaJual.toString()).toLocaleString('id-ID')}
+                    Rp {Number(item.hargaJual).toLocaleString('id-ID')}
                   </td>
                   <td className="number">
-                    Rp {parseFloat(item.subtotal.toString()).toLocaleString('id-ID')}
+                    Rp {Number(item.subtotal).toLocaleString('id-ID')}
                   </td>
                 </tr>
               ))}

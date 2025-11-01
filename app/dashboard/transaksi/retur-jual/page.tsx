@@ -67,55 +67,39 @@ import {
   AlertCircle,
 } from 'lucide-react'
 import { toast } from 'sonner'
-import { ReturJualPrint, type ReturJualPrintRef } from '@/components/print'
+import { ReturJualPrint, type ReturJualPrintRef, type ReturJualPrintData } from '@/components/print'
 import { ReturJualFormData, returJualSchema } from '@/lib/validations'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
+import { z } from 'zod'
 
-interface ReturJual {
-  id: string
-  noRetur: string
-  tanggal: string
-  customerId: string
-  customer: {
+type ReturJualDetail = ReturJualPrintData['detail'][number] & {
+  barangId: string
+  barang: ReturJualPrintData['detail'][number]['barang'] & {
     id: string
     kode: string
-    nama: string
   }
+  currentStock?: number
+}
+
+interface ReturJual extends ReturJualPrintData {
+  id: string
+  noRetur: string
+  customerId: string
+  customer: ReturJualPrintData['customer'] & { id: string; kode: string }
   suratJalanId?: string
   suratJalan?: {
     id: string
     noSJ: string
     tanggal: string
-    customer: {
-      id: string
-      kode: string
-      nama: string
-    }
   }
   totalQty: number
   totalNilai: number
-  alasan: string
   status: 'draft' | 'approved' | 'completed'
   createdBy: string
   createdAt: string
   updatedAt: string
-  detail: Array<{
-    id: string
-    barangId: string
-    barang: {
-      id: string
-      kode: string
-      nama: string
-      satuan: string
-    }
-    qty: number
-    harga: number
-    subtotal: number
-    alasan: string
-    kondisi: 'bisa_dijual_lagi' | 'rusak_total'
-    currentStock?: number
-  }>
+  detail: ReturJualDetail[]
 }
 
 interface Customer {
@@ -170,6 +154,16 @@ interface FormData {
   kondisi: 'bisa_dijual_lagi' | 'rusak_total'
 }
 
+type ReturJualFormValues = z.input<typeof returJualSchema>
+const defaultReturJualFormValues: ReturJualFormValues = {
+  noRetur: '',
+  tanggal: new Date(),
+  customerId: '',
+  suratJalanId: '',
+  alasan: '',
+  items: [],
+}
+
 export default function ReturJualPage() {
   const printRef = useRef<ReturJualPrintRef>(null)
   const [returJuals, setReturJuals] = useState<ReturJual[]>([])
@@ -212,8 +206,9 @@ export default function ReturJualPage() {
     setValue,
     watch,
     formState: { errors },
-  } = useForm<ReturJualFormData>({
+  } = useForm<ReturJualFormValues>({
     resolver: zodResolver(returJualSchema),
+    defaultValues: defaultReturJualFormValues,
   })
 
   const watchedValues = watch()
@@ -282,7 +277,7 @@ export default function ReturJualPage() {
     fetchReturJuals()
   }, [pagination.page, search, selectedCustomer, selectedStatus, startDate, endDate])
 
-  const onSubmit = async (data: ReturJualFormData) => {
+  const onSubmit = async (data: ReturJualFormValues) => {
     if (items.length === 0 || items.every(item => !item.barangId)) {
       toast.error('Minimal harus ada 1 item yang valid')
       return
@@ -290,10 +285,10 @@ export default function ReturJualPage() {
 
     setSubmitting(true)
     try {
-      const submitData = {
+      const payload = returJualSchema.parse({
         ...data,
         items: items.filter(item => item.barangId && item.alasan),
-      }
+      })
 
       const url = editingReturJual
         ? `/api/transaksi/retur-jual/${editingReturJual.id}`
@@ -305,7 +300,7 @@ export default function ReturJualPage() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(submitData),
+        body: JSON.stringify(payload),
       })
 
       const result = await response.json()
@@ -317,7 +312,11 @@ export default function ReturJualPage() {
             : 'Retur Jual berhasil dibuat'
         )
         setDialogOpen(false)
-        reset()
+        reset({
+          ...defaultReturJualFormValues,
+          tanggal: new Date(),
+          items: [],
+        })
         setEditingReturJual(null)
         setItems([{ barangId: '', qty: 1, harga: 0, alasan: '', kondisi: 'bisa_dijual_lagi' }])
         fetchReturJuals()
@@ -377,11 +376,10 @@ export default function ReturJualPage() {
 
     setEditingReturJual(returJual)
     setValue('customerId', returJual.customerId)
-    setValue('tanggal', new Date(returJual.tanggal).toISOString().split('T')[0])
+    setValue('tanggal', new Date(returJual.tanggal))
+    setValue('noRetur', returJual.noRetur ?? '')
     setValue('alasan', returJual.alasan)
-    if (returJual.suratJalanId) {
-      setValue('suratJalanId', returJual.suratJalanId)
-    }
+    setValue('suratJalanId', returJual.suratJalanId ?? '')
 
     const formItems = returJual.detail.map(detail => ({
       barangId: detail.barangId,
@@ -441,8 +439,11 @@ export default function ReturJualPage() {
 
   const openAddDialog = () => {
     setEditingReturJual(null)
-    reset()
-    setValue('tanggal', new Date().toISOString().split('T')[0])
+    reset({
+      ...defaultReturJualFormValues,
+      tanggal: new Date(),
+      items: [],
+    })
     setItems([{ barangId: '', qty: 1, harga: 0, alasan: '', kondisi: 'bisa_dijual_lagi' }])
     setDialogOpen(true)
   }
@@ -493,8 +494,11 @@ export default function ReturJualPage() {
     }).format(amount)
   }
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('id-ID', {
+  const formatDate = (dateInput: string | Date) => {
+    const date =
+      typeof dateInput === 'string' ? new Date(dateInput) : dateInput
+
+    return date.toLocaleDateString('id-ID', {
       day: '2-digit',
       month: '2-digit',
       year: 'numeric',

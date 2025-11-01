@@ -67,6 +67,7 @@ import { toast } from 'sonner'
 import { BarangMasukFormData, barangMasukSchema } from '@/lib/validations'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
+import { z } from 'zod'
 
 interface BarangMasuk {
   id: string
@@ -154,6 +155,16 @@ interface FormData {
   harga: number
 }
 
+type BarangMasukFormValues = z.input<typeof barangMasukSchema>
+const defaultBarangMasukFormValues: BarangMasukFormValues = {
+  noDokumen: '',
+  tanggal: new Date(),
+  supplierId: '',
+  gudangId: '',
+  keterangan: '',
+  items: [],
+}
+
 export default function BarangMasukPage() {
   const [barangMasuks, setBarangMasuks] = useState<BarangMasuk[]>([])
   const [suppliers, setSuppliers] = useState<Supplier[]>([])
@@ -196,8 +207,9 @@ export default function BarangMasukPage() {
     setValue,
     watch,
     formState: { errors },
-  } = useForm<BarangMasukFormData>({
+  } = useForm<BarangMasukFormValues>({
     resolver: zodResolver(barangMasukSchema),
+    defaultValues: defaultBarangMasukFormValues,
   })
 
   const watchedValues = watch()
@@ -267,7 +279,7 @@ export default function BarangMasukPage() {
     fetchBarangMasuks()
   }, [pagination.page, search, selectedSupplier, selectedGudang, selectedStatus, startDate, endDate])
 
-  const onSubmit = async (data: BarangMasukFormData) => {
+  const onSubmit = async (data: BarangMasukFormValues) => {
     if (items.length === 0 || items.every(item => !item.barangId)) {
       toast.error('Minimal harus ada 1 item yang valid')
       return
@@ -275,10 +287,10 @@ export default function BarangMasukPage() {
 
     setSubmitting(true)
     try {
-      const submitData = {
+      const payload = barangMasukSchema.parse({
         ...data,
         items: items.filter(item => item.barangId),
-      }
+      })
 
       const url = editingBarangMasuk
         ? `/api/transaksi/barang-masuk/${editingBarangMasuk.id}`
@@ -290,7 +302,7 @@ export default function BarangMasukPage() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(submitData),
+        body: JSON.stringify(payload),
       })
 
       const result = await response.json()
@@ -302,7 +314,11 @@ export default function BarangMasukPage() {
             : 'Barang Masuk berhasil dibuat'
         )
         setDialogOpen(false)
-        reset()
+        reset({
+          ...defaultBarangMasukFormValues,
+          tanggal: new Date(),
+          items: [],
+        })
         setEditingBarangMasuk(null)
         setItems([{ barangId: '', qty: 1, harga: 0 }])
         fetchBarangMasuks()
@@ -344,8 +360,9 @@ export default function BarangMasukPage() {
     setEditingBarangMasuk(barangMasuk)
     setValue('supplierId', barangMasuk.supplierId)
     setValue('gudangId', barangMasuk.gudangId)
-    setValue('tanggal', new Date(barangMasuk.tanggal).toISOString().split('T')[0])
-    setValue('keterangan', barangMasuk.keterangan || '')
+    setValue('tanggal', new Date(barangMasuk.tanggal))
+    setValue('keterangan', barangMasuk.keterangan ?? '')
+    setValue('noDokumen', barangMasuk.noDokumen ?? '')
 
     const formItems = barangMasuk.detail.map(detail => ({
       barangId: detail.barangId,
@@ -403,8 +420,10 @@ export default function BarangMasukPage() {
 
   const openAddDialog = () => {
     setEditingBarangMasuk(null)
-    reset()
-    setValue('tanggal', new Date().toISOString().split('T')[0])
+    reset({
+      ...defaultBarangMasukFormValues,
+      tanggal: new Date(),
+    })
     setItems([{ barangId: '', qty: 1, harga: 0 }])
     setDialogOpen(true)
   }

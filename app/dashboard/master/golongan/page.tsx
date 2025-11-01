@@ -48,6 +48,7 @@ import { toast } from 'sonner'
 import { GolonganFormData, golonganSchema } from '@/lib/validations'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
+import { z } from 'zod'
 
 interface Golongan {
   id: string
@@ -60,6 +61,14 @@ interface Golongan {
   _count: {
     barang: number
   }
+}
+
+type GolonganFormValues = z.input<typeof golonganSchema>
+const defaultGolonganFormValues: GolonganFormValues = {
+  kode: '',
+  nama: '',
+  deskripsi: '',
+  aktif: true,
 }
 
 export default function GolonganPage() {
@@ -82,8 +91,9 @@ export default function GolonganPage() {
     reset,
     setValue,
     formState: { errors },
-  } = useForm<GolonganFormData>({
+  } = useForm<GolonganFormValues>({
     resolver: zodResolver(golonganSchema),
+    defaultValues: defaultGolonganFormValues,
   })
 
   const fetchGolongans = async () => {
@@ -115,9 +125,10 @@ export default function GolonganPage() {
     fetchGolongans()
   }, [pagination.page, search])
 
-  const onSubmit = async (data: GolonganFormData) => {
+  const onSubmit = async (data: GolonganFormValues) => {
     setSubmitting(true)
     try {
+      const payload: GolonganFormData = golonganSchema.parse(data)
       const url = editingGolongan
         ? `/api/master/golongan/${editingGolongan.id}`
         : '/api/master/golongan'
@@ -128,7 +139,7 @@ export default function GolonganPage() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(data),
+        body: JSON.stringify(payload),
       })
 
       const result = await response.json()
@@ -140,7 +151,7 @@ export default function GolonganPage() {
             : 'Golongan berhasil ditambahkan'
         )
         setDialogOpen(false)
-        reset()
+        reset(defaultGolonganFormValues)
         setEditingGolongan(null)
         fetchGolongans()
       } else {
@@ -157,7 +168,7 @@ export default function GolonganPage() {
     setEditingGolongan(golongan)
     setValue('kode', golongan.kode)
     setValue('nama', golongan.nama)
-    setValue('deskripsi', golongan.deskripsi || '')
+    setValue('deskripsi', golongan.deskripsi ?? '')
     setValue('aktif', golongan.aktif)
     setDialogOpen(true)
   }
@@ -187,8 +198,7 @@ export default function GolonganPage() {
 
   const openAddDialog = () => {
     setEditingGolongan(null)
-    reset()
-    setValue('aktif', true)
+    reset(defaultGolonganFormValues)
     setDialogOpen(true)
   }
 

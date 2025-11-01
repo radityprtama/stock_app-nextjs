@@ -54,6 +54,9 @@ import { formatCurrency, formatPhoneNumber } from '@/lib/utils'
 import { CustomerFormData, customerSchema } from '@/lib/validations'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
+import { z } from 'zod'
+
+type CustomerType = z.infer<typeof customerSchema>['tipePelanggan']
 
 interface Customer {
   id: string
@@ -63,7 +66,7 @@ interface Customer {
   telepon: string
   email?: string
   npwp?: string
-  tipePelanggan: string
+  tipePelanggan: CustomerType
   limitKredit?: number
   aktif: boolean
   createdAt: string
@@ -72,6 +75,19 @@ interface Customer {
     suratJalan: number
     returJual: number
   }
+}
+
+type CustomerFormValues = z.input<typeof customerSchema>
+const defaultCustomerFormValues: CustomerFormValues = {
+  kode: '',
+  nama: '',
+  alamat: '',
+  telepon: '',
+  email: '',
+  npwp: '',
+  tipePelanggan: 'retail',
+  limitKredit: 0,
+  aktif: true,
 }
 
 export default function CustomerPage() {
@@ -96,8 +112,9 @@ export default function CustomerPage() {
     setValue,
     watch,
     formState: { errors },
-  } = useForm<CustomerFormData>({
+  } = useForm<CustomerFormValues>({
     resolver: zodResolver(customerSchema),
+    defaultValues: defaultCustomerFormValues,
   })
 
   const fetchCustomers = async () => {
@@ -130,9 +147,10 @@ export default function CustomerPage() {
     fetchCustomers()
   }, [pagination.page, search, tipePelangganFilter])
 
-  const onSubmit = async (data: CustomerFormData) => {
+  const onSubmit = async (data: CustomerFormValues) => {
     setSubmitting(true)
     try {
+      const payload: CustomerFormData = customerSchema.parse(data)
       const url = editingCustomer
         ? `/api/master/customer/${editingCustomer.id}`
         : '/api/master/customer'
@@ -143,7 +161,7 @@ export default function CustomerPage() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(data),
+        body: JSON.stringify(payload),
       })
 
       const result = await response.json()
@@ -155,7 +173,7 @@ export default function CustomerPage() {
             : 'Customer berhasil ditambahkan'
         )
         setDialogOpen(false)
-        reset()
+        reset(defaultCustomerFormValues)
         setEditingCustomer(null)
         fetchCustomers()
       } else {
@@ -174,10 +192,10 @@ export default function CustomerPage() {
     setValue('nama', customer.nama)
     setValue('alamat', customer.alamat)
     setValue('telepon', customer.telepon)
-    setValue('email', customer.email || '')
-    setValue('npwp', customer.npwp || '')
+    setValue('email', customer.email ?? '')
+    setValue('npwp', customer.npwp ?? '')
     setValue('tipePelanggan', customer.tipePelanggan)
-    setValue('limitKredit', customer.limitKredit || 0)
+    setValue('limitKredit', customer.limitKredit ?? 0)
     setValue('aktif', customer.aktif)
     setDialogOpen(true)
   }
@@ -207,10 +225,7 @@ export default function CustomerPage() {
 
   const openAddDialog = () => {
     setEditingCustomer(null)
-    reset()
-    setValue('aktif', true)
-    setValue('tipePelanggan', 'retail')
-    setValue('limitKredit', 0)
+    reset(defaultCustomerFormValues)
     setDialogOpen(true)
   }
 
@@ -326,7 +341,9 @@ export default function CustomerPage() {
                   <Label htmlFor="tipePelanggan">Tipe Pelanggan</Label>
                   <Select
                     value={watch('tipePelanggan')}
-                    onValueChange={(value) => setValue('tipePelanggan', value)}
+                    onValueChange={(value) =>
+                      setValue('tipePelanggan', value as CustomerType)
+                    }
                     disabled={submitting}
                   >
                     <SelectTrigger>

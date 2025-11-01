@@ -2,10 +2,42 @@ import React, { forwardRef, useImperativeHandle } from 'react'
 import { useReactToPrint } from 'react-to-print'
 import { format } from 'date-fns'
 import { id } from 'date-fns/locale'
-import type { ReturBeliWithDetails } from '@/src/types'
+type ReturBeliPrintItem = {
+  id: string
+  barangId?: string
+  barang: {
+    nama: string
+    satuan: string
+    ukuran?: string | null
+    tipe?: string | null
+    merk?: string | null
+  }
+  qty: number
+  harga: number | string
+  subtotal: number | string
+  alasan: string
+}
+
+export interface ReturBeliPrintData {
+  id: string
+  noRetur: string
+  tanggal: string | Date
+  status: string
+  supplier: {
+    nama: string
+    alamat: string
+    telepon: string
+    email?: string | null
+    npwp?: string | null
+  }
+  barangMasukRef?: string | null
+  detail: ReturBeliPrintItem[]
+  alasan: string
+  createdBy?: string | null
+}
 
 interface ReturBeliPrintProps {
-  data: ReturBeliWithDetails
+  data: ReturBeliPrintData
   onPrintComplete?: () => void
 }
 
@@ -39,7 +71,7 @@ const ReturBeliPrint = forwardRef<ReturBeliPrintRef, ReturBeliPrintProps>(
   }))
 
   const calculateTotal = () => {
-    return data.detail.reduce((total, item) => total + item.subtotal, 0)
+    return data.detail.reduce((total, item) => total + Number(item.subtotal), 0)
   }
 
   const calculateTotalQty = () => {
@@ -152,10 +184,10 @@ const ReturBeliPrint = forwardRef<ReturBeliPrintRef, ReturBeliPrintProps>(
                 <td className="center">{item.qty}</td>
                 <td className="center">{item.barang.satuan}</td>
                 <td className="number">
-                  Rp {parseFloat(item.harga.toString()).toLocaleString('id-ID')}
+                  Rp {Number(item.harga).toLocaleString('id-ID')}
                 </td>
                 <td className="number">
-                  Rp {parseFloat(item.subtotal.toString()).toLocaleString('id-ID')}
+                  Rp {Number(item.subtotal).toLocaleString('id-ID')}
                 </td>
               </tr>
             ))}

@@ -17,6 +17,7 @@ import { formatPhoneNumber } from '@/lib/utils'
 import { SupplierFormData, supplierSchema } from '@/lib/validations'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
+import { z } from 'zod'
 
 interface Supplier {
   id: string
@@ -37,6 +38,18 @@ interface Supplier {
   }
 }
 
+type SupplierFormValues = z.input<typeof supplierSchema>
+const defaultSupplierFormValues: SupplierFormValues = {
+  kode: '',
+  nama: '',
+  alamat: '',
+  telepon: '',
+  email: '',
+  npwp: '',
+  termPembayaran: 30,
+  aktif: true,
+}
+
 export default function SupplierPage() {
   const [suppliers, setSuppliers] = useState<Supplier[]>([])
   const [loading, setLoading] = useState(true)
@@ -48,8 +61,16 @@ export default function SupplierPage() {
   const [editingSupplier, setEditingSupplier] = useState<Supplier | null>(null)
   const [submitting, setSubmitting] = useState(false)
 
-  const { register, handleSubmit, reset, setValue, watch, formState: { errors } } = useForm<SupplierFormData>({
+  const {
+    register,
+    handleSubmit,
+    reset,
+    setValue,
+    watch,
+    formState: { errors },
+  } = useForm<SupplierFormValues>({
     resolver: zodResolver(supplierSchema),
+    defaultValues: defaultSupplierFormValues,
   })
 
   const fetchSuppliers = async () => {
@@ -79,18 +100,26 @@ export default function SupplierPage() {
 
   useEffect(() => { fetchSuppliers() }, [pagination.page, search])
 
-  const onSubmit = async (data: SupplierFormData) => {
+  const onSubmit = async (data: SupplierFormValues) => {
     setSubmitting(true)
     try {
+      const payload: SupplierFormData = supplierSchema.parse(data)
       const url = editingSupplier ? `/api/master/supplier/${editingSupplier.id}` : '/api/master/supplier'
       const method = editingSupplier ? 'PUT' : 'POST'
 
-      const response = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) })
+      const response = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
       const result = await response.json()
 
       if (result.success) {
         toast.success(editingSupplier ? 'Supplier berhasil diperbarui' : 'Supplier berhasil ditambahkan')
-        setDialogOpen(false); reset(); setEditingSupplier(null); fetchSuppliers()
+        setDialogOpen(false)
+        reset(defaultSupplierFormValues)
+        setEditingSupplier(null)
+        fetchSuppliers()
       } else {
         toast.error(result.error || 'Gagal menyimpan data')
       }
@@ -107,8 +136,8 @@ export default function SupplierPage() {
     setValue('nama', supplier.nama)
     setValue('alamat', supplier.alamat)
     setValue('telepon', supplier.telepon)
-    setValue('email', supplier.email || '')
-    setValue('npwp', supplier.npwp || '')
+    setValue('email', supplier.email ?? '')
+    setValue('npwp', supplier.npwp ?? '')
     setValue('termPembayaran', supplier.termPembayaran)
     setValue('aktif', supplier.aktif)
     setDialogOpen(true)
@@ -132,9 +161,7 @@ export default function SupplierPage() {
 
   const openAddDialog = () => {
     setEditingSupplier(null)
-    reset()
-    setValue('aktif', true)
-    setValue('termPembayaran', 30)
+    reset(defaultSupplierFormValues)
     setDialogOpen(true)
   }
 

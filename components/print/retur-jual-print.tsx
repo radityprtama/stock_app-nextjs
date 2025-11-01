@@ -2,10 +2,48 @@ import React, { forwardRef, useImperativeHandle } from 'react'
 import { useReactToPrint } from 'react-to-print'
 import { format } from 'date-fns'
 import { id } from 'date-fns/locale'
-import type { ReturJualWithDetails } from '@/src/types'
+type ReturJualPrintItem = {
+  id: string
+  barang: {
+    nama: string
+    satuan: string
+    ukuran?: string | null
+    tipe?: string | null
+    merk?: string | null
+  }
+  qty: number
+  harga: number | string
+  subtotal: number | string
+  alasan: string
+  kondisi: 'bisa_dijual_lagi' | 'rusak_total'
+}
+
+export interface ReturJualPrintData {
+  id: string
+  noRetur: string
+  tanggal: Date | string
+  customer: {
+    nama: string
+    alamat: string
+    telepon: string
+    email?: string | null
+    tipePelanggan?: string | null
+  }
+  suratJalanId?: string | null
+  suratJalan?: {
+    noSJ: string
+    tanggal: Date | string
+  }
+  totalQty: number | string
+  totalNilai: number | string
+  alasan: string
+  status: string
+  detail: ReturJualPrintItem[]
+  createdBy?: string | null
+}
 
 interface ReturJualPrintProps {
-  data: ReturJualWithDetails
+  data: ReturJualPrintData
   onPrintComplete?: () => void
 }
 
@@ -39,7 +77,7 @@ const ReturJualPrint = forwardRef<ReturJualPrintRef, ReturJualPrintProps>(
   }))
 
   const calculateTotal = () => {
-    return data.detail.reduce((total, item) => total + item.subtotal, 0)
+    return data.detail.reduce((total, item) => total + Number(item.subtotal), 0)
   }
 
   const calculateTotalQty = () => {
@@ -171,15 +209,15 @@ const ReturJualPrint = forwardRef<ReturJualPrintRef, ReturJualPrintProps>(
                       : 'Rusak Total'}
                   </span>
                 </td>
-                <td className="center">{item.qty}</td>
-                <td className="center">{item.barang.satuan}</td>
-                <td className="number">
-                  Rp {parseFloat(item.harga.toString()).toLocaleString('id-ID')}
-                </td>
-                <td className="number">
-                  Rp {parseFloat(item.subtotal.toString()).toLocaleString('id-ID')}
-                </td>
-              </tr>
+                  <td className="center">{item.qty}</td>
+                  <td className="center">{item.barang.satuan}</td>
+                  <td className="number">
+                    Rp {Number(item.harga).toLocaleString('id-ID')}
+                  </td>
+                  <td className="number">
+                    Rp {Number(item.subtotal).toLocaleString('id-ID')}
+                  </td>
+                </tr>
             ))}
           </tbody>
           <tfoot>
@@ -220,8 +258,8 @@ const ReturJualPrint = forwardRef<ReturJualPrintRef, ReturJualPrintProps>(
           <div className="notes-title">KETERANGAN TAMBAHAN:</div>
           <div className="notes-content">
             1. Barang-barang di atas dikembalikan oleh customer dengan alasan yang disebutkan<br />
-            2. Barang dengan kondisi "Bisa Dijual Lagi" akan dimasukkan kembali ke stok<br />
-            3. Barang dengan kondisi "Rusak Total" akan diproses sesuai kebijakan perusahaan<br />
+            2. Barang dengan kondisi &quot;Bisa Dijual Lagi&quot; akan dimasukkan kembali ke stok<br />
+            3. Barang dengan kondisi &quot;Rusak Total&quot; akan diproses sesuai kebijakan perusahaan<br />
             4. Retur ini telah disetujui oleh pihak manajemen<br />
             5. Dokumen ini sebagai bukti retur yang sah
           </div>
