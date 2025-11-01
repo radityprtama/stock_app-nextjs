@@ -15,7 +15,7 @@ function hasPermission(userRole: string, action: 'complete'): boolean {
 // POST /api/transaksi/retur-beli/[id]/complete - Complete Retur Beli transaction
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await auth()
@@ -28,9 +28,11 @@ export async function POST(
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
+    const { id } = await params
+
     // Check if transaction exists and is in approved status
     const existingReturBeli = await prisma.returBeli.findUnique({
-      where: { id: params.id },
+      where: { id },
     })
 
     if (!existingReturBeli) {
@@ -49,7 +51,7 @@ export async function POST(
 
     // Update transaction status to completed
     const completedReturBeli = await prisma.returBeli.update({
-      where: { id: params.id },
+      where: { id },
       data: {
         status: 'completed',
       },

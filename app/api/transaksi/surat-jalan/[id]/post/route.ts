@@ -12,7 +12,7 @@ const postSchema = z.object({
 // POST /api/transaksi/surat-jalan/[id]/post - Post Surat Jalan with dropship validation
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await auth()
@@ -25,12 +25,13 @@ export async function POST(
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
+    const { id } = await params
     const body = await request.json()
     const { deliveryOption, confirmDropship, notes } = postSchema.parse(body)
 
     // Get Surat Jalan with details and current stock
     const suratJalan = await prisma.suratJalan.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: {
         detail: {
           include: {
@@ -135,7 +136,7 @@ export async function POST(
 
       // Update Surat Jalan status
       const updatedSJ = await tx.suratJalan.update({
-        where: { id: params.id },
+        where: { id },
         data: {
           status: 'in_transit',
           tanggalKirim: new Date(),
