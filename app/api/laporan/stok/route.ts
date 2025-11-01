@@ -74,7 +74,7 @@ export async function GET(request: NextRequest) {
         nama: item.gudang.nama
       },
       qty: item.qty,
-      nilai: parseFloat((item.qty * item.barang.hargaBeli).toFixed(2)),
+      nilai: Number((item.qty * item.barang.hargaBeli.toNumber()).toFixed(2)),
       status: item.qty <= item.barang.minStok ? 'LOW_STOCK' :
               item.barang.maxStok && item.qty >= item.barang.maxStok ? 'OVER_STOCK' : 'NORMAL'
     }))

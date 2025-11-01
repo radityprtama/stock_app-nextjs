@@ -50,7 +50,7 @@ const ReturBeliPrint = forwardRef<ReturBeliPrintRef, ReturBeliPrintProps>(
   const componentRef = React.useRef<HTMLDivElement>(null)
 
   const handlePrint = useReactToPrint({
-    content: () => componentRef.current,
+    contentRef: componentRef,
     documentTitle: `Retur Pembelian - ${data.noRetur}`,
     onAfterPrint: () => {
       onPrintComplete?.()

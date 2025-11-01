@@ -176,8 +176,6 @@ export async function GET(request: NextRequest) {
     const [
       warehouseDistribution,
       golonganStats,
-      lowStockItems,
-      outOfStockItems,
       totalStockValue,
       abcAnalysis
     ] = await Promise.all([
@@ -192,24 +190,6 @@ export async function GET(request: NextRequest) {
         by: ['golonganId'],
         _count: { id: true },
         where: aktif !== undefined ? { aktif: aktif === 'true' } : undefined,
-      }),
-      // Low stock items count
-      prisma.barang.count({
-        where: {
-          aktif: true,
-          stokBarang: {
-            every: { qty: { lt: prisma.barang.fields.minStok } }
-          }
-        },
-      }),
-      // Out of stock items count
-      prisma.barang.count({
-        where: {
-          aktif: true,
-          stokBarang: {
-            every: { qty: 0 }
-          }
-        },
       }),
       // Total stock value calculation
       prisma.stokBarang.aggregate({
@@ -227,6 +207,15 @@ export async function GET(request: NextRequest) {
         }
       })),
     ])
+
+    // Calculate low stock and out of stock items from processed data
+    const lowStockItems = processedBarangs.filter(item =>
+      item.aktif && (item.status === 'critical' || item.status === 'low')
+    ).length
+
+    const outOfStockItems = processedBarangs.filter(item =>
+      item.aktif && item.status === 'outOfStock'
+    ).length
 
     // Calculate ABC percentages
     const totalABCValue = abcAnalysis.reduce((sum, cls) => sum + cls.value, 0)
@@ -273,8 +262,8 @@ export async function GET(request: NextRequest) {
       totalItems: processedBarangs.length,
       totalStockValue: processedBarangs.reduce((sum, item) => sum + item.totalNilai, 0),
       totalStockQty: processedBarangs.reduce((sum, item) => sum + item.totalStok, 0),
-      lowStockItems: processedBarangs.filter(item => item.status === 'critical' || item.status === 'low').length,
-      outOfStockItems: processedBarangs.filter(item => item.status === 'outOfStock').length,
+      lowStockItems,
+      outOfStockItems,
       overstockItems: processedBarangs.filter(item => item.status === 'overstock').length,
       normalItems: processedBarangs.filter(item => item.status === 'normal').length,
       activeItems: processedBarangs.filter(item => item.aktif).length,
@@ -312,7 +301,7 @@ export async function GET(request: NextRequest) {
     console.error('Error fetching stock data:', error)
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: 'Validation failed', details: error.errors },
+        { error: 'Validation failed', details: error.issues },
         { status: 400 }
       )
     }

@@ -56,8 +56,20 @@ export async function GET(request: NextRequest) {
       orderBy: { createdAt: 'desc' }
     })
 
+    type PurchaseItem = {
+      tanggal: Date
+      noDokumen: string
+      supplier: typeof barangMasuk[number]['supplier']
+      gudang: typeof barangMasuk[number]['gudang']
+      barang: typeof barangMasuk[number]['detail'][number]['barang']
+      qty: number
+      hargaBeli: number
+      subtotal: number
+      keterangan: string | null
+    }
+
     // Flatten the data for easier processing
-    const purchaseData: any[] = []
+    const purchaseData: PurchaseItem[] = []
     barangMasuk.forEach(bm => {
       bm.detail.forEach(detail => {
         purchaseData.push({
@@ -69,7 +81,7 @@ export async function GET(request: NextRequest) {
           qty: detail.qty,
           hargaBeli: parseFloat(detail.harga.toString()),
           subtotal: parseFloat(detail.subtotal.toString()),
-          keterangan: bm.keterangan
+          keterangan: bm.keterangan ?? null
         })
       })
     })
@@ -187,35 +199,45 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    type SupplierAggregate = {
+      supplier: PurchaseItem['supplier']
+      totalNilai: number
+      totalQty: number
+    }
+
+    type ProductAggregate = {
+      barang: PurchaseItem['barang']
+      totalQty: number
+      totalNilai: number
+    }
+
     // Top suppliers by purchase value
-    const topSuppliers = Object.entries(
-      purchaseData.reduce((acc, item) => {
-        const key = item.supplier.id
-        if (!acc[key]) {
-          acc[key] = { supplier: item.supplier, totalNilai: 0, totalQty: 0 }
-        }
-        acc[key].totalNilai += item.subtotal
-        acc[key].totalQty += item.qty
-        return acc
-      }, {} as any)
-    )
-      .map(([_, data]: any) => data)
+    const supplierAggregates = purchaseData.reduce<Record<string, SupplierAggregate>>((acc, item) => {
+      const key = item.supplier.id
+      if (!acc[key]) {
+        acc[key] = { supplier: item.supplier, totalNilai: 0, totalQty: 0 }
+      }
+      acc[key].totalNilai += item.subtotal
+      acc[key].totalQty += item.qty
+      return acc
+    }, {})
+
+    const topSuppliers = Object.values(supplierAggregates)
       .sort((a, b) => b.totalNilai - a.totalNilai)
       .slice(0, 10)
 
     // Top purchased products by quantity
-    const topProducts = Object.entries(
-      purchaseData.reduce((acc, item) => {
-        const key = item.barang.id
-        if (!acc[key]) {
-          acc[key] = { barang: item.barang, totalQty: 0, totalNilai: 0 }
-        }
-        acc[key].totalQty += item.qty
-        acc[key].totalNilai += item.subtotal
-        return acc
-      }, {} as any)
-    )
-      .map(([_, data]: any) => data)
+    const productAggregates = purchaseData.reduce<Record<string, ProductAggregate>>((acc, item) => {
+      const key = item.barang.id
+      if (!acc[key]) {
+        acc[key] = { barang: item.barang, totalQty: 0, totalNilai: 0 }
+      }
+      acc[key].totalQty += item.qty
+      acc[key].totalNilai += item.subtotal
+      return acc
+    }, {})
+
+    const topProducts = Object.values(productAggregates)
       .sort((a, b) => b.totalQty - a.totalQty)
       .slice(0, 10)
 

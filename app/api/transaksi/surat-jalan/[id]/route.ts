@@ -55,15 +55,6 @@ export async function GET(
                 isDropship: true,
               },
             },
-            supplier: item => item.supplierId ? {
-              select: {
-                id: true,
-                kode: true,
-                nama: true,
-                alamat: true,
-                telepon: true,
-              }
-            } : false,
           },
           orderBy: {
             createdAt: 'asc'
@@ -79,7 +70,7 @@ export async function GET(
       )
     }
 
-    // Get current stock for each item
+    // Get current stock for each item and supplier information if needed
     const itemsWithStock = await Promise.all(
       suratJalan.detail.map(async (item) => {
         const stokBarang = await prisma.stokBarang.findUnique({
@@ -91,10 +82,26 @@ export async function GET(
           }
         })
 
+        // Get supplier information if supplierId exists
+        let supplier = null
+        if (item.supplierId) {
+          supplier = await prisma.supplier.findUnique({
+            where: { id: item.supplierId },
+            select: {
+              id: true,
+              kode: true,
+              nama: true,
+              alamat: true,
+              telepon: true,
+            }
+          })
+        }
+
         return {
           ...item,
           currentStock: stokBarang?.qty || 0,
-          stockStatus: stokBarang ? (stokBarang.qty >= item.qty ? 'sufficient' : 'insufficient') : 'out_of_stock'
+          stockStatus: stokBarang ? (stokBarang.qty >= item.qty ? 'sufficient' : 'insufficient') : 'out_of_stock',
+          supplier
         }
       })
     )
@@ -265,13 +272,35 @@ export async function PUT(
 
       const details = await Promise.all(detailPromises)
 
+      // Get supplier information for items with supplierId
+      const detailsWithSuppliers = await Promise.all(
+        details.map(async (detail, index) => {
+          let supplier = null
+          if (detail.supplierId) {
+            supplier = await prisma.supplier.findUnique({
+              where: { id: detail.supplierId },
+              select: {
+                id: true,
+                kode: true,
+                nama: true,
+                alamat: true,
+                telepon: true,
+              }
+            })
+          }
+
+          return {
+            ...detail,
+            currentStock: processedItems[index].currentStock,
+            supplier,
+            dropshipSupplier: processedItems[index].dropshipSupplier,
+          }
+        })
+      )
+
       return {
         ...updated,
-        detail: details.map((detail, index) => ({
-          ...detail,
-          currentStock: processedItems[index].currentStock,
-          dropshipSupplier: processedItems[index].dropshipSupplier,
-        }))
+        detail: detailsWithSuppliers
       }
     })
 
@@ -296,7 +325,7 @@ export async function PUT(
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: 'Validation failed', details: error.errors },
+        { error: 'Validation failed', details: error.issues },
         { status: 400 }
       )
     }

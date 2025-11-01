@@ -58,7 +58,7 @@ const SuratJalanPrint = forwardRef<SuratJalanPrintRef, SuratJalanPrintProps>(
     const componentRef = React.useRef<HTMLDivElement>(null)
 
     const handlePrint = useReactToPrint({
-      content: () => componentRef.current,
+      contentRef: componentRef,
       documentTitle: `Surat Jalan - ${data.noSJ}`,
       onAfterPrint: () => {
         onPrintComplete?.()
@@ -79,7 +79,7 @@ const SuratJalanPrint = forwardRef<SuratJalanPrintRef, SuratJalanPrintProps>(
     }))
 
     const calculateTotal = () => {
-      return data.detail.reduce((total, item) => total + item.subtotal, 0)
+      return data.detail.reduce((total, item) => total + Number(item.subtotal), 0)
     }
 
     const calculateTotalQty = () => {

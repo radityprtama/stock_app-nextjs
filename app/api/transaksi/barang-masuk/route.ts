@@ -151,7 +151,7 @@ export async function GET(request: NextRequest) {
     ])
 
     // Calculate statistics
-    const statistics = await prisma.barangMasung.groupBy({
+    const statistics = await prisma.barangMasuk.groupBy({
       by: ['status'],
       _count: {
         id: true,
@@ -177,8 +177,14 @@ export async function GET(request: NextRequest) {
         draftCount: statistics.find(s => s.status === 'draft')?._count.id || 0,
         postedCount: statistics.find(s => s.status === 'posted')?._count.id || 0,
         cancelledCount: statistics.find(s => s.status === 'cancelled')?._count.id || 0,
-        totalValue: statistics.reduce((sum, s) => sum + Number(s._sum.totalNilai || 0), 0),
-        totalQuantity: statistics.reduce((sum, s) => sum + (s._sum.totalQty || 0), 0),
+        totalValue: statistics.reduce(
+          (sum, stat) => sum + Number(stat._sum.totalNilai ?? 0),
+          0
+        ),
+        totalQuantity: statistics.reduce(
+          (sum, stat) => sum + Number(stat._sum.totalQty ?? 0),
+          0
+        ),
       },
     })
   } catch (error) {
@@ -309,7 +315,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: 'Validation failed', details: error.errors },
+        { error: 'Validation failed', details: error.issues },
         { status: 400 }
       )
     }

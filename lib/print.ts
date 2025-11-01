@@ -1,9 +1,11 @@
 import jsPDF from 'jspdf'
 import 'jspdf-autotable'
-import type { UserInputOptions } from 'jspdf-autotable'
+import type { UserOptions } from 'jspdf-autotable'
+
+type RGBColor = [number, number, number]
 
 // Type for autoTable options
-interface AutoTableOptions extends UserInputOptions {
+interface AutoTableOptions extends UserOptions {
   head: string[][]
   body: string[][]
   foot?: string[][]
@@ -34,8 +36,29 @@ interface AutoTableOptions extends UserInputOptions {
   margin?: { top: number; right: number; bottom: number; left: number }
 }
 
+interface PrintCompanyInfo {
+  name: string
+  address: string
+  phone: string
+  email: string
+}
+
+interface PrintConfig {
+  PAGE_WIDTH: number
+  PAGE_HEIGHT: number
+  MARGIN: number
+  TITLE_SIZE: number
+  HEADER_SIZE: number
+  BODY_SIZE: number
+  FOOTER_SIZE: number
+  BLACK: RGBColor
+  GRAY: RGBColor
+  LIGHT_GRAY: RGBColor
+  COMPANY: PrintCompanyInfo
+}
+
 // Print configuration
-export const PRINT_CONFIG = {
+export const PRINT_CONFIG: PrintConfig = {
   // Page settings
   PAGE_WIDTH: 210, // A4 width in mm
   PAGE_HEIGHT: 297, // A4 height in mm
@@ -145,18 +168,18 @@ export const createTable = (doc: jsPDF, options: AutoTableOptions): number => {
       font: 'helvetica',
       fontSize: PRINT_CONFIG.BODY_SIZE,
       cellPadding: 3,
-      lineColor: [...PRINT_CONFIG.GRAY],
+      lineColor: PRINT_CONFIG.GRAY,
       lineWidth: 0.1
     },
     headStyles: {
-      fillColor: [...PRINT_CONFIG.LIGHT_GRAY],
-      textColor: [...PRINT_CONFIG.BLACK],
+      fillColor: PRINT_CONFIG.LIGHT_GRAY,
+      textColor: PRINT_CONFIG.BLACK,
       fontSize: PRINT_CONFIG.BODY_SIZE,
       fontStyle: 'bold'
     },
     bodyStyles: {
       fillColor: [255, 255, 255],
-      textColor: [...PRINT_CONFIG.BLACK]
+      textColor: PRINT_CONFIG.BLACK
     },
     alternateRowStyles: {
       fillColor: [248, 248, 248]

@@ -97,6 +97,9 @@ type SuratJalanDetail = SuratJalanPrintData['detail'][number] & {
     kode: string
     nama: string
   }
+  barang: SuratJalanPrintData['detail'][number]['barang'] & {
+    kode?: string
+  }
 }
 
 interface SuratJalan extends SuratJalanPrintData {
@@ -589,8 +592,12 @@ export default function SuratJalanPage() {
     }).format(amount)
   }
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('id-ID', {
+  const formatDate = (dateValue: string | Date) => {
+    const date = typeof dateValue === 'string' ? new Date(dateValue) : dateValue
+    if (!(date instanceof Date) || Number.isNaN(date.getTime())) {
+      return '-'
+    }
+    return date.toLocaleDateString('id-ID', {
       day: '2-digit',
       month: '2-digit',
       year: 'numeric',
@@ -612,7 +619,7 @@ export default function SuratJalanPage() {
     }
   }
 
-  const getDropshipBadge = (isDropship: boolean, statusDropship?: string) => {
+  const getDropshipBadge = (isDropship?: boolean, statusDropship?: string) => {
     if (!isDropship) return null
 
     let variant: "default" | "secondary" | "destructive" | "outline" = "outline"

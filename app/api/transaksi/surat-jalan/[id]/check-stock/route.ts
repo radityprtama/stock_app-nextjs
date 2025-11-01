@@ -67,9 +67,18 @@ export async function POST(
         const stockShortage = Math.max(0, detail.qty - currentStock)
 
         // Find alternative suppliers if stock is insufficient
-        let alternativeSuppliers = []
+        let alternativeSuppliers: Array<{
+          id: string;
+          kode: string;
+          nama: string;
+          alamat: string;
+          telepon: string;
+          leadTime: number;
+          hargaBeli: number;
+          isPrimary: boolean;
+        }> = []
         if (stockStatus === 'insufficient') {
-          alternativeSuppliers = await prisma.supplierBarang.findMany({
+          const supplierBarangs = await prisma.supplierBarang.findMany({
             where: {
               barangId: detail.barangId,
               supplier: {
@@ -84,7 +93,6 @@ export async function POST(
                   nama: true,
                   alamat: true,
                   telepon: true,
-                  leadTime: true,
                 }
               }
             },
@@ -94,6 +102,13 @@ export async function POST(
               { hargaBeli: 'asc' }
             ],
           })
+          
+          alternativeSuppliers = supplierBarangs.map(supplierBarang => ({
+            ...supplierBarang.supplier,
+            leadTime: supplierBarang.leadTime,
+            hargaBeli: Number(supplierBarang.hargaBeli),
+            isPrimary: supplierBarang.isPrimary,
+          }))
         }
 
         // Check if item is already marked as dropship
@@ -116,12 +131,7 @@ export async function POST(
           dropshipStatus,
           needsDropship,
           canFulfill,
-          alternativeSuppliers: alternativeSuppliers.map(supplier => ({
-            ...supplier.supplier,
-            leadTime: supplier.leadTime,
-            hargaBeli: supplier.hargaBeli,
-            isPrimary: supplier.isPrimary,
-          })),
+          alternativeSuppliers,
           recommendations: generateRecommendations({
             stockStatus,
             isCurrentlyDropship,

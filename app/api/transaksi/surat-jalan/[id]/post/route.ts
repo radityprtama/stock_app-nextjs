@@ -211,7 +211,7 @@ export async function POST(
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: 'Validation failed', details: error.errors },
+        { error: 'Validation failed', details: error.issues },
         { status: 400 }
       )
     }
@@ -350,6 +350,12 @@ async function validateStockForPosting(suratJalan: any, deliveryOption: string) 
   }
 }
 
+type StockValidationPendingItem = {
+  isDropship: boolean
+  dropshipStatus?: string | null
+  [key: string]: unknown
+}
+
 // Helper function to generate next actions after posting
 function generateNextActions(params: {
   suratJalan: any
@@ -357,6 +363,7 @@ function generateNextActions(params: {
   stockValidation: any
 }) {
   const { suratJalan, shippingSummary, stockValidation } = params
+  const pendingItems = (stockValidation.itemsPending ?? []) as StockValidationPendingItem[]
 
   const actions = []
 
@@ -380,8 +387,8 @@ function generateNextActions(params: {
   })
 
   // Handle pending dropship items
-  if (stockValidation.itemsPending.length > 0) {
-    const pendingDropshipItems = stockValidation.itemsPending.filter(item => item.isDropship)
+  if (pendingItems.length > 0) {
+    const pendingDropshipItems = pendingItems.filter(item => item.isDropship)
 
     if (pendingDropshipItems.length > 0) {
       actions.push({
@@ -409,7 +416,7 @@ function generateNextActions(params: {
   }
 
   // Schedule second shipment for partial delivery
-  if (shippingSummary.deliveryOption === 'partial' && stockValidation.itemsPending.length > 0) {
+  if (shippingSummary.deliveryOption === 'partial' && pendingItems.length > 0) {
     actions.push({
       type: 'info',
       label: 'Jadwalkan Pengiriman Kedua',

@@ -56,7 +56,7 @@ const ReturJualPrint = forwardRef<ReturJualPrintRef, ReturJualPrintProps>(
   const componentRef = React.useRef<HTMLDivElement>(null)
 
   const handlePrint = useReactToPrint({
-    content: () => componentRef.current,
+    contentRef: componentRef,
     documentTitle: `Retur Penjualan - ${data.noRetur}`,
     onAfterPrint: () => {
       onPrintComplete?.()
