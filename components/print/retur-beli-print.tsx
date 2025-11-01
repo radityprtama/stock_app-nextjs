@@ -2,10 +2,12 @@ import React, { forwardRef, useImperativeHandle } from 'react'
 import { useReactToPrint } from 'react-to-print'
 import { format } from 'date-fns'
 import { id } from 'date-fns/locale'
-type ReturBeliPrintItem = {
+export type ReturBeliPrintItem = {
   id: string
   barangId?: string
   barang: {
+    id?: string
+    kode?: string
     nama: string
     satuan: string
     ukuran?: string | null

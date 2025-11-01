@@ -7,5 +7,5 @@ export { default as ReturJualPrint } from './retur-jual-print'
 // Re-export types
 export type { SuratJalanPrintRef, SuratJalanPrintData } from './surat-jalan-print'
 export type { DeliveryOrderPrintRef } from './delivery-order-print'
-export type { ReturBeliPrintRef, ReturBeliPrintData } from './retur-beli-print'
+export type { ReturBeliPrintRef, ReturBeliPrintData, ReturBeliPrintItem } from './retur-beli-print'
 export type { ReturJualPrintRef, ReturJualPrintData } from './retur-jual-print'

@@ -22,6 +22,16 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Switch } from '@/components/ui/switch'
@@ -104,6 +114,8 @@ export default function CustomerPage() {
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null)
   const [submitting, setSubmitting] = useState(false)
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null)
 
   const {
     register,
@@ -200,13 +212,16 @@ export default function CustomerPage() {
     setDialogOpen(true)
   }
 
-  const handleDelete = async (customer: Customer) => {
-    if (!confirm(`Apakah Anda yakin ingin menghapus customer "${customer.nama}"?`)) {
-      return
-    }
+  const openDeleteDialog = (customer: Customer) => {
+    setSelectedCustomer(customer)
+    setDeleteDialogOpen(true)
+  }
+
+  const handleDelete = async () => {
+    if (!selectedCustomer) return
 
     try {
-      const response = await fetch(`/api/master/customer/${customer.id}`, {
+      const response = await fetch(`/api/master/customer/${selectedCustomer.id}`, {
         method: 'DELETE',
       })
 
@@ -214,6 +229,8 @@ export default function CustomerPage() {
 
       if (result.success) {
         toast.success('Customer berhasil dihapus')
+        setDeleteDialogOpen(false)
+        setSelectedCustomer(null)
         fetchCustomers()
       } else {
         toast.error(result.error || 'Gagal menghapus customer')
@@ -520,7 +537,7 @@ export default function CustomerPage() {
                               Edit
                             </DropdownMenuItem>
                             <DropdownMenuItem
-                              onClick={() => handleDelete(customer)}
+                              onClick={() => openDeleteDialog(customer)}
                               className="text-red-600"
                             >
                               <Trash2 className="mr-2 h-4 w-4" />
@@ -589,6 +606,22 @@ export default function CustomerPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Konfirmasi Hapus</AlertDialogTitle>
+            <AlertDialogDescription>
+              Apakah Anda yakin ingin menghapus customer "{selectedCustomer?.nama}"? Tindakan ini tidak dapat dibatalkan.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Batal</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete}>Hapus</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

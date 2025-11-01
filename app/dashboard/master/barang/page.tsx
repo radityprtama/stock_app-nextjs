@@ -29,6 +29,16 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog'
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -172,6 +182,8 @@ export default function BarangPage() {
   const [editingBarang, setEditingBarang] = useState<Barang | null>(null)
   const [viewingBarang, setViewingBarang] = useState<Barang | null>(null)
   const [submitting, setSubmitting] = useState(false)
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [selectedBarang, setSelectedBarang] = useState<Barang | null>(null)
 
   const {
     register,
@@ -301,13 +313,16 @@ export default function BarangPage() {
     setDetailDialogOpen(true)
   }
 
-  const handleDelete = async (barang: Barang) => {
-    if (!confirm(`Apakah Anda yakin ingin menghapus barang "${barang.nama}"?`)) {
-      return
-    }
+  const openDeleteDialog = (barang: Barang) => {
+    setSelectedBarang(barang)
+    setDeleteDialogOpen(true)
+  }
+
+  const handleDelete = async () => {
+    if (!selectedBarang) return
 
     try {
-      const response = await fetch(`/api/master/barang/${barang.id}`, {
+      const response = await fetch(`/api/master/barang/${selectedBarang.id}`, {
         method: 'DELETE',
       })
 
@@ -315,6 +330,8 @@ export default function BarangPage() {
 
       if (result.success) {
         toast.success('Barang berhasil dihapus')
+        setDeleteDialogOpen(false)
+        setSelectedBarang(null)
         fetchBarangs()
       } else {
         toast.error(result.error || 'Gagal menghapus barang')
@@ -599,7 +616,7 @@ export default function BarangPage() {
                                   Edit
                                 </DropdownMenuItem>
                                 <DropdownMenuItem
-                                  onClick={() => handleDelete(barang)}
+                                  onClick={() => openDeleteDialog(barang)}
                                   className="text-red-600"
                                 >
                                   <Trash2 className="mr-2 h-4 w-4" />
@@ -1078,6 +1095,22 @@ export default function BarangPage() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Konfirmasi Hapus</AlertDialogTitle>
+            <AlertDialogDescription>
+              Apakah Anda yakin ingin menghapus barang "{selectedBarang?.nama}"? Tindakan ini tidak dapat dibatalkan.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Batal</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete}>Hapus</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

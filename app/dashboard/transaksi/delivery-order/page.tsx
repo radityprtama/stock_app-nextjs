@@ -1,8 +1,8 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
-import { auth } from '@/lib/auth'
-import { redirect } from 'next/navigation'
+import { useState, useRef } from 'react'
+import { useSession } from 'next-auth/react'
+import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -44,7 +44,7 @@ import { format } from 'date-fns'
 import { id } from 'date-fns/locale'
 import { toast } from 'sonner'
 import { DeliveryOrderPrint, type DeliveryOrderPrintRef } from '@/components/print'
-import { Plus, Search, Printer } from 'lucide-react'
+import { Plus, Search, Printer, Package } from 'lucide-react'
 
 type DeliveryOrderForm = {
   noDO?: string
@@ -65,7 +65,8 @@ type DeliveryOrderForm = {
 
 export default function DeliveryOrderPage() {
   const printRef = useRef<DeliveryOrderPrintRef>(null)
-  const [user, setUser] = useState<any>(null)
+  const { data: session, status } = useSession()
+  const router = useRouter()
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false)
   const [selectedDeliveryOrder, setSelectedDeliveryOrder] = useState<any>(null)
@@ -99,17 +100,6 @@ export default function DeliveryOrderPage() {
   const createDeliveryOrder = useCreateDeliveryOrder()
   const updateStatus = useUpdateDeliveryOrderStatus()
   const deleteDeliveryOrder = useDeleteDeliveryOrder()
-
-  useEffect(() => {
-    const checkAuth = async () => {
-      const session = await auth()
-      if (!session) {
-        redirect('/login')
-      }
-      setUser(session.user)
-    }
-    checkAuth()
-  }, [])
 
   const handleCreate = async () => {
     try {
@@ -160,6 +150,18 @@ export default function DeliveryOrderPage() {
     }
   }
 
+  const openAddDialog = () => {
+    setForm({
+      gudangAsalId: '',
+      gudangTujuan: '',
+      namaSupir: '',
+      nopolKendaraan: '',
+      keterangan: '',
+      items: []
+    })
+    setIsCreateModalOpen(true)
+  }
+
   const openDetailModal = (deliveryOrder: any) => {
     setSelectedDeliveryOrder(deliveryOrder)
     setIsDetailModalOpen(true)
@@ -199,8 +201,13 @@ export default function DeliveryOrderPage() {
     }, 100)
   }
 
-  if (!user) {
+  if (status === 'loading') {
     return <div>Loading...</div>
+  }
+
+  if (status === 'unauthenticated') {
+    router.push('/auth/login')
+    return null
   }
 
   return (
@@ -233,27 +240,45 @@ export default function DeliveryOrderPage() {
             </div>
             <div>
               <Label htmlFor="status">Status</Label>
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <Select
+                value={statusFilter || "all"}
+                onValueChange={(value) =>
+                  setStatusFilter(value === "all" ? "" : value)
+                }
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Semua Status" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Semua Status</SelectItem>
-                  <SelectItem value={TRANSACTION_STATUS.DRAFT}>Draft</SelectItem>
-                  <SelectItem value={TRANSACTION_STATUS.IN_TRANSIT}>Dalam Perjalanan</SelectItem>
-                  <SelectItem value={TRANSACTION_STATUS.DELIVERED}>Terkirim</SelectItem>
-                  <SelectItem value={TRANSACTION_STATUS.CANCELLED}>Dibatalkan</SelectItem>
+                  <SelectItem value="all">Semua Status</SelectItem>
+                  <SelectItem value={TRANSACTION_STATUS.DRAFT}>
+                    Draft
+                  </SelectItem>
+                  <SelectItem value={TRANSACTION_STATUS.IN_TRANSIT}>
+                    Dalam Perjalanan
+                  </SelectItem>
+                  <SelectItem value={TRANSACTION_STATUS.DELIVERED}>
+                    Terkirim
+                  </SelectItem>
+                  <SelectItem value={TRANSACTION_STATUS.CANCELLED}>
+                    Dibatalkan
+                  </SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div>
               <Label htmlFor="gudang">Gudang Asal</Label>
-              <Select value={gudangFilter} onValueChange={setGudangFilter}>
+              <Select
+                value={gudangFilter || "all"}
+                onValueChange={(value) =>
+                  setGudangFilter(value === "all" ? "" : value)
+                }
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Semua Gudang" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Semua Gudang</SelectItem>
+                  <SelectItem value="all">Semua Gudang</SelectItem>
                   {gudangList?.data.map((gudang) => (
                     <SelectItem key={gudang.id} value={gudang.id}>
                       {gudang.nama}
@@ -266,10 +291,10 @@ export default function DeliveryOrderPage() {
               <Button
                 variant="outline"
                 onClick={() => {
-                  setSearch('')
-                  setStatusFilter('')
-                  setGudangFilter('')
-                  setPage(1)
+                  setSearch("");
+                  setStatusFilter("");
+                  setGudangFilter("");
+                  setPage(1);
                 }}
               >
                 Reset
@@ -308,15 +333,23 @@ export default function DeliveryOrderPage() {
                 <TableBody>
                   {deliveryOrdersData?.data.map((deliveryOrder: any) => (
                     <TableRow key={deliveryOrder.id}>
-                      <TableCell className="font-medium">{deliveryOrder.noDO}</TableCell>
+                      <TableCell className="font-medium">
+                        {deliveryOrder.noDO}
+                      </TableCell>
                       <TableCell>
-                        {format(new Date(deliveryOrder.tanggal), 'dd MMM yyyy', { locale: id })}
+                        {format(
+                          new Date(deliveryOrder.tanggal),
+                          "dd MMM yyyy",
+                          { locale: id }
+                        )}
                       </TableCell>
                       <TableCell>{deliveryOrder.gudangAsal.nama}</TableCell>
                       <TableCell>{deliveryOrder.gudangTujuan}</TableCell>
                       <TableCell>{deliveryOrder.namaSupir}</TableCell>
                       <TableCell>{deliveryOrder.nopolKendaraan}</TableCell>
-                      <TableCell>{getStatusBadge(deliveryOrder.status)}</TableCell>
+                      <TableCell>
+                        {getStatusBadge(deliveryOrder.status)}
+                      </TableCell>
                       <TableCell>
                         <div className="flex gap-2">
                           <Button
@@ -326,20 +359,32 @@ export default function DeliveryOrderPage() {
                           >
                             Detail
                           </Button>
-                          {deliveryOrder.status === TRANSACTION_STATUS.DRAFT && (
+                          {deliveryOrder.status ===
+                            TRANSACTION_STATUS.DRAFT && (
                             <Button
                               variant="outline"
                               size="sm"
-                              onClick={() => handleStatusUpdate(deliveryOrder.id, TRANSACTION_STATUS.IN_TRANSIT)}
+                              onClick={() =>
+                                handleStatusUpdate(
+                                  deliveryOrder.id,
+                                  TRANSACTION_STATUS.IN_TRANSIT
+                                )
+                              }
                             >
                               Kirim
                             </Button>
                           )}
-                          {deliveryOrder.status === TRANSACTION_STATUS.IN_TRANSIT && (
+                          {deliveryOrder.status ===
+                            TRANSACTION_STATUS.IN_TRANSIT && (
                             <Button
                               variant="outline"
                               size="sm"
-                              onClick={() => handleStatusUpdate(deliveryOrder.id, TRANSACTION_STATUS.DELIVERED)}
+                              onClick={() =>
+                                handleStatusUpdate(
+                                  deliveryOrder.id,
+                                  TRANSACTION_STATUS.DELIVERED
+                                )
+                              }
                             >
                               Terima
                             </Button>
@@ -353,7 +398,8 @@ export default function DeliveryOrderPage() {
                             Print
                           </Button>
                           {(deliveryOrder.status === TRANSACTION_STATUS.DRAFT ||
-                            deliveryOrder.status === TRANSACTION_STATUS.CANCELLED) && (
+                            deliveryOrder.status ===
+                              TRANSACTION_STATUS.CANCELLED) && (
                             <Button
                               variant="destructive"
                               size="sm"
@@ -369,11 +415,29 @@ export default function DeliveryOrderPage() {
                 </TableBody>
               </Table>
 
+              {deliveryOrdersData?.data.length === 0 && (
+                <div className="flex flex-col items-center justify-center py-8">
+                  <Package className="h-12 w-12 text-gray-400 mb-4" />
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">
+                    Belum ada transaksi Barang Masuk
+                  </h3>
+                  <p className="text-gray-500 mb-4">
+                    Mulai dengan membuat transaksi Barang Masuk pertama
+                  </p>
+                  <Button onClick={openAddDialog}>
+                    <Plus className="mr-2 h-4 w-4" />
+                    Delivery Order Baru
+                  </Button>
+                </div>
+              )}
+
               {/* Pagination */}
               {deliveryOrdersData?.pagination && (
                 <div className="flex justify-between items-center mt-4">
                   <div className="text-sm text-gray-600">
-                    Menampilkan {((page - 1) * 10) + 1} - {Math.min(page * 10, deliveryOrdersData.pagination.total)} dari {deliveryOrdersData.pagination.total}
+                    Menampilkan {(page - 1) * 10 + 1} -{" "}
+                    {Math.min(page * 10, deliveryOrdersData.pagination.total)}{" "}
+                    dari {deliveryOrdersData.pagination.total}
                   </div>
                   <div className="flex gap-2">
                     <Button
@@ -388,7 +452,9 @@ export default function DeliveryOrderPage() {
                       variant="outline"
                       size="sm"
                       onClick={() => setPage(page + 1)}
-                      disabled={page >= deliveryOrdersData.pagination.totalPages}
+                      disabled={
+                        page >= deliveryOrdersData.pagination.totalPages
+                      }
                     >
                       Next
                     </Button>
@@ -415,7 +481,9 @@ export default function DeliveryOrderPage() {
                 <Label htmlFor="gudangAsal">Gudang Asal</Label>
                 <Select
                   value={form.gudangAsalId}
-                  onValueChange={(value) => setForm({ ...form, gudangAsalId: value })}
+                  onValueChange={(value) =>
+                    setForm({ ...form, gudangAsalId: value })
+                  }
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Pilih Gudang" />
@@ -435,7 +503,9 @@ export default function DeliveryOrderPage() {
                   id="gudangTujuan"
                   placeholder="Masukkan tujuan pengiriman"
                   value={form.gudangTujuan}
-                  onChange={(e) => setForm({ ...form, gudangTujuan: e.target.value })}
+                  onChange={(e) =>
+                    setForm({ ...form, gudangTujuan: e.target.value })
+                  }
                 />
               </div>
             </div>
@@ -446,7 +516,9 @@ export default function DeliveryOrderPage() {
                   id="namaSupir"
                   placeholder="Masukkan nama supir"
                   value={form.namaSupir}
-                  onChange={(e) => setForm({ ...form, namaSupir: e.target.value })}
+                  onChange={(e) =>
+                    setForm({ ...form, namaSupir: e.target.value })
+                  }
                 />
               </div>
               <div>
@@ -455,7 +527,9 @@ export default function DeliveryOrderPage() {
                   id="nopolKendaraan"
                   placeholder="Masukkan nomor polisi"
                   value={form.nopolKendaraan}
-                  onChange={(e) => setForm({ ...form, nopolKendaraan: e.target.value })}
+                  onChange={(e) =>
+                    setForm({ ...form, nopolKendaraan: e.target.value })
+                  }
                 />
               </div>
             </div>
@@ -465,17 +539,27 @@ export default function DeliveryOrderPage() {
                 id="keterangan"
                 placeholder="Masukkan keterangan (opsional)"
                 value={form.keterangan}
-                onChange={(e) => setForm({ ...form, keterangan: e.target.value })}
+                onChange={(e) =>
+                  setForm({ ...form, keterangan: e.target.value })
+                }
               />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsCreateModalOpen(false)}>
+            <Button
+              variant="outline"
+              onClick={() => setIsCreateModalOpen(false)}
+            >
               Batal
             </Button>
             <Button
               onClick={handleCreate}
-              disabled={!form.gudangAsalId || !form.gudangTujuan || !form.namaSupir || !form.nopolKendaraan}
+              disabled={
+                !form.gudangAsalId ||
+                !form.gudangTujuan ||
+                !form.namaSupir ||
+                !form.nopolKendaraan
+              }
             >
               Simpan
             </Button>
@@ -499,67 +583,84 @@ export default function DeliveryOrderPage() {
                 <div>
                   <Label>Tanggal</Label>
                   <p className="font-medium">
-                    {format(new Date(selectedDeliveryOrder.tanggal), 'dd MMM yyyy HH:mm', { locale: id })}
+                    {format(
+                      new Date(selectedDeliveryOrder.tanggal),
+                      "dd MMM yyyy HH:mm",
+                      { locale: id }
+                    )}
                   </p>
                 </div>
                 <div>
                   <Label>Gudang Asal</Label>
-                  <p className="font-medium">{selectedDeliveryOrder.gudangAsal.nama}</p>
+                  <p className="font-medium">
+                    {selectedDeliveryOrder.gudangAsal.nama}
+                  </p>
                 </div>
                 <div>
                   <Label>Tujuan</Label>
-                  <p className="font-medium">{selectedDeliveryOrder.gudangTujuan}</p>
+                  <p className="font-medium">
+                    {selectedDeliveryOrder.gudangTujuan}
+                  </p>
                 </div>
                 <div>
                   <Label>Supir</Label>
-                  <p className="font-medium">{selectedDeliveryOrder.namaSupir}</p>
+                  <p className="font-medium">
+                    {selectedDeliveryOrder.namaSupir}
+                  </p>
                 </div>
                 <div>
                   <Label>Nomor Polisi</Label>
-                  <p className="font-medium">{selectedDeliveryOrder.nopolKendaraan}</p>
+                  <p className="font-medium">
+                    {selectedDeliveryOrder.nopolKendaraan}
+                  </p>
                 </div>
               </div>
               <div>
                 <Label>Status</Label>
-                <div className="mt-1">{getStatusBadge(selectedDeliveryOrder.status)}</div>
+                <div className="mt-1">
+                  {getStatusBadge(selectedDeliveryOrder.status)}
+                </div>
               </div>
               {selectedDeliveryOrder.keterangan && (
                 <div>
                   <Label>Keterangan</Label>
-                  <p className="font-medium">{selectedDeliveryOrder.keterangan}</p>
+                  <p className="font-medium">
+                    {selectedDeliveryOrder.keterangan}
+                  </p>
                 </div>
               )}
-              {selectedDeliveryOrder.detail && selectedDeliveryOrder.detail.length > 0 && (
-                <div>
-                  <Label>Barang yang Dikirim</Label>
-                  <Table className="mt-2">
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Nama Barang</TableHead>
-                        <TableHead>Qty</TableHead>
-                        <TableHead>Satuan</TableHead>
-                        <TableHead>Keterangan</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {selectedDeliveryOrder.detail.map((item: any, index: number) => (
-                        <TableRow key={index}>
-                          <TableCell>{item.namaBarang}</TableCell>
-                          <TableCell>{item.qty}</TableCell>
-                          <TableCell>{item.satuan}</TableCell>
-                          <TableCell>{item.keterangan || '-'}</TableCell>
+              {selectedDeliveryOrder.detail &&
+                selectedDeliveryOrder.detail.length > 0 && (
+                  <div>
+                    <Label>Barang yang Dikirim</Label>
+                    <Table className="mt-2">
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Nama Barang</TableHead>
+                          <TableHead>Qty</TableHead>
+                          <TableHead>Satuan</TableHead>
+                          <TableHead>Keterangan</TableHead>
                         </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              )}
+                      </TableHeader>
+                      <TableBody>
+                        {selectedDeliveryOrder.detail.map(
+                          (item: any, index: number) => (
+                            <TableRow key={index}>
+                              <TableCell>{item.namaBarang}</TableCell>
+                              <TableCell>{item.qty}</TableCell>
+                              <TableCell>{item.satuan}</TableCell>
+                              <TableCell>{item.keterangan || "-"}</TableCell>
+                            </TableRow>
+                          )
+                        )}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
             </div>
           )}
           <DialogFooter>
-            <Button onClick={() => setIsDetailModalOpen(false)}>
-              Tutup
-            </Button>
+            <Button onClick={() => setIsDetailModalOpen(false)}>Tutup</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -570,8 +671,9 @@ export default function DeliveryOrderPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Konfirmasi Hapus</AlertDialogTitle>
             <AlertDialogDescription>
-              Apakah Anda yakin ingin menghapus delivery order "{selectedDeliveryOrder?.noDO}"?
-              Tindakan ini tidak dapat dibatalkan.
+              Apakah Anda yakin ingin menghapus delivery order "
+              {selectedDeliveryOrder?.noDO}"? Tindakan ini tidak dapat
+              dibatalkan.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -587,10 +689,10 @@ export default function DeliveryOrderPage() {
           ref={printRef}
           data={selectedDeliveryOrder}
           onPrintComplete={() => {
-            toast.success('Dokumen berhasil dicetak')
+            toast.success("Dokumen berhasil dicetak");
           }}
         />
       )}
     </div>
-  )
+  );
 }

@@ -24,6 +24,16 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Switch } from '@/components/ui/switch'
@@ -92,6 +102,8 @@ export default function GudangPage() {
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editingGudang, setEditingGudang] = useState<Gudang | null>(null)
   const [submitting, setSubmitting] = useState(false)
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [selectedGudang, setSelectedGudang] = useState<Gudang | null>(null)
 
   const {
     register,
@@ -183,13 +195,16 @@ export default function GudangPage() {
     setDialogOpen(true)
   }
 
-  const handleDelete = async (gudang: Gudang) => {
-    if (!confirm(`Apakah Anda yakin ingin menghapus gudang "${gudang.nama}"?`)) {
-      return
-    }
+  const openDeleteDialog = (gudang: Gudang) => {
+    setSelectedGudang(gudang)
+    setDeleteDialogOpen(true)
+  }
+
+  const handleDelete = async () => {
+    if (!selectedGudang) return
 
     try {
-      const response = await fetch(`/api/master/gudang/${gudang.id}`, {
+      const response = await fetch(`/api/master/gudang/${selectedGudang.id}`, {
         method: 'DELETE',
       })
 
@@ -197,6 +212,8 @@ export default function GudangPage() {
 
       if (result.success) {
         toast.success('Gudang berhasil dihapus')
+        setDeleteDialogOpen(false)
+        setSelectedGudang(null)
         fetchGudangs()
       } else {
         toast.error(result.error || 'Gagal menghapus gudang')
@@ -414,7 +431,7 @@ export default function GudangPage() {
                               Edit
                             </DropdownMenuItem>
                             <DropdownMenuItem
-                              onClick={() => handleDelete(gudang)}
+                              onClick={() => openDeleteDialog(gudang)}
                               className="text-red-600"
                             >
                               <Trash2 className="mr-2 h-4 w-4" />
@@ -483,6 +500,22 @@ export default function GudangPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Konfirmasi Hapus</AlertDialogTitle>
+            <AlertDialogDescription>
+              Apakah Anda yakin ingin menghapus gudang "{selectedGudang?.nama}"? Tindakan ini tidak dapat dibatalkan.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Batal</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete}>Hapus</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

@@ -5,7 +5,7 @@ import type { UserOptions } from 'jspdf-autotable'
 type RGBColor = [number, number, number]
 
 // Type for autoTable options
-interface AutoTableOptions extends UserOptions {
+interface AutoTableOptions extends Omit<UserOptions, 'styles' | 'headStyles' | 'bodyStyles' | 'alternateRowStyles'> {
   head: string[][]
   body: string[][]
   foot?: string[][]
@@ -14,24 +14,24 @@ interface AutoTableOptions extends UserOptions {
     font?: string
     fontSize?: number
     cellPadding?: number
-    fillColor?: number[]
-    textColor?: number[]
-    lineColor?: number[]
+    fillColor?: RGBColor
+    textColor?: RGBColor
+    lineColor?: RGBColor
     lineWidth?: number
   }
   headStyles?: {
-    fillColor?: number[]
-    textColor?: number[]
+    fillColor?: RGBColor
+    textColor?: RGBColor
     fontSize?: number
     fontStyle?: 'normal' | 'bold' | 'italic' | 'bolditalic'
   }
   bodyStyles?: {
-    fillColor?: number[]
-    textColor?: number[]
+    fillColor?: RGBColor
+    textColor?: RGBColor
     fontSize?: number
   }
   alternateRowStyles?: {
-    fillColor?: number[]
+    fillColor?: RGBColor
   }
   margin?: { top: number; right: number; bottom: number; left: number }
 }

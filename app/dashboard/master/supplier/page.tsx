@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Switch } from '@/components/ui/switch'
@@ -60,6 +61,8 @@ export default function SupplierPage() {
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editingSupplier, setEditingSupplier] = useState<Supplier | null>(null)
   const [submitting, setSubmitting] = useState(false)
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [selectedSupplier, setSelectedSupplier] = useState<Supplier | null>(null)
 
   const {
     register,
@@ -143,13 +146,21 @@ export default function SupplierPage() {
     setDialogOpen(true)
   }
 
-  const handleDelete = async (supplier: Supplier) => {
-    if (!confirm(`Apakah Anda yakin ingin menghapus supplier "${supplier.nama}"?`)) return
+  const openDeleteDialog = (supplier: Supplier) => {
+    setSelectedSupplier(supplier)
+    setDeleteDialogOpen(true)
+  }
+
+  const handleDelete = async () => {
+    if (!selectedSupplier) return
+
     try {
-      const response = await fetch(`/api/master/supplier/${supplier.id}`, { method: 'DELETE' })
+      const response = await fetch(`/api/master/supplier/${selectedSupplier.id}`, { method: 'DELETE' })
       const result = await response.json()
       if (result.success) {
         toast.success('Supplier berhasil dihapus')
+        setDeleteDialogOpen(false)
+        setSelectedSupplier(null)
         fetchSuppliers()
       } else {
         toast.error(result.error || 'Gagal menghapus supplier')
@@ -236,7 +247,7 @@ export default function SupplierPage() {
                           <DropdownMenuTrigger asChild><Button variant="ghost" size="sm"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
                             <DropdownMenuItem onClick={() => handleEdit(supplier)}><Edit className="mr-2 h-4 w-4" />Edit</DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleDelete(supplier)} className="text-red-600"><Trash2 className="mr-2 h-4 w-4" />Hapus</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => openDeleteDialog(supplier)} className="text-red-600"><Trash2 className="mr-2 h-4 w-4" />Hapus</DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </TableCell>
@@ -252,6 +263,22 @@ export default function SupplierPage() {
           }
         </CardContent>
       </Card>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Konfirmasi Hapus</AlertDialogTitle>
+            <AlertDialogDescription>
+              Apakah Anda yakin ingin menghapus supplier "{selectedSupplier?.nama}"? Tindakan ini tidak dapat dibatalkan.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Batal</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete}>Hapus</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

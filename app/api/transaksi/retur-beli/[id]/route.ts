@@ -44,13 +44,6 @@ export async function GET(
             email: true,
           },
         },
-        barangMasukRef: {
-          select: {
-            id: true,
-            noDokumen: true,
-            tanggal: true,
-          },
-        },
         detail: {
           include: {
             barang: {
@@ -73,9 +66,23 @@ export async function GET(
       )
     }
 
+    // Fetch related BarangMasuk if reference exists (since it's not a Prisma relation)
+    let barangMasukRef = null
+    if (returBeli.barangMasukRef) {
+      barangMasukRef = await prisma.barangMasuk.findUnique({
+        where: { id: returBeli.barangMasukRef },
+        select: {
+          id: true,
+          noDokumen: true,
+          tanggal: true,
+        },
+      })
+    }
+
     // Get current stock for each item
     const returBeliWithStock = {
       ...returBeli,
+      barangMasukRef,
       detail: await Promise.all(
         returBeli.detail.map(async (detail) => {
           // Get stock from the main warehouse or first available warehouse

@@ -242,7 +242,14 @@ export async function GET(request: NextRequest) {
       .slice(0, 10)
 
     // Monthly trend
-    const monthlyTrend = purchaseData.reduce((acc, item) => {
+    type MonthlyTrendItem = {
+      month: string
+      totalQty: number
+      totalNilai: number
+      transactions: number
+    }
+
+    const monthlyTrend = purchaseData.reduce<Record<string, MonthlyTrendItem>>((acc, item) => {
       const monthKey = item.tanggal.toISOString().slice(0, 7) // YYYY-MM
       if (!acc[monthKey]) {
         acc[monthKey] = { month: monthKey, totalQty: 0, totalNilai: 0, transactions: 0 }
@@ -251,7 +258,7 @@ export async function GET(request: NextRequest) {
       acc[monthKey].totalNilai += item.subtotal
       acc[monthKey].transactions += 1
       return acc
-    }, {} as any)
+    }, {})
 
     const report = {
       summary,

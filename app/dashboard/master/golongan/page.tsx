@@ -24,6 +24,16 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Switch } from '@/components/ui/switch'
@@ -84,6 +94,8 @@ export default function GolonganPage() {
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editingGolongan, setEditingGolongan] = useState<Golongan | null>(null)
   const [submitting, setSubmitting] = useState(false)
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [selectedGolongan, setSelectedGolongan] = useState<Golongan | null>(null)
 
   const {
     register,
@@ -173,13 +185,16 @@ export default function GolonganPage() {
     setDialogOpen(true)
   }
 
-  const handleDelete = async (golongan: Golongan) => {
-    if (!confirm(`Apakah Anda yakin ingin menghapus golongan "${golongan.nama}"?`)) {
-      return
-    }
+  const openDeleteDialog = (golongan: Golongan) => {
+    setSelectedGolongan(golongan)
+    setDeleteDialogOpen(true)
+  }
+
+  const handleDelete = async () => {
+    if (!selectedGolongan) return
 
     try {
-      const response = await fetch(`/api/master/golongan/${golongan.id}`, {
+      const response = await fetch(`/api/master/golongan/${selectedGolongan.id}`, {
         method: 'DELETE',
       })
 
@@ -187,6 +202,8 @@ export default function GolonganPage() {
 
       if (result.success) {
         toast.success('Golongan berhasil dihapus')
+        setDeleteDialogOpen(false)
+        setSelectedGolongan(null)
         fetchGolongans()
       } else {
         toast.error(result.error || 'Gagal menghapus golongan')
@@ -371,7 +388,7 @@ export default function GolonganPage() {
                               Edit
                             </DropdownMenuItem>
                             <DropdownMenuItem
-                              onClick={() => handleDelete(golongan)}
+                              onClick={() => openDeleteDialog(golongan)}
                               className="text-red-600"
                             >
                               <Trash2 className="mr-2 h-4 w-4" />
@@ -440,6 +457,22 @@ export default function GolonganPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Konfirmasi Hapus</AlertDialogTitle>
+            <AlertDialogDescription>
+              Apakah Anda yakin ingin menghapus golongan "{selectedGolongan?.nama}"? Tindakan ini tidak dapat dibatalkan.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Batal</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete}>Hapus</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
