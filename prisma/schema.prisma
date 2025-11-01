@@ -1,0 +1,422 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// Master Data
+
+model Gudang {
+  id          String   @id @default(cuid())
+  kode        String   @unique
+  nama        String
+  alamat      String   @db.Text
+  telepon     String?
+  pic         String?  // Person in Charge
+  aktif       Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  stokBarang      StokBarang[]
+  barangMasuk     BarangMasuk[]
+  deliveryOrders  DeliveryOrder[]
+  suratJalan      SuratJalan[]
+}
+
+model Customer {
+  id          String   @id @default(cuid())
+  kode        String   @unique
+  nama        String
+  alamat      String   @db.Text
+  telepon     String
+  email       String?
+  npwp        String?
+  tipePelanggan String // "retail", "wholesale", "distributor"
+  limitKredit Decimal? @db.Decimal(15,2)
+  aktif       Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  suratJalan  SuratJalan[]
+  returJual   ReturJual[]
+}
+
+model Supplier {
+  id          String   @id @default(cuid())
+  kode        String   @unique
+  nama        String
+  alamat      String   @db.Text
+  telepon     String
+  email       String?
+  npwp        String?
+  termPembayaran Int @default(30) // dalam hari
+  aktif       Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  barangMasuk     BarangMasuk[]
+  returBeli       ReturBeli[]
+  supplierBarang  SupplierBarang[] // barang yang dijual supplier
+}
+
+model Golongan {
+  id          String   @id @default(cuid())
+  kode        String   @unique
+  nama        String
+  deskripsi   String?  @db.Text
+  aktif       Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  barang      Barang[]
+}
+
+model Barang {
+  id          String   @id @default(cuid())
+  kode        String   @unique
+  nama        String
+  ukuran      String?  // "32 inch", "Medium", dll
+  tipe        String?  // "LED", "Spring Bed", dll
+  merk        String?  // "Samsung", "King Koil", dll
+  golonganId  String
+  golongan    Golongan @relation(fields: [golonganId], references: [id])
+
+  hargaBeli   Decimal  @db.Decimal(15,2)
+  hargaJual   Decimal  @db.Decimal(15,2)
+  satuan      String   // "pcs", "unit", "box"
+
+  minStok     Int      @default(0)
+  maxStok     Int?
+
+  // Flag untuk barang yang kita jual tapi ambil dari supplier lain
+  isDropship  Boolean  @default(false)
+
+  aktif       Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  stokBarang        StokBarang[]
+  detailBarangMasuk DetailBarangMasuk[]
+  detailSuratJalan  DetailSuratJalan[]
+  detailReturBeli   DetailReturBeli[]
+  detailReturJual   DetailReturJual[]
+  supplierBarang    SupplierBarang[]
+
+  @@index([golonganId])
+}
+
+model SupplierBarang {
+  id          String   @id @default(cuid())
+  barangId    String
+  barang      Barang   @relation(fields: [barangId], references: [id])
+  supplierId  String
+  supplier    Supplier @relation(fields: [supplierId], references: [id])
+
+  hargaBeli   Decimal  @db.Decimal(15,2)
+  leadTime    Int      @default(0) // hari pengiriman
+  isPrimary   Boolean  @default(false) // supplier utama
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([barangId, supplierId])
+  @@index([barangId])
+  @@index([supplierId])
+}
+
+// Stok Management
+
+model StokBarang {
+  id          String   @id @default(cuid())
+  barangId    String
+  barang      Barang   @relation(fields: [barangId], references: [id])
+  gudangId    String
+  gudang      Gudang   @relation(fields: [gudangId], references: [id])
+
+  qty         Int      @default(0)
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([barangId, gudangId])
+  @@index([barangId])
+  @@index([gudangId])
+}
+
+// Transaksi Barang Masuk
+
+model BarangMasuk {
+  id          String   @id @default(cuid())
+  noDokumen   String   @unique
+  tanggal     DateTime @default(now())
+
+  supplierId  String
+  supplier    Supplier @relation(fields: [supplierId], references: [id])
+  gudangId    String
+  gudang      Gudang   @relation(fields: [gudangId], references: [id])
+
+  totalQty    Int
+  totalNilai  Decimal  @db.Decimal(15,2)
+
+  keterangan  String?  @db.Text
+  status      String   @default("draft") // draft, posted, cancelled
+
+  createdBy   String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  detail      DetailBarangMasuk[]
+
+  @@index([supplierId])
+  @@index([gudangId])
+  @@index([tanggal])
+}
+
+model DetailBarangMasuk {
+  id            String       @id @default(cuid())
+  barangMasukId String
+  barangMasuk   BarangMasuk  @relation(fields: [barangMasukId], references: [id], onDelete: Cascade)
+  barangId      String
+  barang        Barang       @relation(fields: [barangId], references: [id])
+
+  qty           Int
+  harga         Decimal      @db.Decimal(15,2)
+  subtotal      Decimal      @db.Decimal(15,2)
+
+  createdAt     DateTime     @default(now())
+
+  @@index([barangMasukId])
+  @@index([barangId])
+}
+
+// Transaksi Barang Keluar
+
+model DeliveryOrder {
+  id              String   @id @default(cuid())
+  noDO            String   @unique
+  tanggal         DateTime @default(now())
+
+  gudangAsalId    String
+  gudangAsal      Gudang   @relation(fields: [gudangAsalId], references: [id])
+  gudangTujuan    String   // bisa nama gudang lain atau alamat
+
+  namaSupir       String
+  nopolKendaraan  String
+
+  keterangan      String?  @db.Text
+  status          String   @default("draft") // draft, in_transit, delivered, cancelled
+
+  tanggalBerangkat DateTime?
+  tanggalSampai    DateTime?
+
+  createdBy       String
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  detail          DetailDeliveryOrder[]
+
+  @@index([gudangAsalId])
+  @@index([tanggal])
+}
+
+model DetailDeliveryOrder {
+  id              String        @id @default(cuid())
+  deliveryOrderId String
+  deliveryOrder   DeliveryOrder @relation(fields: [deliveryOrderId], references: [id], onDelete: Cascade)
+  barangId        String
+
+  namaBarang      String // snapshot untuk history
+  qty             Int
+  satuan          String
+
+  keterangan      String?
+
+  createdAt       DateTime      @default(now())
+
+  @@index([deliveryOrderId])
+}
+
+model SuratJalan {
+  id              String   @id @default(cuid())
+  noSJ            String   @unique
+  tanggal         DateTime @default(now())
+
+  customerId      String
+  customer        Customer @relation(fields: [customerId], references: [id])
+  gudangId        String
+  gudang          Gudang   @relation(fields: [gudangId], references: [id])
+
+  alamatKirim     String   @db.Text
+
+  namaSupir       String
+  nopolKendaraan  String
+
+  totalQty        Int
+  totalNilai      Decimal  @db.Decimal(15,2)
+
+  keterangan      String?  @db.Text
+  status          String   @default("draft") // draft, in_transit, delivered, cancelled
+
+  tanggalKirim    DateTime?
+  tanggalTerima   DateTime?
+  namaPenerima    String?
+
+  createdBy       String
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  detail          DetailSuratJalan[]
+  returJual       ReturJual[]
+
+  @@index([customerId])
+  @@index([gudangId])
+  @@index([tanggal])
+}
+
+model DetailSuratJalan {
+  id            String      @id @default(cuid())
+  suratJalanId  String
+  suratJalan    SuratJalan  @relation(fields: [suratJalanId], references: [id], onDelete: Cascade)
+  barangId      String
+  barang        Barang      @relation(fields: [barangId], references: [id])
+
+  qty           Int
+  hargaJual     Decimal     @db.Decimal(15,2)
+  subtotal      Decimal     @db.Decimal(15,2)
+
+  // Flag untuk barang dropship (ambil dari supplier lain)
+  isDropship    Boolean     @default(false)
+  supplierId    String?     // jika dropship, dari supplier mana
+  statusDropship String?    // "pending", "ordered", "received"
+
+  keterangan    String?
+
+  createdAt     DateTime    @default(now())
+
+  @@index([suratJalanId])
+  @@index([barangId])
+}
+
+// Transaksi Retur
+
+model ReturBeli {
+  id              String   @id @default(cuid())
+  noRetur         String   @unique
+  tanggal         DateTime @default(now())
+
+  supplierId      String
+  supplier        Supplier @relation(fields: [supplierId], references: [id])
+  barangMasukRef  String?  // referensi ke BarangMasuk (opsional)
+
+  totalQty        Int
+  totalNilai      Decimal  @db.Decimal(15,2)
+
+  alasan          String   @db.Text
+  status          String   @default("draft") // draft, approved, completed
+
+  createdBy       String
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  detail          DetailReturBeli[]
+
+  @@index([supplierId])
+  @@index([tanggal])
+}
+
+model DetailReturBeli {
+  id            String      @id @default(cuid())
+  returBeliId   String
+  returBeli     ReturBeli   @relation(fields: [returBeliId], references: [id], onDelete: Cascade)
+  barangId      String
+  barang        Barang      @relation(fields: [barangId], references: [id])
+
+  qty           Int
+  harga         Decimal     @db.Decimal(15,2)
+  subtotal      Decimal     @db.Decimal(15,2)
+
+  alasan        String      // "Rusak", "Tidak Sesuai", "Kadaluarsa"
+
+  createdAt     DateTime    @default(now())
+
+  @@index([returBeliId])
+  @@index([barangId])
+}
+
+model ReturJual {
+  id              String   @id @default(cuid())
+  noRetur         String   @unique
+  tanggal         DateTime @default(now())
+
+  customerId      String
+  customer        Customer @relation(fields: [customerId], references: [id])
+  suratJalanId    String?
+  suratJalan      SuratJalan? @relation(fields: [suratJalanId], references: [id])
+
+  totalQty        Int
+  totalNilai      Decimal  @db.Decimal(15,2)
+
+  alasan          String   @db.Text
+  status          String   @default("draft") // draft, approved, completed
+
+  createdBy       String
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  detail          DetailReturJual[]
+
+  @@index([customerId])
+  @@index([suratJalanId])
+  @@index([tanggal])
+}
+
+model DetailReturJual {
+  id            String      @id @default(cuid())
+  returJualId   String
+  returJual     ReturJual   @relation(fields: [returJualId], references: [id], onDelete: Cascade)
+  barangId      String
+  barang        Barang      @relation(fields: [barangId], references: [id])
+
+  qty           Int
+  harga         Decimal     @db.Decimal(15,2)
+  subtotal      Decimal     @db.Decimal(15,2)
+
+  alasan        String      // "Rusak", "Tidak Sesuai Pesanan", "Cacat"
+  kondisi       String      // "bisa_dijual_lagi", "rusak_total"
+
+  createdAt     DateTime    @default(now())
+
+  @@index([returJualId])
+  @@index([barangId])
+}
+
+// User Management
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  username      String    @unique
+  password      String    // hashed
+  namaLengkap   String
+  role          String    // "admin", "staff_gudang", "sales", "manager"
+  aktif         Boolean   @default(true)
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}

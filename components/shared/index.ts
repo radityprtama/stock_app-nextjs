@@ -1,0 +1,10 @@
+// Re-export all shared components
+export { default as PageHeader } from './page-header'
+export { default as LoadingSpinner } from './loading-spinner'
+export { default as EmptyState } from './empty-state'
+export { default as ErrorBoundary } from './error-boundary'
+export { default ConfirmDialog } from './confirm-dialog'
+export { default StatusBadge } from './status-badge'
+export { default DateRangePicker } from './date-range-picker'
+export { default SearchInput } from './search-input'
+export { default FilterDropdown } from './filter-dropdown'
