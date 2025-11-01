@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
 import { z } from 'zod'
 import { barangSchema } from '@/lib/validations'
+import { Prisma } from '@prisma/client'
 
 // GET /api/master/barang - Get all items with advanced filtering and statistics
 export async function GET(request: NextRequest) {
@@ -25,15 +26,17 @@ export async function GET(request: NextRequest) {
     const skip = (page - 1) * limit
 
     // Build where clause
-    const where: any = {}
+    const where: Prisma.BarangWhereInput = {}
 
-    if (search) {
+    const trimmedSearch = search.trim()
+
+    if (trimmedSearch.length > 0) {
       where.OR = [
-        { kode: { contains: search, mode: 'insensitive' as const } },
-        { nama: { contains: search, mode: 'insensitive' as const } },
-        { merk: { contains: search, mode: 'insensitive' as const } },
-        { tipe: { contains: search, mode: 'insensitive' as const } },
-        { ukuran: { contains: search, mode: 'insensitive' as const } },
+        { kode: { contains: trimmedSearch } },
+        { nama: { contains: trimmedSearch } },
+        { merk: { contains: trimmedSearch } },
+        { tipe: { contains: trimmedSearch } },
+        { ukuran: { contains: trimmedSearch } },
       ]
     }
 
@@ -54,7 +57,7 @@ export async function GET(request: NextRequest) {
         where,
         skip,
         take: limit,
-        orderBy: { [sortBy]: sortOrder },
+        orderBy: { [sortBy]: sortOrder === 'asc' ? 'asc' : 'desc' },
         include: {
           golongan: {
             select: {
@@ -104,7 +107,7 @@ export async function GET(request: NextRequest) {
       _count: {
         id: true,
       },
-      where: search ? where : undefined,
+      where: trimmedSearch.length > 0 ? where : undefined,
     })
 
     const totalStockValue = barangs.reduce((total, barang) => {

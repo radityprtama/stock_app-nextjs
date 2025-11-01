@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
 import { z } from 'zod'
 import { suratJalanSchema } from '@/lib/validations'
+import { Prisma } from '@prisma/client'
 
 // Helper function to generate document number
 async function generateNomorSJ(): Promise<string> {
@@ -125,15 +126,17 @@ export async function GET(request: NextRequest) {
     const skip = (page - 1) * limit
 
     // Build where clause
-    const where: any = {}
+    const where: Prisma.SuratJalanWhereInput = {}
 
-    if (search) {
+    const trimmedSearch = search.trim()
+
+    if (trimmedSearch.length > 0) {
       where.OR = [
-        { noSJ: { contains: search, mode: 'insensitive' as const } },
-        { customer: { nama: { contains: search, mode: 'insensitive' as const } } },
-        { customer: { kode: { contains: search, mode: 'insensitive' as const } } },
-        { namaSupir: { contains: search, mode: 'insensitive' as const } },
-        { nopolKendaraan: { contains: search, mode: 'insensitive' as const } },
+        { noSJ: { contains: trimmedSearch } },
+        { customer: { nama: { contains: trimmedSearch } } },
+        { customer: { kode: { contains: trimmedSearch } } },
+        { namaSupir: { contains: trimmedSearch } },
+        { nopolKendaraan: { contains: trimmedSearch } },
       ]
     }
 
@@ -164,7 +167,7 @@ export async function GET(request: NextRequest) {
         where,
         skip,
         take: limit,
-        orderBy: { [sortBy]: sortOrder },
+        orderBy: { [sortBy]: sortOrder === 'asc' ? 'asc' : 'desc' },
         include: {
           customer: {
             select: {
@@ -215,7 +218,7 @@ export async function GET(request: NextRequest) {
         totalQty: true,
         totalNilai: true,
       },
-      where: search ? where : undefined,
+      where: trimmedSearch.length > 0 ? where : undefined,
     })
 
     const dropshipStats = await prisma.detailSuratJalan.groupBy({
@@ -224,7 +227,7 @@ export async function GET(request: NextRequest) {
         id: true,
       },
       where: {
-        suratJalan: search ? where : undefined,
+        suratJalan: trimmedSearch.length > 0 ? where : undefined,
       },
     })
 

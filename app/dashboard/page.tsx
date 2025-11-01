@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -18,8 +18,39 @@ import {
 import { formatCurrency } from '@/lib/utils'
 import Link from 'next/link'
 
+type DashboardStats = {
+  totalGudang: number
+  totalBarang: number
+  totalStokValue: number
+  lowStockItems: number
+  pendingTransactions: number
+  todayTransactions: {
+    barangMasuk: number
+    barangKeluar: number
+  }
+}
+
+type LowStockItem = {
+  id: number
+  nama: string
+  currentStock: number
+  minStock: number
+  gudang: string
+}
+
+type TransactionType = 'barang-masuk' | 'surat-jalan' | 'delivery-order'
+
+type RecentTransaction = {
+  id: number
+  type: TransactionType
+  no: string
+  date: string
+  customer: string
+  total: number
+}
+
 export default function DashboardPage() {
-  const [stats, setStats] = useState({
+  const [stats] = useState<DashboardStats>({
     totalGudang: 0,
     totalBarang: 0,
     totalStokValue: 0,
@@ -28,31 +59,8 @@ export default function DashboardPage() {
     todayTransactions: { barangMasuk: 0, barangKeluar: 0 }
   })
 
-  const [lowStockItems, setLowStockItems] = useState([])
-  const [recentTransactions, setRecentTransactions] = useState([])
-
-  useEffect(() => {
-    // Mock data for now - will be replaced with API calls
-    setStats({
-      totalGudang: 2,
-      totalBarang: 3,
-      totalStokValue: 125000000,
-      lowStockItems: 2,
-      pendingTransactions: 3,
-      todayTransactions: { barangMasuk: 5, barangKeluar: 8 }
-    })
-
-    setLowStockItems([
-      { id: 1, nama: 'Spring Bed Queen', currentStock: 2, minStock: 3, gudang: 'Gudang Utama' },
-      { id: 2, nama: 'Laptop Gaming', currentStock: 0, minStock: 2, gudang: 'Gudang Utama' }
-    ])
-
-    setRecentTransactions([
-      { id: 1, type: 'barang-masuk', no: 'BM/2025/11/1234', date: '2025-11-01', customer: 'PT. Tech Supplier', total: 15000000 },
-      { id: 2, type: 'surat-jalan', no: 'SJ/2025/11/5678', date: '2025-11-01', customer: 'PT. Mega Store', total: 8997000 },
-      { id: 3, type: 'delivery-order', no: 'DO/2025/11/9012', date: '2025-10-31', customer: 'Gudang Secondary', total: 0 }
-    ])
-  }, [])
+  const [lowStockItems] = useState<LowStockItem[]>([])
+  const [recentTransactions] = useState<RecentTransaction[]>([])
 
   return (
     <div className="space-y-6">

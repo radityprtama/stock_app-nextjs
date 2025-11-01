@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { Prisma } from '@prisma/client'
 import { auth } from '@/lib/auth'
 import { z } from 'zod'
 import { golonganSchema } from '@/lib/validations'
@@ -21,13 +22,18 @@ export async function GET(request: NextRequest) {
 
     const skip = (page - 1) * limit
 
-    const where = {
+    const where: Prisma.GolonganWhereInput = {
       aktif: true,
-      OR: [
-        { kode: { contains: search, mode: 'insensitive' as const } },
-        { nama: { contains: search, mode: 'insensitive' as const } },
-        { deskripsi: { contains: search, mode: 'insensitive' as const } },
-      ],
+    }
+
+    const trimmedSearch = search.trim()
+
+    if (trimmedSearch.length > 0) {
+      where.OR = [
+        { kode: { contains: trimmedSearch } },
+        { nama: { contains: trimmedSearch } },
+        { deskripsi: { contains: trimmedSearch } },
+      ]
     }
 
     const [golongans, total] = await Promise.all([
@@ -35,7 +41,7 @@ export async function GET(request: NextRequest) {
         where,
         skip,
         take: limit,
-        orderBy: { [sortBy]: sortOrder },
+        orderBy: { [sortBy]: sortOrder === 'asc' ? 'asc' : 'desc' },
         include: {
           _count: {
             select: {

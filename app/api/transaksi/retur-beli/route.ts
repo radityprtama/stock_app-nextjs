@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
 import { z } from 'zod'
 import { returBeliSchema } from '@/lib/validations'
+import { Prisma } from '@prisma/client'
 
 // Helper function to generate document number
 async function generateDocumentNumber(): Promise<string> {
@@ -70,13 +71,15 @@ export async function GET(request: NextRequest) {
     const skip = (page - 1) * limit
 
     // Build where clause
-    const where: any = {}
+    const where: Prisma.ReturBeliWhereInput = {}
 
-    if (search) {
+    const trimmedSearch = search.trim()
+
+    if (trimmedSearch.length > 0) {
       where.OR = [
-        { noRetur: { contains: search, mode: 'insensitive' as const } },
-        { alasan: { contains: search, mode: 'insensitive' as const } },
-        { supplier: { nama: { contains: search, mode: 'insensitive' as const } } },
+        { noRetur: { contains: trimmedSearch } },
+        { alasan: { contains: trimmedSearch } },
+        { supplier: { nama: { contains: trimmedSearch } } },
       ]
     }
 
@@ -103,7 +106,7 @@ export async function GET(request: NextRequest) {
         where,
         skip,
         take: limit,
-        orderBy: { [sortBy]: sortOrder },
+        orderBy: { [sortBy]: sortOrder === 'asc' ? 'asc' : 'desc' },
         include: {
           supplier: {
             select: {
@@ -144,7 +147,7 @@ export async function GET(request: NextRequest) {
         totalQty: true,
         totalNilai: true,
       },
-      where: search ? where : undefined,
+      where: trimmedSearch.length > 0 ? where : undefined,
     })
 
     return NextResponse.json({

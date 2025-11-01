@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
 import { z } from 'zod'
+import { Prisma } from '@prisma/client'
 
 const stockQuerySchema = z.object({
   page: z.coerce.number().min(1).default(1),
@@ -46,15 +47,17 @@ export async function GET(request: NextRequest) {
     const skip = (page - 1) * limit
 
     // Build where clause for filtering
-    const where: any = {}
+    const where: Prisma.BarangWhereInput = {}
 
-    if (search) {
+    const trimmedSearch = search?.trim()
+
+    if (trimmedSearch && trimmedSearch.length > 0) {
       where.OR = [
-        { kode: { contains: search, mode: 'insensitive' as const } },
-        { nama: { contains: search, mode: 'insensitive' as const } },
-        { merk: { contains: search, mode: 'insensitive' as const } },
-        { tipe: { contains: search, mode: 'insensitive' as const } },
-        { ukuran: { contains: search, mode: 'insensitive' as const } },
+        { kode: { contains: trimmedSearch } },
+        { nama: { contains: trimmedSearch } },
+        { merk: { contains: trimmedSearch } },
+        { tipe: { contains: trimmedSearch } },
+        { ukuran: { contains: trimmedSearch } },
       ]
     }
 

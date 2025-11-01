@@ -63,6 +63,7 @@ import { toast } from 'sonner'
 import { BarangFormData, barangSchema } from '@/lib/validations'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
+import { z } from 'zod'
 
 interface Barang {
   id: string
@@ -127,6 +128,23 @@ interface BarangStatistics {
   ownStockItems: number
 }
 
+type BarangFormValues = z.input<typeof barangSchema>
+const defaultBarangFormValues: BarangFormValues = {
+  kode: '',
+  nama: '',
+  ukuran: '',
+  tipe: '',
+  merk: '',
+  golonganId: '',
+  hargaBeli: 0,
+  hargaJual: 0,
+  satuan: '',
+  minStok: 0,
+  maxStok: undefined,
+  isDropship: false,
+  aktif: true,
+}
+
 export default function BarangPage() {
   const [barangs, setBarangs] = useState<Barang[]>([])
   const [golongans, setGolongans] = useState<Golongan[]>([])
@@ -162,8 +180,9 @@ export default function BarangPage() {
     setValue,
     watch,
     formState: { errors },
-  } = useForm<BarangFormData>({
+  } = useForm<BarangFormValues>({
     resolver: zodResolver(barangSchema),
+    defaultValues: defaultBarangFormValues,
   })
 
   const watchedValues = watch()
@@ -220,9 +239,10 @@ export default function BarangPage() {
     fetchBarangs()
   }, [pagination.page, search, selectedGolongan, dropshipFilter, statusFilter])
 
-  const onSubmit = async (data: BarangFormData) => {
+  const onSubmit = async (data: BarangFormValues) => {
     setSubmitting(true)
     try {
+      const payload: BarangFormData = barangSchema.parse(data)
       const url = editingBarang
         ? `/api/master/barang/${editingBarang.id}`
         : '/api/master/barang'
@@ -233,7 +253,7 @@ export default function BarangPage() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(data),
+        body: JSON.stringify(payload),
       })
 
       const result = await response.json()
@@ -270,7 +290,7 @@ export default function BarangPage() {
     setValue('hargaJual', barang.hargaJual)
     setValue('satuan', barang.satuan)
     setValue('minStok', barang.minStok)
-    setValue('maxStok', barang.maxStok || 0)
+    setValue('maxStok', barang.maxStok ?? undefined)
     setValue('isDropship', barang.isDropship)
     setValue('aktif', barang.aktif)
     setDialogOpen(true)
@@ -306,12 +326,7 @@ export default function BarangPage() {
 
   const openAddDialog = () => {
     setEditingBarang(null)
-    reset()
-    setValue('aktif', true)
-    setValue('isDropship', false)
-    setValue('minStok', 0)
-    setValue('hargaBeli', 0)
-    setValue('hargaJual', 0)
+    reset(defaultBarangFormValues)
     setDialogOpen(true)
   }
 
