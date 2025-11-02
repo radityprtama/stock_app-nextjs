@@ -78,9 +78,7 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { SuratJalanFormData, suratJalanSchema } from '@/lib/validations'
-import { SuratJalanPrint, type SuratJalanPrintRef, type SuratJalanPrintData } from '@/components/print'
-import jsPDF from 'jspdf'
-import 'jspdf-autotable'
+import SuratJalanPrint, { type SuratJalanPrintRef, type SuratJalanPrintData } from '@/components/print/surat-jalan-print'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -254,6 +252,7 @@ export default function SuratJalanPage() {
     reset,
     setValue,
     watch,
+    control,
     formState: { errors },
   } = useForm<SuratJalanFormValues>({
     resolver: zodResolver(suratJalanSchema),
@@ -330,8 +329,22 @@ export default function SuratJalanPage() {
     fetchSuratJalans()
   }, [pagination.page, search, selectedCustomer, selectedGudang, selectedStatus, startDate, endDate])
 
+  // Update form items when items state changes
+  useEffect(() => {
+    setValue('items', items.filter(item => item.barangId).map(item => ({
+      barangId: item.barangId,
+      qty: Number(item.qty) || 0,
+      hargaJual: Number(item.hargaJual) || 0,
+      keterangan: item.keterangan || '',
+      isDropship: item.isDropship || false,
+      supplierId: item.supplierId,
+      statusDropship: item.statusDropship,
+    })))
+  }, [items, setValue])
+
   const onSubmit = async (data: SuratJalanFormValues) => {
-    if (items.length === 0 || items.every(item => !item.barangId)) {
+    // Use items from form data (already synchronized)
+    if (!data.items || data.items.length === 0) {
       toast.error('Minimal harus ada 1 item yang valid')
       return
     }
@@ -341,7 +354,7 @@ export default function SuratJalanPage() {
       const payload = suratJalanSchema.parse({
         ...data,
         deliveryOption,
-        items: items.filter(item => item.barangId),
+        items: data.items,
       })
 
       const url = editingSuratJalan
@@ -656,13 +669,31 @@ export default function SuratJalanPage() {
     setSearch('')
   }
 
-  const handlePrint = (suratJalan: SuratJalan) => {
-    setViewingSuratJalan(suratJalan)
-    setTimeout(() => {
-      printRef.current?.print()
-    }, 100)
+  const handleDeliver = async (suratJalan: SuratJalan) => {
+    if (suratJalan.status !== 'in_transit') {
+      toast.error('Hanya transaksi dengan status "Dalam Perjalanan" yang bisa ditandai selesai')
+      return
+    }
+    if (!confirm(`Apakah Anda yakin ingin menandai Surat Jalan "${suratJalan.noSJ}" sebagai selesai/delivered?`)) {
+      return
+    }
+    try {
+      const response = await fetch(`/api/transaksi/surat-jalan/${suratJalan.id}/deliver`, {
+        method: 'PUT',
+      })
+      const result = await response.json()
+      if (result.success) {
+        toast.success('Surat Jalan berhasil ditandai sebagai selesai')
+        fetchSuratJalans()
+      } else {
+        toast.error(result.error || 'Gagal menandai sebagai selesai')
+      }
+    } catch (error) {
+      toast.error('Terjadi kesalahan saat memperbarui status')
+    }
   }
 
+  
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -976,12 +1007,38 @@ export default function SuratJalanPage() {
                                 </>
                               )}
                               {suratJalan.status === 'in_transit' && (
-                                <DropdownMenuItem onClick={() => handlePrint(suratJalan)}>
+                                <>
+                                  <DropdownMenuItem onClick={() => handleDeliver(suratJalan)}>
+                                    <CheckCircle className="mr-2 h-4 w-4" />
+                                    Tandai Selesai
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => {
+                                    setViewingSuratJalan(suratJalan);
+                                    setTimeout(() => {
+                                      if (printRef.current) {
+                                        printRef.current.print();
+                                    }
+                                    }, 100);
+                                  }}>
+                                    <Printer className="mr-2 h-4 w-4" />
+                                    Cetak
+                                  </DropdownMenuItem>
+                                </>
+                              )}
+                              {suratJalan.status === 'delivered' && (
+                                <DropdownMenuItem onClick={() => {
+                                  setViewingSuratJalan(suratJalan);
+                                  setTimeout(() => {
+                                    if (printRef.current) {
+                                      printRef.current.print();
+                                    }
+                                  }, 100);
+                                }}>
                                   <Printer className="mr-2 h-4 w-4" />
                                   Cetak
                                 </DropdownMenuItem>
                               )}
-                            </DropdownMenuContent>
+                                                          </DropdownMenuContent>
                           </DropdownMenu>
                         </TableCell>
                       </TableRow>
@@ -1515,10 +1572,22 @@ export default function SuratJalanPage() {
           )}
 
           <DialogFooter>
+            {viewingSuratJalan && viewingSuratJalan.status === 'in_transit' && (
+              <Button
+                onClick={() => handleDeliver(viewingSuratJalan)}
+              >
+                <CheckCircle className="mr-2 h-4 w-4" />
+                Tandai Selesai
+              </Button>
+            )}
             {viewingSuratJalan && viewingSuratJalan.status !== 'draft' && (
               <Button
                 variant="outline"
-                onClick={() => handlePrint(viewingSuratJalan)}
+                onClick={() => {
+                  if (printRef.current) {
+                    printRef.current.print();
+                  }
+                }}
               >
                 <Printer className="mr-2 h-4 w-4" />
                 Cetak
@@ -1711,16 +1780,19 @@ export default function SuratJalanPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Print Component */}
+      {/* Print Component - Only rendered when there's selected data */}
       {viewingSuratJalan && (
-        <SuratJalanPrint
-          ref={printRef}
-          data={viewingSuratJalan}
-          onPrintComplete={() => {
-            toast.success('Dokumen berhasil dicetak')
-          }}
-        />
+        <div style={{ display: 'none' }}>
+          <SuratJalanPrint
+            ref={printRef}
+            data={viewingSuratJalan}
+            onPrintComplete={() => {
+              toast.success("Surat Jalan berhasil dicetak");
+            }}
+          />
+        </div>
       )}
-    </div>
+
+          </div>
   )
 }

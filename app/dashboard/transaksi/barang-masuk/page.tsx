@@ -206,6 +206,7 @@ export default function BarangMasukPage() {
     reset,
     setValue,
     watch,
+    control,
     formState: { errors },
   } = useForm<BarangMasukFormValues>({
     resolver: zodResolver(barangMasukSchema),
@@ -279,18 +280,64 @@ export default function BarangMasukPage() {
     fetchBarangMasuks()
   }, [pagination.page, search, selectedSupplier, selectedGudang, selectedStatus, startDate, endDate])
 
+  // Update form items when items state changes
+  useEffect(() => {
+    setValue('items', items.filter(item => item.barangId).map(item => ({
+      barangId: item.barangId,
+      qty: Number(item.qty) || 0,
+      harga: Number(item.harga) || 0,
+    })))
+  }, [items, setValue])
+
   const onSubmit = async (data: BarangMasukFormValues) => {
-    if (items.length === 0 || items.every(item => !item.barangId)) {
+    // Update items in form data before submission
+    const validItems = items.filter(item => item.barangId).map(item => ({
+      barangId: item.barangId,
+      qty: Number(item.qty) || 0,
+      harga: Number(item.harga) || 0,
+    }))
+
+    if (validItems.length === 0) {
       toast.error('Minimal harus ada 1 item yang valid')
+      return
+    }
+
+    // Validate required fields
+    if (!data.supplierId) {
+      toast.error('Supplier wajib dipilih')
+      return
+    }
+    if (!data.gudangId) {
+      toast.error('Gudang wajib dipilih')
       return
     }
 
     setSubmitting(true)
     try {
-      const payload = barangMasukSchema.parse({
+      // Prepare payload - convert Date to ISO string for API
+      const tanggalValue = data.tanggal instanceof Date
+        ? data.tanggal.toISOString()
+        : data.tanggal || new Date().toISOString()
+
+      const payload = {
         ...data,
-        items: items.filter(item => item.barangId),
-      })
+        tanggal: tanggalValue,
+        items: validItems,
+      }
+
+      
+      // Schema will use z.coerce.date() to convert string to Date on backend
+      const validatedPayload = barangMasukSchema.parse(payload)
+
+      // Ensure tanggal is sent as ISO string (not Date object)
+      const jsonPayload = {
+        ...validatedPayload,
+        tanggal: validatedPayload.tanggal instanceof Date 
+          ? validatedPayload.tanggal.toISOString() 
+          : tanggalValue,
+      }
+
+      console.log('Payload being sent:', JSON.stringify(jsonPayload, null, 2))
 
       const url = editingBarangMasuk
         ? `/api/transaksi/barang-masuk/${editingBarangMasuk.id}`
@@ -302,10 +349,33 @@ export default function BarangMasukPage() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(payload),
+        body: JSON.stringify(jsonPayload),
       })
 
-      const result = await response.json()
+      let result
+      try {
+        result = await response.json()
+      } catch (parseError) {
+        console.error('Failed to parse response:', parseError)
+        toast.error(`Error: ${response.status} ${response.statusText}`)
+        setSubmitting(false)
+        return
+      }
+
+      // Handle non-OK status codes
+      if (!response.ok) {
+        console.error('Response not OK:', response.status, result)
+        let errorMessage = result.error || result.message || 'Gagal menyimpan data'
+        if (result.details && Array.isArray(result.details)) {
+          const detailMessages = result.details.map((d: any) => 
+            `${d.path ? d.path + ': ' : ''}${d.message}`
+          ).join(', ')
+          errorMessage = `Validasi gagal: ${detailMessages}`
+        }
+        toast.error(errorMessage)
+        setSubmitting(false)
+        return
+      }
 
       if (result.success) {
         toast.success(
@@ -317,16 +387,33 @@ export default function BarangMasukPage() {
         reset({
           ...defaultBarangMasukFormValues,
           tanggal: new Date(),
-          items: [],
         })
         setEditingBarangMasuk(null)
         setItems([{ barangId: '', qty: 1, harga: 0 }])
         fetchBarangMasuks()
       } else {
-        toast.error(result.error || 'Gagal menyimpan data')
+        // Handle detailed error messages
+        let errorMessage = result.error || result.message || 'Gagal menyimpan data'
+        if (result.details && Array.isArray(result.details)) {
+          const detailMessages = result.details.map((d: any) => 
+            `${d.path ? d.path + ': ' : ''}${d.message}`
+          ).join(', ')
+          errorMessage = `Validasi gagal: ${detailMessages}`
+        }
+        toast.error(errorMessage)
+        console.error('Error response:', result)
       }
-    } catch (error) {
-      toast.error('Terjadi kesalahan saat menyimpan data')
+    } catch (error: any) {
+      console.error('Error submitting form:', error)
+      if (error?.errors) {
+        const errorMessages = error.errors.map((e: any) => e.message).join(', ')
+        toast.error(`Validasi gagal: ${errorMessages}`)
+      } else if (error?.issues) {
+        const errorMessages = error.issues.map((e: any) => `${e.path.join('.')}: ${e.message}`).join(', ')
+        toast.error(`Validasi gagal: ${errorMessages}`)
+      } else {
+        toast.error(error.message || 'Terjadi kesalahan saat menyimpan data')
+      }
     } finally {
       setSubmitting(false)
     }

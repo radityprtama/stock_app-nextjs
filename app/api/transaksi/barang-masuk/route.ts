@@ -210,7 +210,25 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const validatedData = barangMasukSchema.parse(body)
+    let validatedData
+    try {
+      validatedData = barangMasukSchema.parse(body)
+    } catch (validationError) {
+      console.error('Validation error:', validationError)
+      if (validationError instanceof z.ZodError) {
+        return NextResponse.json(
+          { 
+            error: 'Validation failed', 
+            details: validationError.issues.map(issue => ({
+              path: issue.path.join('.'),
+              message: issue.message,
+            }))
+          },
+          { status: 400 }
+        )
+      }
+      throw validationError
+    }
 
     // Validate supplier exists
     const supplier = await prisma.supplier.findUnique({
@@ -251,29 +269,36 @@ export async function POST(request: NextRequest) {
 
     // Calculate totals
     const totalQty = validatedData.items.reduce((sum, item) => sum + item.qty, 0)
-    const totalNilai = validatedData.items.reduce((sum, item) => sum + (item.qty * item.harga), 0)
+    const totalNilai = validatedData.items.reduce((sum, item) => sum + (item.qty * Number(item.harga)), 0)
 
+    
     // Generate document number
     const noDokumen = await generateDocumentNumber()
 
+    // Ensure tanggal is a Date object
+    const tanggal = validatedData.tanggal instanceof Date 
+      ? validatedData.tanggal 
+      : new Date(validatedData.tanggal)
+
+    
     // Create transaction with items
     const barangMasuk = await prisma.barangMasuk.create({
       data: {
         noDokumen,
-        tanggal: validatedData.tanggal,
+        tanggal,
         supplierId: validatedData.supplierId,
         gudangId: validatedData.gudangId,
         totalQty,
-        totalNilai,
-        keterangan: validatedData.keterangan,
+        totalNilai: new Prisma.Decimal(totalNilai),
+        keterangan: validatedData.keterangan || null,
         status: 'draft',
         createdBy: session.user.id,
         detail: {
           create: validatedData.items.map(item => ({
             barangId: item.barangId,
             qty: item.qty,
-            harga: item.harga,
-            subtotal: item.qty * item.harga,
+            harga: new Prisma.Decimal(item.harga),
+            subtotal: new Prisma.Decimal(item.qty * Number(item.harga)),
           })),
         },
       },
@@ -313,16 +338,37 @@ export async function POST(request: NextRequest) {
       message: 'Barang Masuk berhasil dibuat',
     })
   } catch (error) {
+    console.error('Error creating Barang Masuk:', error)
+    
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: 'Validation failed', details: error.issues },
+        { 
+          error: 'Validation failed', 
+          details: error.issues.map(issue => ({
+            path: issue.path.join('.'),
+            message: issue.message,
+          }))
+        },
         { status: 400 }
       )
     }
 
-    console.error('Error creating Barang Masuk:', error)
+    // Handle Prisma errors
+    if (error instanceof Prisma.PrismaClientKnownRequestError) {
+      console.error('Prisma error code:', error.code)
+      if (error.code === 'P2002') {
+        return NextResponse.json(
+          { error: 'Data yang dimasukkan sudah ada atau duplikat' },
+          { status: 400 }
+        )
+      }
+    }
+
     return NextResponse.json(
-      { error: 'Failed to create Barang Masuk transaction' },
+      { 
+        error: 'Failed to create Barang Masuk transaction',
+        message: error instanceof Error ? error.message : 'Unknown error'
+      },
       { status: 500 }
     )
   }

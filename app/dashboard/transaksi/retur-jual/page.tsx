@@ -205,6 +205,7 @@ export default function ReturJualPage() {
     reset,
     setValue,
     watch,
+    control,
     formState: { errors },
   } = useForm<ReturJualFormValues>({
     resolver: zodResolver(returJualSchema),
@@ -277,8 +278,20 @@ export default function ReturJualPage() {
     fetchReturJuals()
   }, [pagination.page, search, selectedCustomer, selectedStatus, startDate, endDate])
 
+  // Update form items when items state changes
+  useEffect(() => {
+    setValue('items', items.filter(item => item.barangId).map(item => ({
+      barangId: item.barangId,
+      qty: Number(item.qty) || 0,
+      harga: Number(item.harga) || 0,
+      alasan: item.alasan || '',
+      kondisi: item.kondisi || 'bisa_dijual_lagi',
+    })))
+  }, [items, setValue])
+
   const onSubmit = async (data: ReturJualFormValues) => {
-    if (items.length === 0 || items.every(item => !item.barangId)) {
+    // Use items from form data (already synchronized)
+    if (!data.items || data.items.length === 0) {
       toast.error('Minimal harus ada 1 item yang valid')
       return
     }
@@ -287,7 +300,7 @@ export default function ReturJualPage() {
     try {
       const payload = returJualSchema.parse({
         ...data,
-        items: items.filter(item => item.barangId && item.alasan),
+        items: data.items.filter(item => item.alasan), // Filter items yang punya alasan
       })
 
       const url = editingReturJual

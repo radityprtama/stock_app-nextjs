@@ -36,6 +36,28 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from '@/components/ui/tabs'
+import {
+  MoreHorizontal,
+  Eye,
+  Trash2,
+  Edit,
+  Plus,
+  Search,
+  Package,
+  Printer,
+} from 'lucide-react'
 import { useDeliveryOrderList } from '@/hooks/use-query-hooks'
 import { useCreateDeliveryOrder, useUpdateDeliveryOrderStatus, useDeleteDeliveryOrder } from '@/hooks/use-mutation-hooks'
 import { useGudangList } from '@/hooks/use-query-hooks'
@@ -43,8 +65,7 @@ import { TRANSACTION_STATUS } from '@/src/constants'
 import { format } from 'date-fns'
 import { id } from 'date-fns/locale'
 import { toast } from 'sonner'
-import { DeliveryOrderPrint, type DeliveryOrderPrintRef } from '@/components/print'
-import { Plus, Search, Printer, Package } from 'lucide-react'
+import DeliveryOrderPrint, { type DeliveryOrderPrintRef } from '@/components/print/delivery-order-print'
 
 type DeliveryOrderForm = {
   noDO?: string
@@ -194,13 +215,7 @@ export default function DeliveryOrderPage() {
     )
   }
 
-  const handlePrint = (deliveryOrder: any) => {
-    setSelectedDeliveryOrder(deliveryOrder)
-    setTimeout(() => {
-      printRef.current?.print()
-    }, 100)
-  }
-
+  
   if (status === 'loading') {
     return <div>Loading...</div>
   }
@@ -350,65 +365,50 @@ export default function DeliveryOrderPage() {
                       <TableCell>
                         {getStatusBadge(deliveryOrder.status)}
                       </TableCell>
-                      <TableCell>
-                        <div className="flex gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => openDetailModal(deliveryOrder)}
-                          >
-                            Detail
-                          </Button>
-                          {deliveryOrder.status ===
-                            TRANSACTION_STATUS.DRAFT && (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() =>
-                                handleStatusUpdate(
-                                  deliveryOrder.id,
-                                  TRANSACTION_STATUS.IN_TRANSIT
-                                )
-                              }
-                            >
+                      <TableCell className="text-right">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="sm">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => openDetailModal(deliveryOrder)}>
+                              <Eye className="mr-2 h-4 w-4" />
+                              Detail
+                            </DropdownMenuItem>
+                            {deliveryOrder.status === TRANSACTION_STATUS.DRAFT && (
+                              <DropdownMenuItem onClick={() => handleStatusUpdate(deliveryOrder.id, TRANSACTION_STATUS.IN_TRANSIT)}>
                               Kirim
-                            </Button>
-                          )}
-                          {deliveryOrder.status ===
-                            TRANSACTION_STATUS.IN_TRANSIT && (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() =>
-                                handleStatusUpdate(
-                                  deliveryOrder.id,
-                                  TRANSACTION_STATUS.DELIVERED
-                                )
-                              }
-                            >
+                            </DropdownMenuItem>
+                            )}
+                            {deliveryOrder.status === TRANSACTION_STATUS.IN_TRANSIT && (
+                              <DropdownMenuItem onClick={() => handleStatusUpdate(deliveryOrder.id, TRANSACTION_STATUS.DELIVERED)}>
                               Terima
-                            </Button>
-                          )}
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handlePrint(deliveryOrder)}
-                          >
-                            <Printer className="w-4 h-4 mr-1" />
-                            Print
-                          </Button>
-                          {(deliveryOrder.status === TRANSACTION_STATUS.DRAFT ||
-                            deliveryOrder.status ===
-                              TRANSACTION_STATUS.CANCELLED) && (
-                            <Button
-                              variant="destructive"
-                              size="sm"
-                              onClick={() => openDeleteDialog(deliveryOrder)}
-                            >
-                              Hapus
-                            </Button>
-                          )}
-                        </div>
+                            </DropdownMenuItem>
+                            )}
+                            {deliveryOrder.status === TRANSACTION_STATUS.DELIVERED && (
+                              <DropdownMenuItem onClick={() => {
+                                setSelectedDeliveryOrder(deliveryOrder);
+                                setTimeout(() => {
+                                  if (printRef.current) {
+                                    printRef.current.print();
+                                  }
+                                }, 100);
+                              }}>
+                                <Printer className="mr-2 h-4 w-4" />
+                                Cetak
+                              </DropdownMenuItem>
+                            )}
+                            {(deliveryOrder.status === TRANSACTION_STATUS.DRAFT ||
+                              deliveryOrder.status === TRANSACTION_STATUS.CANCELLED) && (
+                              <DropdownMenuItem onClick={() => openDeleteDialog(deliveryOrder)} className="text-red-600">
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Hapus
+                              </DropdownMenuItem>
+                            )}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -569,9 +569,12 @@ export default function DeliveryOrderPage() {
 
       {/* Detail Modal */}
       <Dialog open={isDetailModalOpen} onOpenChange={setIsDetailModalOpen}>
-        <DialogContent className="max-w-3xl">
+        <DialogContent className="sm:max-w-[900px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Detail Delivery Order</DialogTitle>
+            <DialogDescription>
+              Informasi lengkap transaksi Delivery Order
+            </DialogDescription>
           </DialogHeader>
           {selectedDeliveryOrder && (
             <div className="grid gap-4 py-4">
@@ -660,7 +663,22 @@ export default function DeliveryOrderPage() {
             </div>
           )}
           <DialogFooter>
-            <Button onClick={() => setIsDetailModalOpen(false)}>Tutup</Button>
+            {selectedDeliveryOrder?.status === TRANSACTION_STATUS.DELIVERED && (
+              <Button
+                variant="outline"
+                onClick={() => {
+                  if (printRef.current) {
+                    printRef.current.print();
+                  }
+                }}
+              >
+                <Printer className="mr-2 h-4 w-4" />
+                Cetak
+              </Button>
+            )}
+            <Button variant="outline" onClick={() => setIsDetailModalOpen(false)}>
+              Tutup
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -683,16 +701,19 @@ export default function DeliveryOrderPage() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Print Component */}
+      {/* Print Component - Only rendered when there's selected data */}
       {selectedDeliveryOrder && (
-        <DeliveryOrderPrint
-          ref={printRef}
-          data={selectedDeliveryOrder}
-          onPrintComplete={() => {
-            toast.success("Dokumen berhasil dicetak");
-          }}
-        />
+        <div style={{ display: 'none' }}>
+          <DeliveryOrderPrint
+            ref={printRef}
+            data={selectedDeliveryOrder}
+            onPrintComplete={() => {
+              toast.success("Delivery Order berhasil dicetak");
+            }}
+          />
+        </div>
       )}
-    </div>
+
+          </div>
   );
 }

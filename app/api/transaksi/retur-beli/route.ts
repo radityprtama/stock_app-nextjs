@@ -191,7 +191,24 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const validatedData = returBeliSchema.parse(body)
+    let validatedData
+    try {
+      validatedData = returBeliSchema.parse(body)
+    } catch (validationError) {
+      if (validationError instanceof z.ZodError) {
+        return NextResponse.json(
+          {
+            error: 'Validation failed',
+            details: validationError.issues.map(issue => ({
+              path: issue.path.join('.'),
+              message: issue.message,
+            }))
+          },
+          { status: 400 }
+        )
+      }
+      throw validationError
+    }
 
     // Validate supplier exists
     const supplier = await prisma.supplier.findUnique({

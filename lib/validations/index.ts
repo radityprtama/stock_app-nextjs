@@ -75,7 +75,7 @@ const detailItemSchema = z.object({
 
 export const barangMasukSchema = z.object({
   noDokumen: z.string().optional(),
-  tanggal: z.date().default(new Date()),
+  tanggal: z.coerce.date().default(new Date()),
   supplierId: z.string().min(1, 'Supplier wajib dipilih'),
   gudangId: z.string().min(1, 'Gudang wajib dipilih'),
   keterangan: z.string().optional().or(z.literal('')),
@@ -114,7 +114,7 @@ const detailSuratJalanItemSchema = z.object({
 
 export const suratJalanSchema = z.object({
   noSJ: z.string().optional(),
-  tanggal: z.date().default(new Date()),
+  tanggal: z.coerce.date().default(new Date()),
   customerId: z.string().min(1, 'Customer wajib dipilih'),
   gudangId: z.string().min(1, 'Gudang wajib dipilih'),
   alamatKirim: z.string().min(1, 'Alamat kirim wajib diisi'),
@@ -135,7 +135,7 @@ const detailReturBeliItemSchema = z.object({
 
 export const returBeliSchema = z.object({
   noRetur: z.string().optional(),
-  tanggal: z.date().default(new Date()),
+  tanggal: z.coerce.date().default(new Date()),
   supplierId: z.string().min(1, 'Supplier wajib dipilih'),
   barangMasukRef: z.string().optional(),
   alasan: z.string().min(1, 'Alasan wajib diisi'),
@@ -152,9 +152,9 @@ const detailReturJualItemSchema = z.object({
 
 export const returJualSchema = z.object({
   noRetur: z.string().optional(),
-  tanggal: z.date().default(new Date()),
+  tanggal: z.coerce.date().default(new Date()),
   customerId: z.string().min(1, 'Customer wajib dipilih'),
-  suratJalanId: z.string().optional(),
+  suratJalanId: z.string().optional().or(z.literal('')),
   alasan: z.string().min(1, 'Alasan wajib diisi'),
   items: z.array(detailReturJualItemSchema).min(1, 'Minimal 1 item harus ditambahkan'),
 })

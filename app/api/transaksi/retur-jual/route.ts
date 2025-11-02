@@ -198,7 +198,24 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const validatedData = returJualSchema.parse(body)
+    let validatedData
+    try {
+      validatedData = returJualSchema.parse(body)
+    } catch (validationError) {
+      if (validationError instanceof z.ZodError) {
+        return NextResponse.json(
+          {
+            error: 'Validation failed',
+            details: validationError.issues.map(issue => ({
+              path: issue.path.join('.'),
+              message: issue.message,
+            }))
+          },
+          { status: 400 }
+        )
+      }
+      throw validationError
+    }
 
     // Validate customer exists
     const customer = await prisma.customer.findUnique({
@@ -213,7 +230,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate Surat Jalan reference if provided
-    if (validatedData.suratJalanId) {
+    if (validatedData.suratJalanId && validatedData.suratJalanId.trim() !== '') {
       const suratJalan = await prisma.suratJalan.findUnique({
         where: { id: validatedData.suratJalanId },
       })
@@ -252,7 +269,7 @@ export async function POST(request: NextRequest) {
         noRetur,
         tanggal: validatedData.tanggal,
         customerId: validatedData.customerId,
-        suratJalanId: validatedData.suratJalanId,
+        suratJalanId: validatedData.suratJalanId?.trim() !== '' ? validatedData.suratJalanId : null,
         totalQty,
         totalNilai,
         alasan: validatedData.alasan,

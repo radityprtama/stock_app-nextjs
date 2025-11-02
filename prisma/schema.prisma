@@ -101,6 +101,9 @@ model Barang {
   // Flag untuk barang yang kita jual tapi ambil dari supplier lain
   isDropship  Boolean  @default(false)
 
+  // Current stock across all gudangs
+  currentStock Int     @default(0)
+
   aktif       Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt

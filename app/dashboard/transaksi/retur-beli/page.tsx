@@ -194,6 +194,7 @@ export default function ReturBeliPage() {
     reset,
     setValue,
     watch,
+    control,
     formState: { errors },
   } = useForm<ReturBeliFormValues>({
     resolver: zodResolver(returBeliSchema),
@@ -266,8 +267,19 @@ export default function ReturBeliPage() {
     fetchReturBelis()
   }, [pagination.page, search, selectedSupplier, selectedStatus, startDate, endDate])
 
+  // Update form items when items state changes
+  useEffect(() => {
+    setValue('items', items.filter(item => item.barangId).map(item => ({
+      barangId: item.barangId,
+      qty: Number(item.qty) || 0,
+      harga: Number(item.harga) || 0,
+      alasan: item.alasan || '',
+    })))
+  }, [items, setValue])
+
   const onSubmit = async (data: ReturBeliFormValues) => {
-    if (items.length === 0 || items.every(item => !item.barangId)) {
+    // Use items from form data (already synchronized)
+    if (!data.items || data.items.length === 0) {
       toast.error('Minimal harus ada 1 item yang valid')
       return
     }
@@ -276,7 +288,7 @@ export default function ReturBeliPage() {
     try {
       const payload = returBeliSchema.parse({
         ...data,
-        items: items.filter(item => item.barangId && item.alasan),
+        items: data.items.filter(item => item.alasan), // Filter items yang punya alasan
       })
 
       const url = editingReturBeli
