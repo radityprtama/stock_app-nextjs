@@ -24,12 +24,12 @@ export default function EmptyState({ icon = 'empty', title, description, action 
 
   return (
     <div className="flex flex-col items-center justify-center py-12 text-center">
-      <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-gray-100">
-        <Icon className="h-8 w-8 text-gray-400" />
+      <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-accent">
+        <Icon className="h-8 w-8 text-muted-foreground" />
       </div>
-      <h3 className="mt-4 text-lg font-semibold text-gray-900">{title}</h3>
+      <h3 className="mt-4 text-lg font-semibold text-foreground">{title}</h3>
       {description && (
-        <p className="mt-2 text-sm text-gray-600">{description}</p>
+        <p className="mt-2 text-sm text-muted-foreground">{description}</p>
       )}
       {action && (
         <div className="mt-6">

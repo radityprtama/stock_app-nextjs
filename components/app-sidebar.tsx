@@ -18,6 +18,7 @@ import {
   SidebarSeparator,
   SidebarRail,
 } from "@/components/ui/sidebar";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn, getRoleText } from "@/lib/utils";
 import type { LucideIcon } from "lucide-react";
 import {
@@ -218,22 +219,26 @@ export function AppSidebar({ user, ...props }: AppSidebarProps) {
   );
 
   const handleSignOut = () => signOut({ callbackUrl: "/auth/login" });
-  const isActive = (href: string) =>
-    pathname === href || pathname.startsWith(`${href}/`);
+  const isActive = (href: string) => {
+    if (href === "/dashboard") {
+      return pathname === "/dashboard";
+    }
+    return pathname === href || pathname.startsWith(`${href}/`);
+  };
 
   return (
     <Sidebar
       collapsible="icon"
-      className="bg-white border-r border-gray-200 text-gray-700 transition-all duration-300"
+      className="bg-background border-r border-border text-foreground transition-all duration-300"
       {...props}
     >
       {/* HEADER */}
-      <SidebarHeader className="border-b border-gray-200">
+      <SidebarHeader className="border-b border-border">
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton
               asChild
-              className="hover:bg-gray-100 text-gray-900 font-semibold transition-colors"
+              className="hover:bg-accent text-foreground font-semibold transition-colors"
             >
               <Link href="/dashboard" className="flex items-center gap-2">
                 <LayoutDashboard className="h-5 w-5 text-blue-600" />
@@ -246,74 +251,83 @@ export function AppSidebar({ user, ...props }: AppSidebarProps) {
 
       {/* CONTENT */}
       <SidebarContent>
-        {filteredNavigation.map((section) => (
-          <SidebarGroup key={section.title} className="mt-2">
-            <SidebarGroupLabel className="px-3 mb-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">
-              {section.title}
-            </SidebarGroupLabel>
-            <SidebarGroupContent>
-              <SidebarMenu>
-                {section.items.map((item) => (
-                  <SidebarMenuItem key={item.href}>
-                    <SidebarMenuButton
-                      asChild
-                      className={cn(
-                        "flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors",
-                        isActive(item.href)
-                          ? "bg-blue-100 text-blue-700"
-                          : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
-                      )}
-                    >
-                      <Link href={item.href}>
-                        <item.icon
-                          className={cn(
-                            "h-5 w-5",
-                            !isActive(item.href)
-                              ? "text-gray-500"
-                              : "text-blue-600",
-                            "mr-3"
-                          )}
-                        />
-                        <span>{item.title}</span>
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                ))}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-        ))}
+        <ScrollArea className="h-full">
+          {filteredNavigation.map((section) => (
+            <SidebarGroup key={section.title} className="mt-2">
+              <SidebarGroupLabel className="px-3 mb-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                {section.title}
+              </SidebarGroupLabel>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  {section.items.map((item) => (
+                    <SidebarMenuItem key={item.href}>
+                      <SidebarMenuButton
+                        asChild
+                        className={cn(
+                          "flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors",
+                          isActive(item.href)
+                            ? "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300"
+                            : "text-foreground hover:bg-accent hover:text-foreground"
+                        )}
+                      >
+                        <Link href={item.href}>
+                          <item.icon
+                            className={cn(
+                              "h-5 w-5",
+                              !isActive(item.href)
+                                ? "text-muted-foreground"
+                                : "text-blue-600 dark:text-blue-400",
+                              "mr-3"
+                            )}
+                          />
+                          <span>{item.title}</span>
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  ))}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+          ))}
+        </ScrollArea>
       </SidebarContent>
 
-      <SidebarFooter className="border-t border-gray-200 bg-gray-50/80 flex flex-col gap-2 p-3">
+      <SidebarFooter className="border-t border-border bg-accent/50 flex flex-col gap-2 p-2">
         {/* USER PROFILE */}
-        <div className="flex items-center gap-3 px-2 py-1.5 rounded-md hover:bg-gray-100 transition-all">
-          <div className="flex h-9 w-9 items-center justify-center rounded-md bg-blue-600 text-sm font-semibold text-white shrink-0">
+        <div className="group-data-[collapsible=icon]:hidden flex items-center gap-2 px-2 py-2 rounded-md hover:bg-accent transition-all">
+          <div className="flex h-8 w-8 items-center justify-center rounded-md bg-blue-600 text-sm font-semibold text-white shrink-0">
             {initials}
           </div>
-          <div className="flex flex-col text-sm leading-tight min-w-0">
-            <span className="truncate font-medium text-gray-900">
+          <div className="flex flex-col text-sm leading-tight min-w-0 flex-1">
+            <span className="truncate font-medium text-foreground">
               {user.name}
             </span>
-            <span className="truncate text-xs text-gray-500">{user.email}</span>
+            <span className="truncate text-xs text-muted-foreground">{user.email}</span>
             <span className="truncate text-xs text-blue-600">
               {getRoleText(user.role)}
             </span>
           </div>
         </div>
 
+        {/* MINIMIZED USER PROFILE - ICON ONLY */}
+        <div className="group-data-[collapsible=icon]:flex hidden items-center justify-center px-2 py-2">
+          <div className="flex h-8 w-8 items-center justify-center rounded-md bg-blue-600 text-sm font-semibold text-white shrink-0">
+            {initials}
+          </div>
+        </div>
+
         {/* SEPARATOR */}
-        <div className="border-t border-gray-200 my-1" />
+        <div className="border-t border-border my-1" />
 
         {/* LOGOUT BUTTON */}
         <SidebarMenu className="mt-auto">
           <SidebarMenuItem>
             <SidebarMenuButton
               onClick={handleSignOut}
-              className="flex items-center gap-2 text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-all"
+              className="flex items-center gap-2 text-foreground hover:bg-accent hover:text-foreground transition-all"
             >
-              <LogOut className="h-4 w-4" />
-              <span>Logout</span>
+              <LogOut className="h-4 w-4 shrink-0" />
+              <span className="group-data-[collapsible=icon]:hidden">Logout</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
