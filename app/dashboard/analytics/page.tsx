@@ -43,7 +43,9 @@ import {
   Zap,
   BarChart3,
   PieChart as PieChartIcon,
+  BellRing,
 } from 'lucide-react'
+import { useNotifications } from '@/components/notifications/notification-system'
 import { toast } from 'sonner'
 import { format, subDays, subMonths } from 'date-fns'
 import { id } from 'date-fns/locale'
@@ -167,6 +169,7 @@ export default function AnalyticsPage() {
   const [loading, setLoading] = useState(true)
   const [selectedPeriod, setSelectedPeriod] = useState('3months')
   const [selectedMetric, setSelectedMetric] = useState('revenue')
+  const { addNotification } = useNotifications()
 
   const fetchAnalytics = async () => {
     try {
@@ -189,6 +192,15 @@ export default function AnalyticsPage() {
   useEffect(() => {
     fetchAnalytics()
   }, [selectedPeriod])
+
+  const handleTestNotification = () => {
+    addNotification({
+      type: 'success',
+      title: 'Tes Notifikasi Analytics',
+      message: `Data periode ${selectedPeriod} berhasil dimuat.`,
+      category: 'system',
+    })
+  }
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('id-ID', {
@@ -238,6 +250,10 @@ export default function AnalyticsPage() {
           </p>
         </div>
         <div className="flex gap-2">
+          <Button variant="outline" onClick={handleTestNotification}>
+            <BellRing className="mr-2 h-4 w-4" />
+            Tes Notifikasi
+          </Button>
           <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
             <SelectTrigger className="w-40">
               <SelectValue />

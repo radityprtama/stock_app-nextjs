@@ -1,8 +1,9 @@
 import { auth } from '@/lib/auth'
 import { redirect } from 'next/navigation'
-import { Sidebar } from '@/components/layout/sidebar'
+import { AppSidebar } from '@/components/app-sidebar'
 import { Header } from '@/components/layout/header'
 import { prisma } from '@/lib/prisma'
+import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar'
 
 export default async function DashboardLayout({
   children,
@@ -26,14 +27,16 @@ export default async function DashboardLayout({
   }
 
   return (
-    <div className="flex h-screen bg-gray-100">
-      <Sidebar user={session.user} />
-      <div className="flex flex-col flex-1 overflow-hidden">
-        <Header user={session.user} />
-        <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100 p-6">
-          {children}
-        </main>
+    <SidebarProvider>
+      <div className="flex min-h-screen w-full bg-gray-100">
+        <AppSidebar user={session.user} />
+        <SidebarInset className="bg-gray-100">
+          <Header user={session.user} />
+          <div className="flex-1 overflow-y-auto overflow-x-hidden p-6">
+            {children}
+          </div>
+        </SidebarInset>
       </div>
-    </div>
+    </SidebarProvider>
   )
 }

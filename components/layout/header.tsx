@@ -1,6 +1,6 @@
 'use client'
 
-import { Bell, Search, User } from 'lucide-react'
+import { LogOut, Search, Settings, User } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -14,6 +14,8 @@ import {
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { signOut } from 'next-auth/react'
 import { getRoleText } from '@/lib/utils'
+import { NotificationBell } from '@/components/notifications/notification-system'
+import { SidebarTrigger } from '@/components/ui/sidebar'
 
 interface HeaderProps {
   user: {
@@ -31,7 +33,8 @@ export function Header({ user }: HeaderProps) {
   return (
     <header className="bg-white shadow-sm border-b border-gray-200">
       <div className="flex items-center justify-between px-6 py-4">
-        <div className="flex items-center flex-1">
+        <div className="flex items-center flex-1 gap-3">
+          <SidebarTrigger className="-ml-1" />
           <div className="max-w-md w-full">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -44,10 +47,7 @@ export function Header({ user }: HeaderProps) {
         </div>
 
         <div className="flex items-center space-x-4">
-          <Button variant="ghost" size="sm" className="relative">
-            <Bell className="h-5 w-5" />
-            <span className="absolute -top-1 -right-1 h-3 w-3 bg-red-500 rounded-full"></span>
-          </Button>
+          <NotificationBell />
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -82,10 +82,12 @@ export function Header({ user }: HeaderProps) {
                 <span>Profile</span>
               </DropdownMenuItem>
               <DropdownMenuItem>
+                <Settings className='mr-2 h-4 w-4'/>
                 <span>Pengaturan</span>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={handleSignOut}>
+                <LogOut className='mr-2 h-4 w-4'/>
                 <span>Log out</span>
               </DropdownMenuItem>
             </DropdownMenuContent>

@@ -3,6 +3,7 @@
 import { SessionProvider } from 'next-auth/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { useState } from 'react'
+import { NotificationProvider } from '@/components/notifications/notification-system'
 
 export function Providers({ children }: { children: React.ReactNode }) {
   // Create a QueryClient instance using useState to ensure it's stable across re-renders
@@ -20,7 +21,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <SessionProvider>{children}</SessionProvider>
+      <SessionProvider>
+        <NotificationProvider>{children}</NotificationProvider>
+      </SessionProvider>
     </QueryClientProvider>
   )
 }

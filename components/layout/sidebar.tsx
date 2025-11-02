@@ -20,6 +20,7 @@ import {
   ShoppingCart,
   Warehouse,
   ArrowLeftRight,
+  ChartLine,
 } from 'lucide-react'
 import { signOut } from 'next-auth/react'
 import { useState } from 'react'
@@ -125,6 +126,13 @@ const navigation = [
         roles: ['super_admin', 'admin', 'manager', 'staff_gudang', 'sales'],
       },
       {
+        title: 'Analytics',
+        href: '/dashboard/analytics',
+        icon: ChartLine,
+        roles: ['super_admin', 'admin', 'manager']
+
+      },
+      {
         title: 'Mutasi',
         href: '/dashboard/laporan/mutasi',
         icon: ArrowLeftRight,
@@ -163,8 +171,8 @@ export function Sidebar({ user }: SidebarProps) {
   return (
     <div
       className={cn(
-        'flex flex-col bg-white border-r border-gray-200 transition-all duration-300',
-        isCollapsed ? 'w-16' : 'w-64'
+        "flex flex-col bg-white border-r border-gray-200 transition-all duration-300 min-h-0",
+        isCollapsed ? "w-16" : "w-64"
       )}
     >
       <div className="flex items-center justify-between p-4 border-b border-gray-200">
@@ -183,47 +191,55 @@ export function Sidebar({ user }: SidebarProps) {
         </Button>
       </div>
 
-      <ScrollArea className="flex-1 px-3 py-4">
-        {filteredNavigation.map((section) => (
-          <div key={section.title} className="mb-6">
-            {!isCollapsed && (
-              <h3 className="px-3 mb-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                {section.title}
-              </h3>
-            )}
-            <div className="space-y-1">
-              {section.items.map((item) => {
-                const isActive = pathname === item.href
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    className={cn(
-                      'flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors',
-                      isActive
-                        ? 'bg-blue-100 text-blue-700'
-                        : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900',
-                      isCollapsed && 'justify-center'
-                    )}
-                  >
-                    <item.icon className={cn('h-5 w-5', isCollapsed ? '' : 'mr-3')} />
-                    {!isCollapsed && item.title}
-                  </Link>
-                )
-              })}
-            </div>
+      <div className="flex-1 overflow-hidden min-h-0">
+        <ScrollArea className="h-full">
+          <div className={cn("px-3 py-4", isCollapsed && "px-2")}>
+            {filteredNavigation.map((section) => (
+              <div key={section.title} className="mb-6 last:mb-0">
+                {!isCollapsed && (
+                  <h3 className="px-3 mb-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                    {section.title}
+                  </h3>
+                )}
+                <div className="space-y-1">
+                  {section.items.map((item) => {
+                    const isActive = pathname === item.href;
+                    return (
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        className={cn(
+                          "flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors",
+                          isActive
+                            ? "bg-blue-100 text-blue-700"
+                            : "text-gray-600 hover:bg-gray-100 hover:text-gray-900",
+                          isCollapsed && "justify-center"
+                        )}
+                      >
+                        <item.icon
+                          className={cn("h-5 w-5", isCollapsed ? "" : "mr-3")}
+                        />
+                        {!isCollapsed && item.title}
+                      </Link>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
           </div>
-        ))}
-      </ScrollArea>
+        </ScrollArea>
+      </div>
 
       <div className="border-t border-gray-200 p-3">
-        <div className={cn('space-y-2', isCollapsed && 'text-center')}>
+        <div className={cn("space-y-2", isCollapsed && "text-center")}>
           {!isCollapsed && (
             <>
               <div>
                 <p className="text-sm font-medium text-gray-900">{user.name}</p>
                 <p className="text-xs text-gray-500">{user.email}</p>
-                <p className="text-xs text-blue-600">{getRoleText(user.role)}</p>
+                <p className="text-xs text-blue-600">
+                  {getRoleText(user.role)}
+                </p>
               </div>
             </>
           )}
@@ -231,13 +247,28 @@ export function Sidebar({ user }: SidebarProps) {
             variant="ghost"
             size="sm"
             onClick={handleSignOut}
-            className={cn('w-full justify-start', isCollapsed && 'justify-center')}
+            className={cn(
+              "group relative w-full justify-start rounded-lg font-medium text-foreground/90",
+              "hover:bg-muted/60 hover:text-foreground transition-all duration-200 ease-in-out",
+              "active:scale-[0.97] focus-visible:ring-2 focus-visible:ring-ring/50",
+              "flex items-center gap-2",
+              isCollapsed && "justify-center px-2"
+            )}
           >
-            <LogOut className={cn('h-4 w-4', isCollapsed ? '' : 'mr-2')} />
-            {!isCollapsed && 'Logout'}
+            <LogOut
+              className={cn(
+                "h-4 w-4 transition-transform duration-200 group-hover:rotate-[-8deg] group-hover:scale-110",
+                isCollapsed ? "" : "ml-0"
+              )}
+            />
+            {!isCollapsed && (
+              <span className="transition-opacity duration-200 group-hover:opacity-90">
+                Logout
+              </span>
+            )}
           </Button>
         </div>
       </div>
     </div>
-  )
+  );
 }
