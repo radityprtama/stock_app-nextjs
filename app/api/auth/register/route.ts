@@ -9,7 +9,7 @@ const registerSchema = z.object({
   username: z.string().min(3, 'Username minimal 3 karakter').regex(/^[a-zA-Z0-9_]+$/, 'Username hanya boleh huruf, angka, dan underscore'),
   password: z.string().min(8, 'Password minimal 8 karakter').regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/, 'Password harus mengandung huruf besar, huruf kecil, dan angka'),
   namaLengkap: z.string().min(2, 'Nama lengkap minimal 2 karakter'),
-  role: z.enum(['staff_gudang', 'sales', 'manager']).default('staff_gudang'),
+  role: z.enum(['super_admin', 'admin', 'manager', 'staff_gudang', 'sales']).default('staff_gudang'),
   telepon: z.string().optional(),
   alamat: z.string().optional(),
 })

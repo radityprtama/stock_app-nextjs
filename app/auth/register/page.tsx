@@ -43,7 +43,7 @@ const registerSchema = z.object({
     .regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/, 'Password harus mengandung huruf besar, huruf kecil, dan angka'),
   confirmPassword: z.string(),
   namaLengkap: z.string().min(2, 'Nama lengkap minimal 2 karakter'),
-  role: z.enum(['staff_gudang', 'sales', 'manager']),
+  role: z.enum(['super_admin', 'admin', 'manager', 'staff_gudang', 'sales']),
   telepon: z.string().optional(),
   alamat: z.string().optional(),
 }).refine((data) => data.password === data.confirmPassword, {
@@ -236,6 +236,8 @@ export default function RegisterPage() {
                       <SelectValue placeholder="Pilih role" />
                     </SelectTrigger>
                     <SelectContent>
+                      <SelectItem value="super_admin">Super Admin</SelectItem>
+                      <SelectItem value="admin">Admin</SelectItem>
                       <SelectItem value="staff_gudang">Staff Gudang</SelectItem>
                       <SelectItem value="sales">Sales</SelectItem>
                       <SelectItem value="manager">Manager</SelectItem>

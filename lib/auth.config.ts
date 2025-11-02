@@ -21,7 +21,10 @@ export default {
       const isAdminRoute = adminRoutes.some(route =>
         nextUrl.pathname.startsWith(route)
       )
-      const isActiveUser = Boolean(session?.user?.approved && session?.user?.aktif)
+      const approved = session?.user?.approved
+      const aktif = session?.user?.aktif
+      const hasStatus = typeof approved === 'boolean' && typeof aktif === 'boolean'
+      const isActiveUser = hasStatus ? (approved && aktif) : true
 
       // Redirect users with inactive or unapproved accounts away from protected routes
       if (isLoggedIn && !isActiveUser && isProtectedRoute) {

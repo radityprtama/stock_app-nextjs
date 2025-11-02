@@ -6,14 +6,15 @@ import { signIn } from 'next-auth/react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
+import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Loader2, Eye, EyeOff, Clock, CheckCircle, AlertTriangle } from 'lucide-react'
 import { loginSchema, type LoginFormData } from '@/lib/validations'
 import { toast } from 'sonner'
+import { Field, FieldContent, FieldDescription as FieldHint, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -41,6 +42,7 @@ export default function LoginPage() {
         email: data.email,
         password: data.password,
         redirect: false,
+        callbackUrl: '/dashboard',
       })
 
       if (result?.error) {
@@ -48,8 +50,11 @@ export default function LoginPage() {
         toast.error('Login gagal')
       } else {
         toast.success('Login berhasil')
-        router.push('/dashboard')
-        router.refresh()
+        if (result?.url) {
+          router.replace(result.url)
+        } else {
+          router.replace('/dashboard')
+        }
       }
     } catch (error) {
       setError('Terjadi kesalahan saat login')
@@ -63,82 +68,111 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl font-bold text-center">Login</CardTitle>
+          <CardTitle className="text-2xl font-bold text-center">
+            Login
+          </CardTitle>
           <CardDescription className="text-center">
             Masuk ke sistem inventory management
           </CardDescription>
         </CardHeader>
-        <form onSubmit={handleSubmit(onSubmit)}>
-          <CardContent className="space-y-4">
-            {message === 'registration_pending' && (
-              <Alert>
-                <Clock className="h-4 w-4" />
-                <AlertDescription>
-                  Registrasi berhasil! Akun Anda sedang menunggu persetujuan dari administrator.
-                  Anda akan menerima notifikasi ketika akun disetujui.
-                </AlertDescription>
-              </Alert>
-            )}
+        <CardContent>
+          <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-6">
+            <div className="space-y-4">
+              {message === "registration_pending" && (
+                <Alert>
+                  <Clock className="h-4 w-4" />
+                  <AlertDescription>
+                    Registrasi berhasil! Akun Anda sedang menunggu persetujuan
+                    dari administrator. Anda akan menerima notifikasi ketika
+                    akun disetujui.
+                  </AlertDescription>
+                </Alert>
+              )}
 
-            {message === 'account_inactive' && (
-              <Alert variant="destructive">
-                <AlertTriangle className="h-4 w-4" />
-                <AlertDescription>
-                  Akun Anda belum disetujui atau telah dinonaktifkan. Silakan hubungi administrator.
-                </AlertDescription>
-              </Alert>
-            )}
+              {message === "account_inactive" && (
+                <Alert variant="destructive">
+                  <AlertTriangle className="h-4 w-4" />
+                  <AlertDescription>
+                    Akun Anda belum disetujui atau telah dinonaktifkan. Silakan
+                    hubungi administrator.
+                  </AlertDescription>
+                </Alert>
+              )}
 
-            {error && (
-              <Alert variant="destructive">
-                <AlertTriangle className="h-4 w-4" />
-                <AlertDescription>{error}</AlertDescription>
-              </Alert>
-            )}
-
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="email@example.com"
-                {...register('email')}
-                disabled={isLoading}
-              />
-              {errors.email && (
-                <p className="text-sm text-red-600">{errors.email.message}</p>
+              {error && (
+                <Alert variant="destructive">
+                  <AlertTriangle className="h-4 w-4" />
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
               )}
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <div className="relative">
-                <Input
-                  id="password"
-                  type={showPassword ? 'text' : 'password'}
-                  placeholder="••••••••"
-                  {...register('password')}
-                  disabled={isLoading}
-                />
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                  onClick={() => setShowPassword(!showPassword)}
-                  disabled={isLoading}
-                >
-                  {showPassword ? (
-                    <EyeOff className="h-4 w-4" />
-                  ) : (
-                    <Eye className="h-4 w-4" />
-                  )}
-                </Button>
-              </div>
-              {errors.password && (
-                <p className="text-sm text-red-600">{errors.password.message}</p>
-              )}
-            </div>
+            <FieldGroup>
+              <Field data-invalid={Boolean(errors.email)}>
+                <FieldLabel htmlFor="email">Email</FieldLabel>
+                <FieldContent>
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="email@example.com"
+                    {...register("email")}
+                    disabled={isLoading}
+                  />
+                  <FieldError
+                    errors={errors.email ? [errors.email] : undefined}
+                  />
+                </FieldContent>
+              </Field>
+
+              <Field data-invalid={Boolean(errors.password)}>
+                <div className="flex items-center justify-between">
+                  <FieldLabel htmlFor="password" className="m-0">
+                    Password
+                  </FieldLabel>
+                  <Button
+                    type="button"
+                    variant="link"
+                    className="h-auto p-0 text-sm"
+                    onClick={() => setShowPassword((prev) => !prev)}
+                    disabled={isLoading}
+                  >
+                    {showPassword ? "Sembunyikan" : "Tampilkan"}
+                  </Button>
+                </div>
+                <FieldContent>
+                  <Input
+                    id="password"
+                    type={showPassword ? "text" : "password"}
+                    placeholder="••••••••"
+                    {...register("password")}
+                    disabled={isLoading}
+                  />
+                  <FieldError
+                    errors={errors.password ? [errors.password] : undefined}
+                  />
+                </FieldContent>
+              </Field>
+
+              <Field>
+                <FieldContent className="flex flex-col gap-3">
+                  <Button type="submit" disabled={isLoading}>
+                    {isLoading && (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    )}
+                    Masuk
+                  </Button>
+                  <FieldHint className="text-center">
+                    Belum punya akun?{" "}
+                    <Link
+                      href="/auth/register"
+                      className="underline underline-offset-4"
+                    >
+                      Daftar sekarang
+                    </Link>
+                  </FieldHint>
+                </FieldContent>
+              </Field>
+            </FieldGroup>
 
             <div className="bg-blue-50 p-3 rounded-lg">
               <p className="text-sm text-blue-800">
@@ -147,15 +181,9 @@ export default function LoginPage() {
               <p className="text-sm text-blue-700">Email: admin@example.com</p>
               <p className="text-sm text-blue-700">Password: admin123</p>
             </div>
-          </CardContent>
-          <CardFooter>
-            <Button className="w-full" disabled={isLoading}>
-              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Masuk
-            </Button>
-          </CardFooter>
-        </form>
+          </form>
+        </CardContent>
       </Card>
     </div>
   )
-}
+                                                                                                                                                                                                                                                                      }
