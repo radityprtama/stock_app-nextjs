@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
 import { z } from 'zod'
+import { createNotification } from '@/app/api/notifications/route'
 
 const postSchema = z.object({
   deliveryOption: z.enum(['partial', 'complete']).default('complete'),
@@ -193,6 +194,62 @@ export async function POST(
     }
     if (deliveryOption === 'partial') {
       successMessage += ' (pengiriman partial)'
+    }
+
+    // Create success notification
+    await createNotification({
+      title: 'Surat Jalan Diposting',
+      message: `${updatedSJ.noSJ} - ${successMessage}`,
+      type: 'success',
+      category: 'transaction',
+      actionUrl: '/dashboard/transaksi/surat-jalan',
+      metadata: {
+        suratJalanId: id,
+        noSJ: updatedSJ.noSJ,
+        customerId: updatedSJ.customerId,
+        totalItems: result.shippingSummary.totalItems,
+        normalItems: result.shippingSummary.normalItems,
+        dropshipItems: result.shippingSummary.dropshipItems,
+        deliveryOption
+      }
+    })
+
+    // Create notification for pending dropship items
+    if (stockValidation.itemsPending.length > 0) {
+      const pendingDropshipItems = stockValidation.itemsPending.filter((item: any) => item.isDropship)
+      if (pendingDropshipItems.length > 0) {
+        await createNotification({
+          title: 'Dropship Pending',
+          message: `${pendingDropshipItems.length} item dropship masih menunggu supplier`,
+          type: 'warning',
+          category: 'dropship',
+          actionUrl: '/dashboard/transaksi/barang-masuk',
+          metadata: {
+            suratJalanId: id,
+            pendingItems: pendingDropshipItems.map((item: any) => ({
+              barangId: item.barangId,
+              barangName: item.barang.nama,
+              dropshipStatus: item.dropshipStatus
+            }))
+          }
+        })
+      }
+    }
+
+    // Create notification for partial shipment
+    if (deliveryOption === 'partial' && stockValidation.itemsPending.length > 0) {
+      await createNotification({
+        title: 'Pengiriman Partial',
+        message: `${result.shippingSummary.totalItems} item dikirim, ${stockValidation.itemsPending.length} item akan menyusul`,
+        type: 'info',
+        category: 'transaction',
+        actionUrl: '/dashboard/transaksi/surat-jalan',
+        metadata: {
+          suratJalanId: id,
+          shippedItems: result.shippingSummary.totalItems,
+          pendingItems: stockValidation.itemsPending.length
+        }
+      })
     }
 
     return NextResponse.json({

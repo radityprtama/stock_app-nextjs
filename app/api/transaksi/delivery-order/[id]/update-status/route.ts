@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
 import { TRANSACTION_STATUS } from '@/src/constants'
+import { createNotification } from '@/app/api/notifications/route'
 
 // Helper function to check if user has permission
 function hasPermission(userRole: string): boolean {
@@ -75,6 +76,38 @@ export async function POST(
         detail: true
       }
     })
+
+    // Create notification for status update
+    const statusMessages = {
+      [TRANSACTION_STATUS.IN_TRANSIT]: 'Dalam perjalanan',
+      [TRANSACTION_STATUS.DELIVERED]: 'Sampai tujuan',
+      [TRANSACTION_STATUS.CANCELLED]: 'Dibatalkan',
+    }
+
+    const statusTypes = {
+      [TRANSACTION_STATUS.IN_TRANSIT]: 'info' as const,
+      [TRANSACTION_STATUS.DELIVERED]: 'success' as const,
+      [TRANSACTION_STATUS.CANCELLED]: 'error' as const,
+    }
+
+    if (status !== existingDeliveryOrder.status && statusMessages[status as keyof typeof statusMessages]) {
+      await createNotification({
+        title: 'Update Delivery Order',
+        message: `${updatedDeliveryOrder.noDO} - ${statusMessages[status as keyof typeof statusMessages]}`,
+        type: statusTypes[status as keyof typeof statusTypes] || 'info',
+        category: 'transaction',
+        actionUrl: '/dashboard/transaksi/delivery-order',
+        metadata: {
+          deliveryOrderId: id,
+          noDO: updatedDeliveryOrder.noDO,
+          gudangAsalId: updatedDeliveryOrder.gudangAsalId,
+          gudangAsal: updatedDeliveryOrder.gudangAsal.nama,
+          totalItems: updatedDeliveryOrder.detail.length,
+          status: status,
+          previousStatus: existingDeliveryOrder.status
+        }
+      })
+    }
 
     return NextResponse.json({
       success: true,

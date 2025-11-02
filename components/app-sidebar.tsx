@@ -35,6 +35,8 @@ import {
   Building,
   ArrowLeftRight,
   ChartLine,
+  Bell,
+  Settings,
 } from "lucide-react";
 
 type NavigationItem = {
@@ -155,8 +157,25 @@ const navigation: NavigationSection[] = [
     ],
   },
   {
+    title: "Tools",
+    items: [
+      {
+        title: "Notifikasi",
+        href: "/dashboard/notifications",
+        icon: Bell,
+        roles: ["super_admin", "admin", "manager", "staff_gudang", "sales"],
+      },
+    ],
+  },
+  {
     title: "Pengaturan",
     items: [
+      {
+        title: "Pengaturan",
+        href: "/dashboard/settings",
+        icon: Settings,
+        roles: ["super_admin", "admin", "manager", "staff_gudang", "sales"],
+      },
       {
         title: "User Management",
         href: "/dashboard/users",

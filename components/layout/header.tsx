@@ -81,9 +81,11 @@ export function Header({ user }: HeaderProps) {
                 <User className="mr-2 h-4 w-4" />
                 <span>Profile</span>
               </DropdownMenuItem>
-              <DropdownMenuItem>
-                <Settings className='mr-2 h-4 w-4'/>
-                <span>Pengaturan</span>
+              <DropdownMenuItem asChild>
+                <a href="/dashboard/settings">
+                  <Settings className='mr-2 h-4 w-4'/>
+                  <span>Pengaturan</span>
+                </a>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={handleSignOut}>

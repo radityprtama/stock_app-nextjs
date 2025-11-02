@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
+import { createNotification } from '@/app/api/notifications/route'
 
 // POST /api/transaksi/surat-jalan/[id]/check-stock - Check stock and detect dropship needs
 export async function POST(
@@ -180,6 +181,64 @@ export async function POST(
     const lowStockWarnings = stockCheckResults.filter(item =>
       item.currentStock <= item.barang.minStok && item.currentStock > 0
     )
+
+    // Create notifications for critical stock levels
+    if (lowStockWarnings.length > 0) {
+      for (const warning of lowStockWarnings) {
+        await createNotification({
+          title: 'Stok Menipis',
+          message: `${warning.barang.nama} - Stok tersisa: ${warning.currentStock} unit (minimum: ${warning.barang.minStok})`,
+          type: 'warning',
+          category: 'stock',
+          actionUrl: '/dashboard/master/barang',
+          metadata: {
+            barangId: warning.barangId,
+            currentStock: warning.currentStock,
+            minStock: warning.barang.minStok,
+            suratJalanId: id
+          }
+        })
+      }
+    }
+
+    // Create notification for out of stock items
+    const outOfStockItems = stockCheckResults.filter(item => item.currentStock === 0)
+    if (outOfStockItems.length > 0) {
+      const itemNames = outOfStockItems.map(item => item.barang.nama).join(', ')
+      await createNotification({
+        title: 'Stok Habis',
+        message: `${itemNames} - Stok habis, perlu dropship dari supplier`,
+        type: 'error',
+        category: 'stock',
+        actionUrl: '/dashboard/transaksi/surat-jalan',
+        metadata: {
+          items: outOfStockItems.map(item => ({
+            barangId: item.barangId,
+            barangName: item.barang.nama,
+            needsDropship: item.needsDropship
+          })),
+          suratJalanId: id
+        }
+      })
+    }
+
+    // Create notification for dropship needs
+    if (summary.needsDropshipItems > 0) {
+      await createNotification({
+        title: 'Perlu Dropship',
+        message: `${summary.needsDropshipItems} item perlu di-order ke supplier dropship`,
+        type: 'info',
+        category: 'dropship',
+        actionUrl: '/dashboard/transaksi/surat-jalan',
+        metadata: {
+          suratJalanId: id,
+          needsDropshipItems: summary.needsDropshipItems,
+          alternativeSuppliers: stockCheckResults
+            .filter(item => item.needsDropship)
+            .flatMap(item => item.alternativeSuppliers)
+        }
+      })
+    }
 
     return NextResponse.json({
       success: true,
