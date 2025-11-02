@@ -182,7 +182,7 @@ interface FormData {
   keterangan?: string
   isDropship?: boolean
   supplierId?: string
-  statusDropship?: string
+  statusDropship?: 'pending' | 'ordered' | 'received'
 }
 
 type SuratJalanFormValues = z.input<typeof suratJalanSchema>
@@ -338,7 +338,7 @@ export default function SuratJalanPage() {
       keterangan: item.keterangan || '',
       isDropship: item.isDropship || false,
       supplierId: item.supplierId,
-      statusDropship: item.statusDropship,
+      statusDropship: item.statusDropship as 'pending' | 'ordered' | 'received' | undefined,
     })))
   }, [items, setValue])
 
@@ -483,7 +483,7 @@ export default function SuratJalanPage() {
       keterangan: detail.keterangan || '',
       isDropship: detail.isDropship,
       supplierId: detail.supplierId || '',
-      statusDropship: detail.statusDropship || '',
+      statusDropship: (detail.statusDropship || '') as 'pending' | 'ordered' | 'received',
     }))
     setItems(formItems)
 
