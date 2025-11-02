@@ -21,9 +21,23 @@ export default {
       const isAdminRoute = adminRoutes.some(route =>
         nextUrl.pathname.startsWith(route)
       )
+      const isActiveUser = Boolean(session?.user?.approved && session?.user?.aktif)
+
+      // Redirect users with inactive or unapproved accounts away from protected routes
+      if (isLoggedIn && !isActiveUser && isProtectedRoute) {
+        const loginUrl = new URL('/auth/login', nextUrl)
+        if (loginUrl.searchParams.get('message') !== 'account_inactive') {
+          loginUrl.searchParams.set('message', 'account_inactive')
+        }
+        return NextResponse.redirect(loginUrl)
+      }
 
       // Redirect authenticated users away from auth pages
       if (isLoggedIn && isPublicRoute) {
+        if (!isActiveUser) {
+          return true
+        }
+
         return NextResponse.redirect(new URL('/dashboard', nextUrl))
       }
 

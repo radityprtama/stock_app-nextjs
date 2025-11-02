@@ -8,6 +8,8 @@ declare module 'next-auth' {
       name: string
       role: string
       username: string
+      approved: boolean
+      aktif: boolean
     }
   }
 
@@ -17,6 +19,8 @@ declare module 'next-auth' {
     name: string
     role: string
     username: string
+    approved: boolean
+    aktif: boolean
   }
 }
 
@@ -24,5 +28,7 @@ declare module 'next-auth/jwt' {
   interface JWT {
     role: string
     username: string
+    approved: boolean
+    aktif: boolean
   }
 }

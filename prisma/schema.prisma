@@ -417,9 +417,51 @@ model User {
   username      String    @unique
   password      String    // hashed
   namaLengkap   String
-  role          String    // "admin", "staff_gudang", "sales", "manager"
+  role          Role      @default(staff_gudang)
   aktif         Boolean   @default(true)
+  approved      Boolean   @default(false) // Need admin approval
+  approvedBy    String?   // User ID who approved
+  approvedAt    DateTime? // When approved
+  lastLoginAt   DateTime? // Last login timestamp
+  loginAttempts Int       @default(0) // Failed login attempts
+  lockedUntil   DateTime? // Account lockout timestamp
+  telepon       String?   // Phone number
+  alamat        String?   @db.Text // Address
+  profileImage  String?   // Profile image URL
+
+  // Relations
+  approvedByUser User?     @relation("UserApproval", fields: [approvedBy], references: [id])
+  approvedUsers User[]     @relation("UserApproval")
+  userSessions   UserSession[]
 
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
+
+  @@index([email])
+  @@index([username])
+  @@index([role])
+  @@index([approved])
+  @@index([aktif])
+}
+
+enum Role {
+  super_admin
+  admin
+  manager
+  staff_gudang
+  sales
+}
+
+model UserSession {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([token])
+  @@index([expiresAt])
 }

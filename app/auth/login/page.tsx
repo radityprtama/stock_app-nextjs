@@ -1,23 +1,25 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { signIn } from 'next-auth/react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Loader2, Eye, EyeOff } from 'lucide-react'
+import { Loader2, Eye, EyeOff, Clock, CheckCircle, AlertTriangle } from 'lucide-react'
 import { loginSchema, type LoginFormData } from '@/lib/validations'
 import { toast } from 'sonner'
 
 export default function LoginPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const message = searchParams?.get('message')
+
   const [isLoading, setIsLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
@@ -42,7 +44,7 @@ export default function LoginPage() {
       })
 
       if (result?.error) {
-        setError('Email atau password salah')
+        setError('Email, password salah, atau akun belum disetujui')
         toast.error('Login gagal')
       } else {
         toast.success('Login berhasil')
@@ -68,8 +70,28 @@ export default function LoginPage() {
         </CardHeader>
         <form onSubmit={handleSubmit(onSubmit)}>
           <CardContent className="space-y-4">
+            {message === 'registration_pending' && (
+              <Alert>
+                <Clock className="h-4 w-4" />
+                <AlertDescription>
+                  Registrasi berhasil! Akun Anda sedang menunggu persetujuan dari administrator.
+                  Anda akan menerima notifikasi ketika akun disetujui.
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {message === 'account_inactive' && (
+              <Alert variant="destructive">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertDescription>
+                  Akun Anda belum disetujui atau telah dinonaktifkan. Silakan hubungi administrator.
+                </AlertDescription>
+              </Alert>
+            )}
+
             {error && (
               <Alert variant="destructive">
+                <AlertTriangle className="h-4 w-4" />
                 <AlertDescription>{error}</AlertDescription>
               </Alert>
             )}
