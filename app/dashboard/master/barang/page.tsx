@@ -255,33 +255,51 @@ export default function BarangPage() {
     setSubmitting(true)
     try {
       const payload: BarangFormData = barangSchema.parse(data)
-      const url = editingBarang
-        ? `/api/master/barang/${editingBarang.id}`
-        : '/api/master/barang'
-      const method = editingBarang ? 'PUT' : 'POST'
 
-      const response = await fetch(url, {
-        method,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload),
-      })
+      // Only handle adding new items in the Input tab
+      if (editingBarang) {
+        // If editingBarang is set, this should use the dialog flow
+        const url = `/api/master/barang/${editingBarang.id}`
+        const method = 'PUT'
 
-      const result = await response.json()
+        const response = await fetch(url, {
+          method,
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(payload),
+        })
 
-      if (result.success) {
-        toast.success(
-          editingBarang
-            ? 'Barang berhasil diperbarui'
-            : 'Barang berhasil ditambahkan'
-        )
-        setDialogOpen(false)
-        reset()
-        setEditingBarang(null)
-        fetchBarangs()
+        const result = await response.json()
+
+        if (result.success) {
+          toast.success('Barang berhasil diperbarui')
+          setDialogOpen(false)
+          reset()
+          setEditingBarang(null)
+          fetchBarangs()
+        } else {
+          toast.error(result.error || 'Gagal menyimpan data')
+        }
       } else {
-        toast.error(result.error || 'Gagal menyimpan data')
+        // Add new item from Input tab
+        const response = await fetch('/api/master/barang', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(payload),
+        })
+
+        const result = await response.json()
+
+        if (result.success) {
+          toast.success('Barang berhasil ditambahkan')
+          reset()
+          fetchBarangs()
+        } else {
+          toast.error(result.error || 'Gagal menyimpan data')
+        }
       }
     } catch (error) {
       toast.error('Terjadi kesalahan saat menyimpan data')
@@ -376,21 +394,28 @@ export default function BarangPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Master Barang</h1>
-          <p className="text-muted-foreground">
-            Kelola data barang atau item inventaris
-          </p>
-        </div>
-        <Button onClick={openAddDialog}>
-          <Plus className="mr-2 h-4 w-4" />
-          Tambah Barang
-        </Button>
+      <div>
+        <h1 className="text-3xl font-bold tracking-tight">Master Barang</h1>
+        <p className="text-muted-foreground">
+          Kelola data barang atau item inventaris
+        </p>
       </div>
 
-      {/* Statistics Cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <Tabs defaultValue="browse" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="browse">
+            <Package className="mr-2 h-4 w-4" />
+            Browse Data
+          </TabsTrigger>
+          <TabsTrigger value="input">
+            <Plus className="mr-2 h-4 w-4" />
+            Input Barang
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="browse" className="space-y-4">
+          {/* Statistics Cards */}
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Nilai Stok</CardTitle>
@@ -641,7 +666,7 @@ export default function BarangPage() {
                   <p className="text-gray-500 mb-4">
                     Mulai dengan menambahkan barang pertama
                   </p>
-                  <Button onClick={openAddDialog}>
+                  <Button onClick={() => {/* Navigate to input tab */}}>
                     <Plus className="mr-2 h-4 w-4" />
                     Tambah Barang
                   </Button>
@@ -687,6 +712,230 @@ export default function BarangPage() {
           )}
         </CardContent>
       </Card>
+        </TabsContent>
+
+        <TabsContent value="input" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Input Barang Baru</CardTitle>
+              <CardDescription>
+                Tambahkan barang baru ke sistem inventaris
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+                <div className="grid gap-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="grid gap-2">
+                      <Label htmlFor="kode-input">Kode Barang</Label>
+                      <Input
+                        id="kode-input"
+                        {...register('kode')}
+                        placeholder="Contoh: BRG001"
+                        disabled={submitting}
+                      />
+                      {errors.kode && (
+                        <p className="text-sm text-red-600">{errors.kode.message}</p>
+                      )}
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="satuan-input">Satuan</Label>
+                      <Input
+                        id="satuan-input"
+                        {...register('satuan')}
+                        placeholder="Contoh: pcs, unit, box"
+                        disabled={submitting}
+                      />
+                      {errors.satuan && (
+                        <p className="text-sm text-red-600">{errors.satuan.message}</p>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="grid gap-2">
+                    <Label htmlFor="nama-input">Nama Barang</Label>
+                    <Input
+                      id="nama-input"
+                      {...register('nama')}
+                      placeholder="Contoh: Laptop ASUS ROG"
+                      disabled={submitting}
+                    />
+                    {errors.nama && (
+                      <p className="text-sm text-red-600">{errors.nama.message}</p>
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-4">
+                    <div className="grid gap-2">
+                      <Label htmlFor="merk-input">Merk</Label>
+                      <Input
+                        id="merk-input"
+                        {...register('merk')}
+                        placeholder="Contoh: ASUS"
+                        disabled={submitting}
+                      />
+                      {errors.merk && (
+                        <p className="text-sm text-red-600">{errors.merk.message}</p>
+                      )}
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="tipe-input">Tipe</Label>
+                      <Input
+                        id="tipe-input"
+                        {...register('tipe')}
+                        placeholder="Contoh: Gaming"
+                        disabled={submitting}
+                      />
+                      {errors.tipe && (
+                        <p className="text-sm text-red-600">{errors.tipe.message}</p>
+                      )}
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="ukuran-input">Ukuran</Label>
+                      <Input
+                        id="ukuran-input"
+                        {...register('ukuran')}
+                        placeholder="Contoh: 15 inch"
+                        disabled={submitting}
+                      />
+                      {errors.ukuran && (
+                        <p className="text-sm text-red-600">{errors.ukuran.message}</p>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="grid gap-2">
+                    <Label htmlFor="golonganId-input">Golongan</Label>
+                    <Select
+                      value={watchedValues.golonganId}
+                      onValueChange={(value) => setValue('golonganId', value)}
+                      disabled={submitting}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Pilih Golongan" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {golongans.map((golongan) => (
+                          <SelectItem key={golongan.id} value={golongan.id}>
+                            {golongan.kode} - {golongan.nama}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {errors.golonganId && (
+                      <p className="text-sm text-red-600">{errors.golonganId.message}</p>
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="grid gap-2">
+                      <Label htmlFor="hargaBeli-input">Harga Beli</Label>
+                      <Input
+                        id="hargaBeli-input"
+                        type="number"
+                        step="0.01"
+                        {...register('hargaBeli', { valueAsNumber: true })}
+                        placeholder="0"
+                        disabled={submitting}
+                      />
+                      {errors.hargaBeli && (
+                        <p className="text-sm text-red-600">{errors.hargaBeli.message}</p>
+                      )}
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="hargaJual-input">Harga Jual</Label>
+                      <Input
+                        id="hargaJual-input"
+                        type="number"
+                        step="0.01"
+                        {...register('hargaJual', { valueAsNumber: true })}
+                        placeholder="0"
+                        disabled={submitting}
+                      />
+                      {errors.hargaJual && (
+                        <p className="text-sm text-red-600">{errors.hargaJual.message}</p>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="grid gap-2">
+                      <Label htmlFor="minStok-input">Min Stok</Label>
+                      <Input
+                        id="minStok-input"
+                        type="number"
+                        {...register('minStok', { valueAsNumber: true })}
+                        placeholder="0"
+                        disabled={submitting}
+                      />
+                      {errors.minStok && (
+                        <p className="text-sm text-red-600">{errors.minStok.message}</p>
+                      )}
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="maxStok-input">Max Stok (Opsional)</Label>
+                      <Input
+                        id="maxStok-input"
+                        type="number"
+                        {...register('maxStok', { valueAsNumber: true })}
+                        placeholder="0"
+                        disabled={submitting}
+                      />
+                      {errors.maxStok && (
+                        <p className="text-sm text-red-600">{errors.maxStok.message}</p>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      <Switch
+                        id="isDropship-input"
+                        checked={watchedValues.isDropship || false}
+                        onCheckedChange={(checked) => setValue('isDropship', checked)}
+                        disabled={submitting}
+                      />
+                      <Label htmlFor="isDropship-input">Barang Dropship</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Switch
+                        id="aktif-input"
+                        checked={watchedValues.aktif !== false}
+                        onCheckedChange={(checked) => setValue('aktif', checked)}
+                        disabled={submitting}
+                      />
+                      <Label htmlFor="aktif-input">Aktif</Label>
+                    </div>
+                  </div>
+
+                  {watchedValues.isDropship && (
+                    <div className="p-3 bg-blue-50 rounded-lg">
+                      <p className="text-sm text-blue-800">
+                        <strong>Info:</strong> Barang dropship adalah barang yang tidak disimpan di gudang
+                        tapi langsung dikirim dari supplier ketika ada pesanan.
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex justify-end space-x-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => reset(defaultBarangFormValues)}
+                    disabled={submitting}
+                  >
+                    Reset Form
+                  </Button>
+                  <Button type="submit" disabled={submitting}>
+                    {submitting ? 'Menyimpan...' : 'Simpan Barang'}
+                  </Button>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
 
       {/* Add/Edit Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>

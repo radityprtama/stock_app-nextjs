@@ -201,10 +201,10 @@ export default function DashboardPage() {
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900 truncate">
+                    <p className="text-sm font-medium text-foreground truncate">
                       {transaction.no}
                     </p>
-                    <p className="text-sm text-gray-500">
+                    <p className="text-sm text-muted-foreground">
                       {transaction.customer}
                     </p>
                   </div>
@@ -212,7 +212,7 @@ export default function DashboardPage() {
                     <p className="text-sm font-medium">
                       {formatCurrency(transaction.total)}
                     </p>
-                    <p className="text-xs text-gray-500">
+                    <p className="text-xs text-muted-foreground">
                       {transaction.date}
                     </p>
                   </div>
@@ -241,10 +241,10 @@ export default function DashboardPage() {
               {lowStockItems.map((item) => (
                 <div key={item.id} className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-gray-900">
+                    <p className="text-sm font-medium text-foreground">
                       {item.nama}
                     </p>
-                    <p className="text-sm text-gray-500">
+                    <p className="text-sm text-muted-foreground">
                       {item.gudang}
                     </p>
                   </div>

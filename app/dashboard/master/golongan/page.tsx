@@ -43,6 +43,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
   Plus,
   Search,
@@ -53,6 +54,7 @@ import {
   Tag,
   Package,
   BarChart3,
+  Building,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { GolonganFormData, golonganSchema } from '@/lib/validations'
@@ -102,6 +104,7 @@ export default function GolonganPage() {
     handleSubmit,
     reset,
     setValue,
+    watch,
     formState: { errors },
   } = useForm<GolonganFormValues>({
     resolver: zodResolver(golonganSchema),
@@ -137,7 +140,7 @@ export default function GolonganPage() {
     fetchGolongans()
   }, [pagination.page, search])
 
-  const onSubmit = async (data: GolonganFormValues) => {
+  const onSubmit = async (data: GolonganFormValues, isTabSubmit = false) => {
     setSubmitting(true)
     try {
       const payload: GolonganFormData = golonganSchema.parse(data)
@@ -162,9 +165,12 @@ export default function GolonganPage() {
             ? 'Golongan berhasil diperbarui'
             : 'Golongan berhasil ditambahkan'
         )
-        setDialogOpen(false)
-        reset(defaultGolonganFormValues)
-        setEditingGolongan(null)
+        if (isTabSubmit) {
+          reset(defaultGolonganFormValues)
+        } else {
+          setDialogOpen(false)
+          setEditingGolongan(null)
+        }
         fetchGolongans()
       } else {
         toast.error(result.error || 'Gagal menyimpan data')
@@ -221,242 +227,328 @@ export default function GolonganPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Master Golongan</h1>
-          <p className="text-muted-foreground">
-            Kelola data golongan atau kategori barang
-          </p>
-        </div>
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogTrigger asChild>
-            <Button onClick={openAddDialog}>
-              <Plus className="mr-2 h-4 w-4" />
-              Tambah Golongan
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-[425px]">
-            <DialogHeader>
-              <DialogTitle>
-                {editingGolongan ? 'Edit Golongan' : 'Tambah Golongan Baru'}
-              </DialogTitle>
-              <DialogDescription>
-                {editingGolongan
-                  ? 'Edit informasi golongan yang sudah ada.'
-                  : 'Tambahkan golongan baru ke sistem.'}
-              </DialogDescription>
-            </DialogHeader>
-            <form onSubmit={handleSubmit(onSubmit)}>
-              <div className="grid gap-4 py-4">
-                <div className="grid gap-2">
-                  <Label htmlFor="kode">Kode Golongan</Label>
-                  <Input
-                    id="kode"
-                    {...register('kode')}
-                    placeholder="Contoh: GL001"
-                    disabled={submitting}
-                  />
-                  {errors.kode && (
-                    <p className="text-sm text-red-600">{errors.kode.message}</p>
-                  )}
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="nama">Nama Golongan</Label>
-                  <Input
-                    id="nama"
-                    {...register('nama')}
-                    placeholder="Contoh: Elektronik"
-                    disabled={submitting}
-                  />
-                  {errors.nama && (
-                    <p className="text-sm text-red-600">{errors.nama.message}</p>
-                  )}
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="deskripsi">Deskripsi</Label>
-                  <Textarea
-                    id="deskripsi"
-                    {...register('deskripsi')}
-                    placeholder="Masukkan deskripsi golongan"
-                    disabled={submitting}
-                    rows={3}
-                  />
-                  {errors.deskripsi && (
-                    <p className="text-sm text-red-600">{errors.deskripsi.message}</p>
-                  )}
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Switch
-                    id="aktif"
-                    checked={editingGolongan ? editingGolongan.aktif : true}
-                    onCheckedChange={(checked) => setValue('aktif', checked)}
-                    disabled={submitting}
-                  />
-                  <Label htmlFor="aktif">Aktif</Label>
-                </div>
-              </div>
-              <DialogFooter>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setDialogOpen(false)}
-                  disabled={submitting}
-                >
-                  Batal
-                </Button>
-                <Button type="submit" disabled={submitting}>
-                  {submitting ? 'Menyimpan...' : editingGolongan ? 'Perbarui' : 'Simpan'}
-                </Button>
-              </DialogFooter>
-            </form>
-          </DialogContent>
-        </Dialog>
+      <div>
+        <h1 className="text-3xl font-bold tracking-tight">Master Golongan</h1>
+        <p className="text-muted-foreground">Kelola data golongan atau kategori barang</p>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Daftar Golongan</CardTitle>
-          <CardDescription>
-            Total {pagination.total} golongan terdaftar
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center space-x-2 mb-4">
-            <div className="relative flex-1 max-w-sm">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-              <Input
-                placeholder="Cari golongan..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-          </div>
+      <Tabs defaultValue="browse" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="browse">
+            <Building className="mr-2 h-4 w-4" />
+            Browse Data
+          </TabsTrigger>
+          <TabsTrigger value="input">
+            <Plus className="mr-2 h-4 w-4" />
+            Input Golongan
+          </TabsTrigger>
+        </TabsList>
 
-          {loading ? (
-            <div className="flex items-center justify-center py-8">
-              <div className="text-sm text-gray-500">Memuat data...</div>
-            </div>
-          ) : (
-            <>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Kode</TableHead>
-                    <TableHead>Nama Golongan</TableHead>
-                    <TableHead>Deskripsi</TableHead>
-                    <TableHead>Statistik</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Aksi</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {golongans.map((golongan) => (
-                    <TableRow key={golongan.id}>
-                      <TableCell className="font-medium">{golongan.kode}</TableCell>
-                      <TableCell>{golongan.nama}</TableCell>
-                      <TableCell className="max-w-xs truncate">
-                        {golongan.deskripsi || '-'}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center space-x-2">
-                          <Badge variant="secondary" className="flex items-center space-x-1">
-                            <Package className="h-3 w-3" />
-                            <span>{golongan._count.barang}</span>
-                          </Badge>
-                          <Badge variant="outline" className="flex items-center space-x-1">
-                            <BarChart3 className="h-3 w-3" />
-                            <span>Barang</span>
-                          </Badge>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={golongan.aktif ? 'default' : 'secondary'}>
-                          {golongan.aktif ? 'Aktif' : 'Non-aktif'}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="sm">
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => handleEdit(golongan)}>
-                              <Edit className="mr-2 h-4 w-4" />
-                              Edit
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={() => openDeleteDialog(golongan)}
-                              className="text-red-600"
-                            >
-                              <Trash2 className="mr-2 h-4 w-4" />
-                              Hapus
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+        <TabsContent value="browse" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Daftar Golongan</CardTitle>
+              <CardDescription>
+                Total {pagination.total} golongan terdaftar
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center space-x-2 mb-4">
+                <div className="relative flex-1 max-w-sm">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <Input
+                    placeholder="Cari golongan..."
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
+              </div>
 
-              {golongans.length === 0 && (
-                <div className="flex flex-col items-center justify-center py-8">
-                  <Tag className="h-12 w-12 text-gray-400 mb-4" />
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">
-                    Belum ada data golongan
-                  </h3>
-                  <p className="text-gray-500 mb-4">
-                    Mulai dengan menambahkan golongan pertama
-                  </p>
-                  <Button onClick={openAddDialog}>
-                    <Plus className="mr-2 h-4 w-4" />
-                    Tambah Golongan
+              {loading ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="text-sm text-gray-500">Memuat data...</div>
+                </div>
+              ) : (
+                <>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Kode</TableHead>
+                        <TableHead>Nama Golongan</TableHead>
+                        <TableHead>Deskripsi</TableHead>
+                        <TableHead>Statistik</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead className="text-right">Aksi</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {golongans.map((golongan) => (
+                        <TableRow key={golongan.id}>
+                          <TableCell className="font-medium">{golongan.kode}</TableCell>
+                          <TableCell>{golongan.nama}</TableCell>
+                          <TableCell className="max-w-xs truncate">
+                            {golongan.deskripsi || '-'}
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center space-x-2">
+                              <Badge variant="secondary" className="flex items-center space-x-1">
+                                <Package className="h-3 w-3" />
+                                <span>{golongan._count.barang}</span>
+                              </Badge>
+                              <Badge variant="outline" className="flex items-center space-x-1">
+                                <BarChart3 className="h-3 w-3" />
+                                <span>Barang</span>
+                              </Badge>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant={golongan.aktif ? 'default' : 'secondary'}>
+                              {golongan.aktif ? 'Aktif' : 'Non-aktif'}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="sm">
+                                  <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={() => handleEdit(golongan)}>
+                                  <Edit className="mr-2 h-4 w-4" />
+                                  Edit
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={() => openDeleteDialog(golongan)}
+                                  className="text-red-600"
+                                >
+                                  <Trash2 className="mr-2 h-4 w-4" />
+                                  Hapus
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+
+                  {golongans.length === 0 && (
+                    <div className="flex flex-col items-center justify-center py-8">
+                      <Tag className="h-12 w-12 text-gray-400 mb-4" />
+                      <h3 className="text-lg font-medium text-gray-900 mb-2">
+                        Belum ada data golongan
+                      </h3>
+                      <p className="text-gray-500 mb-4">
+                        Mulai dengan menambahkan golongan pertama
+                      </p>
+                      <Button onClick={() => {
+                        toast.info('Silakan pindah ke tab "Input Golongan" untuk menambah golongan baru')
+                      }}>
+                        <Plus className="mr-2 h-4 w-4" />
+                        Tambah Golongan
+                      </Button>
+                    </div>
+                  )}
+
+                  {pagination.totalPages > 1 && (
+                    <div className="flex items-center justify-between mt-4">
+                      <div className="text-sm text-gray-500">
+                        Menampilkan {golongans.length} dari {pagination.total} data
+                      </div>
+                      <div className="flex space-x-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() =>
+                            setPagination((prev) => ({
+                              ...prev,
+                              page: Math.max(1, prev.page - 1),
+                            }))
+                          }
+                          disabled={pagination.page === 1}
+                        >
+                          Sebelumnya
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() =>
+                            setPagination((prev) => ({
+                              ...prev,
+                              page: Math.min(prev.totalPages, prev.page + 1),
+                            }))
+                          }
+                          disabled={pagination.page === pagination.totalPages}
+                        >
+                          Selanjutnya
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="input" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Input Golongan Baru</CardTitle>
+              <CardDescription>
+                Tambahkan golongan baru ke sistem
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleSubmit((data) => onSubmit(data, true))} className="space-y-6">
+                <div className="grid gap-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="kode-input">Kode Golongan</Label>
+                    <Input
+                      id="kode-input"
+                      {...register('kode')}
+                      placeholder="Contoh: GL001"
+                      disabled={submitting}
+                    />
+                    {errors.kode && (
+                      <p className="text-sm text-red-600">{errors.kode.message}</p>
+                    )}
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="nama-input">Nama Golongan</Label>
+                    <Input
+                      id="nama-input"
+                      {...register('nama')}
+                      placeholder="Contoh: Elektronik"
+                      disabled={submitting}
+                    />
+                    {errors.nama && (
+                      <p className="text-sm text-red-600">{errors.nama.message}</p>
+                    )}
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="deskripsi-input">Deskripsi</Label>
+                    <Textarea
+                      id="deskripsi-input"
+                      {...register('deskripsi')}
+                      placeholder="Masukkan deskripsi golongan"
+                      disabled={submitting}
+                      rows={3}
+                    />
+                    {errors.deskripsi && (
+                      <p className="text-sm text-red-600">{errors.deskripsi.message}</p>
+                    )}
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Switch
+                      id="aktif-input"
+                      checked={watch('aktif')}
+                      onCheckedChange={(checked) => setValue('aktif', checked)}
+                      disabled={submitting}
+                    />
+                    <Label htmlFor="aktif-input">Aktif</Label>
+                  </div>
+                </div>
+
+                <div className="flex justify-end space-x-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => reset(defaultGolonganFormValues)}
+                    disabled={submitting}
+                  >
+                    Reset Form
+                  </Button>
+                  <Button type="submit" disabled={submitting}>
+                    {submitting ? 'Menyimpan...' : 'Simpan Golongan'}
                   </Button>
                 </div>
-              )}
+              </form>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
 
-              {pagination.totalPages > 1 && (
-                <div className="flex items-center justify-between mt-4">
-                  <div className="text-sm text-gray-500">
-                    Menampilkan {golongans.length} dari {pagination.total} data
-                  </div>
-                  <div className="flex space-x-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() =>
-                        setPagination((prev) => ({
-                          ...prev,
-                          page: Math.max(1, prev.page - 1),
-                        }))
-                      }
-                      disabled={pagination.page === 1}
-                    >
-                      Sebelumnya
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() =>
-                        setPagination((prev) => ({
-                          ...prev,
-                          page: Math.min(prev.totalPages, prev.page + 1),
-                        }))
-                      }
-                      disabled={pagination.page === pagination.totalPages}
-                    >
-                      Selanjutnya
-                    </Button>
-                  </div>
-                </div>
-              )}
-            </>
-          )}
-        </CardContent>
-      </Card>
+      {/* Edit Dialog */}
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Edit Golongan</DialogTitle>
+            <DialogDescription>
+              Edit informasi golongan yang sudah ada.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleSubmit((data) => onSubmit(data, false))}>
+            <div className="grid gap-4 py-4">
+              <div className="grid gap-2">
+                <Label htmlFor="kode-edit">Kode Golongan</Label>
+                <Input
+                  id="kode-edit"
+                  {...register('kode')}
+                  placeholder="Contoh: GL001"
+                  disabled={submitting}
+                />
+                {errors.kode && (
+                  <p className="text-sm text-red-600">{errors.kode.message}</p>
+                )}
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="nama-edit">Nama Golongan</Label>
+                <Input
+                  id="nama-edit"
+                  {...register('nama')}
+                  placeholder="Contoh: Elektronik"
+                  disabled={submitting}
+                />
+                {errors.nama && (
+                  <p className="text-sm text-red-600">{errors.nama.message}</p>
+                )}
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="deskripsi-edit">Deskripsi</Label>
+                <Textarea
+                  id="deskripsi-edit"
+                  {...register('deskripsi')}
+                  placeholder="Masukkan deskripsi golongan"
+                  disabled={submitting}
+                  rows={3}
+                />
+                {errors.deskripsi && (
+                  <p className="text-sm text-red-600">{errors.deskripsi.message}</p>
+                )}
+              </div>
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id="aktif-edit"
+                  checked={editingGolongan ? editingGolongan.aktif : true}
+                  onCheckedChange={(checked) => setValue('aktif', checked)}
+                  disabled={submitting}
+                />
+                <Label htmlFor="aktif-edit">Aktif</Label>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setDialogOpen(false)
+                  setEditingGolongan(null)
+                  reset(defaultGolonganFormValues)
+                }}
+                disabled={submitting}
+              >
+                Batal
+              </Button>
+              <Button type="submit" disabled={submitting}>
+                {submitting ? 'Menyimpan...' : 'Perbarui'}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>

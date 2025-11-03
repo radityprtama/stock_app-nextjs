@@ -5,6 +5,7 @@ import "../styles/print.css";
 import { Providers } from "@/components/providers/session-provider";
 import { Toaster } from "@/components/ui/sonner";
 import { NotificationProvider } from "@/components/notifications/notification-system";
+import { ThemeProvider } from "@/components/theme-provider";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -24,12 +25,19 @@ export default function RootLayout({
   return (
     <html lang="id" suppressHydrationWarning>
       <body className={`${inter.variable} font-sans antialiased`}>
-        <Providers>
-          <NotificationProvider>
-            {children}
-            <Toaster />
-          </NotificationProvider>
-        </Providers>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <Providers>
+            <NotificationProvider>
+              {children}
+              <Toaster />
+            </NotificationProvider>
+          </Providers>
+        </ThemeProvider>
       </body>
     </html>
   );

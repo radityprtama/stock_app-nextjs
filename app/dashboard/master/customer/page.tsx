@@ -49,6 +49,12 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from '@/components/ui/tabs'
+import {
   Plus,
   Search,
   MoreHorizontal,
@@ -163,33 +169,50 @@ export default function CustomerPage() {
     setSubmitting(true)
     try {
       const payload: CustomerFormData = customerSchema.parse(data)
-      const url = editingCustomer
-        ? `/api/master/customer/${editingCustomer.id}`
-        : '/api/master/customer'
-      const method = editingCustomer ? 'PUT' : 'POST'
 
-      const response = await fetch(url, {
-        method,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload),
-      })
+      // Only handle editing in the dialog flow
+      if (editingCustomer) {
+        const url = `/api/master/customer/${editingCustomer.id}`
+        const method = 'PUT'
 
-      const result = await response.json()
+        const response = await fetch(url, {
+          method,
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(payload),
+        })
 
-      if (result.success) {
-        toast.success(
-          editingCustomer
-            ? 'Customer berhasil diperbarui'
-            : 'Customer berhasil ditambahkan'
-        )
-        setDialogOpen(false)
-        reset(defaultCustomerFormValues)
-        setEditingCustomer(null)
-        fetchCustomers()
+        const result = await response.json()
+
+        if (result.success) {
+          toast.success('Customer berhasil diperbarui')
+          setDialogOpen(false)
+          reset(defaultCustomerFormValues)
+          setEditingCustomer(null)
+          fetchCustomers()
+        } else {
+          toast.error(result.error || 'Gagal menyimpan data')
+        }
       } else {
-        toast.error(result.error || 'Gagal menyimpan data')
+        // Add new item from Input tab
+        const response = await fetch('/api/master/customer', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(payload),
+        })
+
+        const result = await response.json()
+
+        if (result.success) {
+          toast.success('Customer berhasil ditambahkan')
+          reset(defaultCustomerFormValues)
+          fetchCustomers()
+        } else {
+          toast.error(result.error || 'Gagal menyimpan data')
+        }
       }
     } catch (error) {
       toast.error('Terjadi kesalahan saat menyimpan data')
@@ -266,176 +289,33 @@ export default function CustomerPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Master Customer</h1>
-          <p className="text-muted-foreground">
-            Kelola data customer dan pelanggan
-          </p>
-        </div>
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogTrigger asChild>
-            <Button onClick={openAddDialog}>
-              <Plus className="mr-2 h-4 w-4" />
-              Tambah Customer
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-[600px]">
-            <DialogHeader>
-              <DialogTitle>
-                {editingCustomer ? 'Edit Customer' : 'Tambah Customer Baru'}
-              </DialogTitle>
-              <DialogDescription>
-                {editingCustomer
-                  ? 'Edit informasi customer yang sudah ada.'
-                  : 'Tambahkan customer baru ke sistem.'}
-              </DialogDescription>
-            </DialogHeader>
-            <form onSubmit={handleSubmit(onSubmit)}>
-              <div className="grid gap-4 py-4 grid-cols-2">
-                <div className="grid gap-2">
-                  <Label htmlFor="kode">Kode Customer</Label>
-                  <Input
-                    id="kode"
-                    {...register('kode')}
-                    placeholder="Contoh: C001"
-                    disabled={submitting}
-                  />
-                  {errors.kode && (
-                    <p className="text-sm text-red-600">{errors.kode.message}</p>
-                  )}
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="nama">Nama Customer</Label>
-                  <Input
-                    id="nama"
-                    {...register('nama')}
-                    placeholder="Contoh: PT. Mega Store"
-                    disabled={submitting}
-                  />
-                  {errors.nama && (
-                    <p className="text-sm text-red-600">{errors.nama.message}</p>
-                  )}
-                </div>
-                <div className="grid gap-2 col-span-2">
-                  <Label htmlFor="alamat">Alamat</Label>
-                  <Textarea
-                    id="alamat"
-                    {...register('alamat')}
-                    placeholder="Masukkan alamat lengkap"
-                    disabled={submitting}
-                  />
-                  {errors.alamat && (
-                    <p className="text-sm text-red-600">{errors.alamat.message}</p>
-                  )}
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="telepon">Telepon</Label>
-                  <Input
-                    id="telepon"
-                    {...register('telepon')}
-                    placeholder="Contoh: 021-1234567"
-                    disabled={submitting}
-                  />
-                  {errors.telepon && (
-                    <p className="text-sm text-red-600">{errors.telepon.message}</p>
-                  )}
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="email">Email</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    {...register('email')}
-                    placeholder="email@example.com"
-                    disabled={submitting}
-                  />
-                  {errors.email && (
-                    <p className="text-sm text-red-600">{errors.email.message}</p>
-                  )}
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="tipePelanggan">Tipe Pelanggan</Label>
-                  <Select
-                    value={watch('tipePelanggan')}
-                    onValueChange={(value) =>
-                      setValue('tipePelanggan', value as CustomerType)
-                    }
-                    disabled={submitting}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Pilih tipe pelanggan" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="retail">Retail</SelectItem>
-                      <SelectItem value="wholesale">Wholesale</SelectItem>
-                      <SelectItem value="distributor">Distributor</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  {errors.tipePelanggan && (
-                    <p className="text-sm text-red-600">{errors.tipePelanggan.message}</p>
-                  )}
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="limitKredit">Limit Kredit</Label>
-                  <Input
-                    id="limitKredit"
-                    type="number"
-                    {...register('limitKredit', { valueAsNumber: true })}
-                    placeholder="0"
-                    disabled={submitting}
-                  />
-                  {errors.limitKredit && (
-                    <p className="text-sm text-red-600">{errors.limitKredit.message}</p>
-                  )}
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="npwp">NPWP</Label>
-                  <Input
-                    id="npwp"
-                    {...register('npwp')}
-                    placeholder="Nomor NPWP"
-                    disabled={submitting}
-                  />
-                  {errors.npwp && (
-                    <p className="text-sm text-red-600">{errors.npwp.message}</p>
-                  )}
-                </div>
-                <div className="flex items-center space-x-2 col-span-2">
-                  <Switch
-                    id="aktif"
-                    checked={watch('aktif')}
-                    onCheckedChange={(checked) => setValue('aktif', checked)}
-                    disabled={submitting}
-                  />
-                  <Label htmlFor="aktif">Aktif</Label>
-                </div>
-              </div>
-              <DialogFooter>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setDialogOpen(false)}
-                  disabled={submitting}
-                >
-                  Batal
-                </Button>
-                <Button type="submit" disabled={submitting}>
-                  {submitting ? 'Menyimpan...' : editingCustomer ? 'Perbarui' : 'Simpan'}
-                </Button>
-              </DialogFooter>
-            </form>
-          </DialogContent>
-        </Dialog>
+      <div>
+        <h1 className="text-3xl font-bold tracking-tight">Master Customer</h1>
+        <p className="text-muted-foreground">
+          Kelola data customer dan pelanggan
+        </p>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Daftar Customer</CardTitle>
-          <CardDescription>
-            Total {pagination.total} customer terdaftar
-          </CardDescription>
-        </CardHeader>
+      <Tabs defaultValue="browse" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="browse">
+            <Users className="mr-2 h-4 w-4" />
+            Browse Data
+          </TabsTrigger>
+          <TabsTrigger value="input">
+            <Plus className="mr-2 h-4 w-4" />
+            Input Customer
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="browse" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Daftar Customer</CardTitle>
+              <CardDescription>
+                Total {pagination.total} customer terdaftar
+              </CardDescription>
+            </CardHeader>
         <CardContent>
           <div className="flex items-center space-x-2 mb-4">
             <div className="relative flex-1 max-w-sm">
@@ -560,7 +440,11 @@ export default function CustomerPage() {
                   <p className="text-gray-500 mb-4">
                     Mulai dengan menambahkan customer pertama
                   </p>
-                  <Button onClick={openAddDialog}>
+                  <Button onClick={() => {
+                    // This would ideally switch to the input tab, but since we don't have tab control,
+                    // we'll just inform the user to switch tabs
+                    toast.info('Silakan pindah ke tab "Input Customer" untuk menambah customer baru')
+                  }}>
                     <Plus className="mr-2 h-4 w-4" />
                     Tambah Customer
                   </Button>
@@ -606,6 +490,319 @@ export default function CustomerPage() {
           )}
         </CardContent>
       </Card>
+        </TabsContent>
+
+        <TabsContent value="input" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Input Customer Baru</CardTitle>
+              <CardDescription>
+                Tambahkan customer baru ke sistem
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+                <div className="grid gap-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="grid gap-2">
+                      <Label htmlFor="kode-input">Kode Customer</Label>
+                      <Input
+                        id="kode-input"
+                        {...register('kode')}
+                        placeholder="Contoh: C001"
+                        disabled={submitting}
+                      />
+                      {errors.kode && (
+                        <p className="text-sm text-red-600">{errors.kode.message}</p>
+                      )}
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="nama-input">Nama Customer</Label>
+                      <Input
+                        id="nama-input"
+                        {...register('nama')}
+                        placeholder="Contoh: PT. Mega Store"
+                        disabled={submitting}
+                      />
+                      {errors.nama && (
+                        <p className="text-sm text-red-600">{errors.nama.message}</p>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="grid gap-2">
+                    <Label htmlFor="alamat-input">Alamat</Label>
+                    <Textarea
+                      id="alamat-input"
+                      {...register('alamat')}
+                      placeholder="Masukkan alamat lengkap"
+                      disabled={submitting}
+                    />
+                    {errors.alamat && (
+                      <p className="text-sm text-red-600">{errors.alamat.message}</p>
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="grid gap-2">
+                      <Label htmlFor="telepon-input">Telepon</Label>
+                      <Input
+                        id="telepon-input"
+                        {...register('telepon')}
+                        placeholder="Contoh: 021-1234567"
+                        disabled={submitting}
+                      />
+                      {errors.telepon && (
+                        <p className="text-sm text-red-600">{errors.telepon.message}</p>
+                      )}
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="email-input">Email</Label>
+                      <Input
+                        id="email-input"
+                        type="email"
+                        {...register('email')}
+                        placeholder="email@example.com"
+                        disabled={submitting}
+                      />
+                      {errors.email && (
+                        <p className="text-sm text-red-600">{errors.email.message}</p>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="grid gap-2">
+                      <Label htmlFor="tipePelanggan-input">Tipe Pelanggan</Label>
+                      <Select
+                        value={watch('tipePelanggan')}
+                        onValueChange={(value) =>
+                          setValue('tipePelanggan', value as CustomerType)
+                        }
+                        disabled={submitting}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Pilih tipe pelanggan" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="retail">Retail</SelectItem>
+                          <SelectItem value="wholesale">Wholesale</SelectItem>
+                          <SelectItem value="distributor">Distributor</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      {errors.tipePelanggan && (
+                        <p className="text-sm text-red-600">{errors.tipePelanggan.message}</p>
+                      )}
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="limitKredit-input">Limit Kredit</Label>
+                      <Input
+                        id="limitKredit-input"
+                        type="number"
+                        {...register('limitKredit', { valueAsNumber: true })}
+                        placeholder="0"
+                        disabled={submitting}
+                      />
+                      {errors.limitKredit && (
+                        <p className="text-sm text-red-600">{errors.limitKredit.message}</p>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="grid gap-2">
+                    <Label htmlFor="npwp-input">NPWP</Label>
+                    <Input
+                      id="npwp-input"
+                      {...register('npwp')}
+                      placeholder="Nomor NPWP"
+                      disabled={submitting}
+                    />
+                    {errors.npwp && (
+                      <p className="text-sm text-red-600">{errors.npwp.message}</p>
+                    )}
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      <Switch
+                        id="aktif-input"
+                        checked={watch('aktif')}
+                        onCheckedChange={(checked) => setValue('aktif', checked)}
+                        disabled={submitting}
+                      />
+                      <Label htmlFor="aktif-input">Aktif</Label>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex justify-end space-x-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => reset(defaultCustomerFormValues)}
+                    disabled={submitting}
+                  >
+                    Reset Form
+                  </Button>
+                  <Button type="submit" disabled={submitting}>
+                    {submitting ? 'Menyimpan...' : 'Simpan Customer'}
+                  </Button>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+
+      {/* Edit Dialog */}
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle>
+              {editingCustomer ? 'Edit Customer' : 'Tambah Customer Baru'}
+            </DialogTitle>
+            <DialogDescription>
+              {editingCustomer
+                ? 'Edit informasi customer yang sudah ada.'
+                : 'Tambahkan customer baru ke sistem.'}
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleSubmit(onSubmit)}>
+            <div className="grid gap-4 py-4 grid-cols-2">
+              <div className="grid gap-2">
+                <Label htmlFor="kode">Kode Customer</Label>
+                <Input
+                  id="kode"
+                  {...register('kode')}
+                  placeholder="Contoh: C001"
+                  disabled={submitting}
+                />
+                {errors.kode && (
+                  <p className="text-sm text-red-600">{errors.kode.message}</p>
+                )}
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="nama">Nama Customer</Label>
+                <Input
+                  id="nama"
+                  {...register('nama')}
+                  placeholder="Contoh: PT. Mega Store"
+                  disabled={submitting}
+                />
+                {errors.nama && (
+                  <p className="text-sm text-red-600">{errors.nama.message}</p>
+                )}
+              </div>
+              <div className="grid gap-2 col-span-2">
+                <Label htmlFor="alamat">Alamat</Label>
+                <Textarea
+                  id="alamat"
+                  {...register('alamat')}
+                  placeholder="Masukkan alamat lengkap"
+                  disabled={submitting}
+                />
+                {errors.alamat && (
+                  <p className="text-sm text-red-600">{errors.alamat.message}</p>
+                )}
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="telepon">Telepon</Label>
+                <Input
+                  id="telepon"
+                  {...register('telepon')}
+                  placeholder="Contoh: 021-1234567"
+                  disabled={submitting}
+                />
+                {errors.telepon && (
+                  <p className="text-sm text-red-600">{errors.telepon.message}</p>
+                )}
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  {...register('email')}
+                  placeholder="email@example.com"
+                  disabled={submitting}
+                />
+                {errors.email && (
+                  <p className="text-sm text-red-600">{errors.email.message}</p>
+                )}
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="tipePelanggan">Tipe Pelanggan</Label>
+                <Select
+                  value={watch('tipePelanggan')}
+                  onValueChange={(value) =>
+                    setValue('tipePelanggan', value as CustomerType)
+                  }
+                  disabled={submitting}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Pilih tipe pelanggan" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="retail">Retail</SelectItem>
+                    <SelectItem value="wholesale">Wholesale</SelectItem>
+                    <SelectItem value="distributor">Distributor</SelectItem>
+                  </SelectContent>
+                </Select>
+                {errors.tipePelanggan && (
+                  <p className="text-sm text-red-600">{errors.tipePelanggan.message}</p>
+                )}
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="limitKredit">Limit Kredit</Label>
+                <Input
+                  id="limitKredit"
+                  type="number"
+                  {...register('limitKredit', { valueAsNumber: true })}
+                  placeholder="0"
+                  disabled={submitting}
+                />
+                {errors.limitKredit && (
+                  <p className="text-sm text-red-600">{errors.limitKredit.message}</p>
+                )}
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="npwp">NPWP</Label>
+                <Input
+                  id="npwp"
+                  {...register('npwp')}
+                  placeholder="Nomor NPWP"
+                  disabled={submitting}
+                />
+                {errors.npwp && (
+                  <p className="text-sm text-red-600">{errors.npwp.message}</p>
+                )}
+              </div>
+              <div className="flex items-center space-x-2 col-span-2">
+                <Switch
+                  id="aktif"
+                  checked={watch('aktif')}
+                  onCheckedChange={(checked) => setValue('aktif', checked)}
+                  disabled={submitting}
+                />
+                <Label htmlFor="aktif">Aktif</Label>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setDialogOpen(false)}
+                disabled={submitting}
+              >
+                Batal
+              </Button>
+              <Button type="submit" disabled={submitting}>
+                {submitting ? 'Menyimpan...' : editingCustomer ? 'Perbarui' : 'Simpan'}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
