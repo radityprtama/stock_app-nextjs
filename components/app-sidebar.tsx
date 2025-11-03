@@ -15,9 +15,16 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarSeparator,
   SidebarRail,
+  useSidebar,
 } from "@/components/ui/sidebar";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn, getRoleText } from "@/lib/utils";
 import type { LucideIcon } from "lucide-react";
@@ -196,6 +203,7 @@ interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
 }
 
 export function AppSidebar({ user, ...props }: AppSidebarProps) {
+  const { state } = useSidebar();
   const pathname = usePathname();
 
   const filteredNavigation = useMemo(() => {
@@ -252,43 +260,51 @@ export function AppSidebar({ user, ...props }: AppSidebarProps) {
       {/* CONTENT */}
       <SidebarContent>
         <ScrollArea className="h-full">
-          {filteredNavigation.map((section) => (
-            <SidebarGroup key={section.title} className="mt-2">
-              <SidebarGroupLabel className="px-3 mb-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                {section.title}
-              </SidebarGroupLabel>
-              <SidebarGroupContent>
-                <SidebarMenu>
-                  {section.items.map((item) => (
-                    <SidebarMenuItem key={item.href}>
-                      <SidebarMenuButton
-                        asChild
-                        className={cn(
-                          "flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors",
-                          isActive(item.href)
-                            ? "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300"
-                            : "text-foreground hover:bg-accent hover:text-foreground"
-                        )}
-                      >
-                        <Link href={item.href}>
-                          <item.icon
+          <TooltipProvider delayDuration={100}>
+            {filteredNavigation.map((section) => (
+              <SidebarGroup key={section.title} className="mt-2">
+                <SidebarGroupLabel className="px-3 mb-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                  {section.title}
+                </SidebarGroupLabel>
+
+                <SidebarGroupContent>
+                  <SidebarMenu>
+                    {section.items.map((item) => {
+                      const active = isActive(item.href);
+                      return (
+                        <SidebarMenuItem key={item.href}>
+                          <SidebarMenuButton
+                            asChild
+                            isActive={active}
+                            tooltip={item.title}
                             className={cn(
-                              "h-5 w-5",
-                              !isActive(item.href)
-                                ? "text-muted-foreground"
-                                : "text-blue-600 dark:text-blue-400",
-                              "mr-3"
+                              "flex items-center px-3 py-2 text-sm font-medium transition-colors",
+                              active
+                                ? "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300"
+                                : "text-foreground hover:bg-accent hover:text-foreground"
                             )}
-                          />
-                          <span>{item.title}</span>
-                        </Link>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  ))}
-                </SidebarMenu>
-              </SidebarGroupContent>
-            </SidebarGroup>
-          ))}
+                          >
+                            <Link href={item.href} className="flex w-full items-center">
+                              <item.icon
+                                className={cn(
+                                  "h-5 w-5",
+                                  !active
+                                    ? "text-muted-foreground"
+                                    : "text-blue-600 dark:text-blue-400",
+                                  "mr-3"
+                                )}
+                              />
+                              <span className="truncate">{item.title}</span>
+                            </Link>
+                          </SidebarMenuButton>
+                        </SidebarMenuItem>
+                      );
+                    })}
+                  </SidebarMenu>
+                </SidebarGroupContent>
+              </SidebarGroup>
+            ))}
+          </TooltipProvider>
         </ScrollArea>
       </SidebarContent>
 
@@ -302,7 +318,9 @@ export function AppSidebar({ user, ...props }: AppSidebarProps) {
             <span className="truncate font-medium text-foreground">
               {user.name}
             </span>
-            <span className="truncate text-xs text-muted-foreground">{user.email}</span>
+            <span className="truncate text-xs text-muted-foreground">
+              {user.email}
+            </span>
             <span className="truncate text-xs text-blue-600">
               {getRoleText(user.role)}
             </span>
@@ -310,11 +328,24 @@ export function AppSidebar({ user, ...props }: AppSidebarProps) {
         </div>
 
         {/* MINIMIZED USER PROFILE - ICON ONLY */}
-        <div className="group-data-[collapsible=icon]:flex hidden items-center justify-center px-2 py-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-md bg-blue-600 text-sm font-semibold text-white shrink-0">
-            {initials}
-          </div>
-        </div>
+        <Tooltip open={state === "collapsed" ? undefined : false}>
+          <TooltipTrigger asChild>
+            <div className="group-data-[collapsible=icon]:flex hidden items-center justify-center px-2 py-2">
+              <div className="flex h-8 w-8 items-center justify-center rounded-md bg-blue-600 text-sm font-semibold text-white shrink-0">
+                {initials}
+              </div>
+            </div>
+          </TooltipTrigger>
+          <TooltipContent
+            side="right"
+            hidden={state !== "collapsed"}
+            className="flex flex-col gap-1 rounded-md px-3 py-2 text-sm"
+          >
+            <span className="font-semibold text-foreground">{user.name}</span>
+            <span className="text-xs text-muted-foreground">{user.email}</span>
+            <span className="text-xs text-blue-600">{getRoleText(user.role)}</span>
+          </TooltipContent>
+        </Tooltip>
 
         {/* SEPARATOR */}
         <div className="border-t border-border my-1" />
@@ -325,9 +356,12 @@ export function AppSidebar({ user, ...props }: AppSidebarProps) {
             <SidebarMenuButton
               onClick={handleSignOut}
               className="flex items-center gap-2 text-foreground hover:bg-accent hover:text-foreground transition-all"
+              tooltip="Logout"
             >
               <LogOut className="h-4 w-4 shrink-0" />
-              <span className="group-data-[collapsible=icon]:hidden">Logout</span>
+              <span className="group-data-[collapsible=icon]:hidden">
+                Logout
+              </span>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>

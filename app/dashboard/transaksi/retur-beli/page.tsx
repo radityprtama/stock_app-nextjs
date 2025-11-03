@@ -1,15 +1,25 @@
-'use client'
+"use client";
 
-import { useState, useEffect, useRef } from 'react'
-import { auth } from '@/lib/auth'
-import { redirect } from 'next/navigation'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Badge } from '@/components/ui/badge'
-import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { useState, useEffect, useRef, useCallback } from "react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -17,7 +27,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table'
+} from "@/components/ui/table";
 import {
   Dialog,
   DialogContent,
@@ -25,19 +35,14 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog'
+} from "@/components/ui/dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from '@/components/ui/tabs'
+} from "@/components/ui/dropdown-menu";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Plus,
   Search,
@@ -49,116 +54,113 @@ import {
   Send,
   Package,
   TrendingUp,
-  Calendar,
-  Building,
-  User,
-  AlertTriangle,
   CheckCircle,
-  XCircle,
   Clock,
   Filter,
-  Download,
   FileText,
   ArrowLeft,
   ArrowRight,
-  RefreshCw,
   ShoppingCart,
-} from 'lucide-react'
-import { toast } from 'sonner'
-import { ReturBeliPrint, type ReturBeliPrintData, type ReturBeliPrintRef } from '@/components/print'
-import { ReturBeliFormData, returBeliSchema } from '@/lib/validations'
-import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { z } from 'zod'
+} from "lucide-react";
+import { toast } from "sonner";
+import {
+  ReturBeliPrint,
+  type ReturBeliPrintData,
+  type ReturBeliPrintRef,
+} from "@/components/print";
+import { returBeliSchema } from "@/lib/validations";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 
-type ReturBeliDetail = ReturBeliPrintData['detail'][number] & {
-  currentStock?: number
-}
+type ReturBeliDetail = ReturBeliPrintData["detail"][number] & {
+  currentStock?: number;
+};
 
 interface ReturBeli extends ReturBeliPrintData {
-  id: string
-  noRetur: string
-  tanggal: string
-  supplierId: string
-  supplier: ReturBeliPrintData['supplier'] & { id: string; kode: string }
-  barangMasukRef?: string | null
-  totalQty: number
-  totalNilai: number
-  alasan: string
-  status: 'draft' | 'approved' | 'completed'
-  createdBy: string
-  createdAt: string
-  updatedAt: string
-  detail: Array<ReturBeliDetail & { barangId: string }>
+  id: string;
+  noRetur: string;
+  tanggal: string;
+  supplierId: string;
+  supplier: ReturBeliPrintData["supplier"] & { id: string; kode: string };
+  barangMasukRef?: string | null;
+  totalQty: number;
+  totalNilai: number;
+  alasan: string;
+  status: "draft" | "approved" | "completed";
+  createdBy: string;
+  createdAt: string;
+  updatedAt: string;
+  detail: Array<ReturBeliDetail & { barangId: string }>;
 }
 
 interface Supplier {
-  id: string
-  kode: string
-  nama: string
-  alamat: string
-  telepon: string
-  email?: string
-  npwp?: string
+  id: string;
+  kode: string;
+  nama: string;
+  alamat: string;
+  telepon: string;
+  email?: string;
+  npwp?: string;
 }
 
 interface Barang {
-  id: string
-  kode: string
-  nama: string
-  merk?: string
-  tipe?: string
-  ukuran?: string
-  satuan: string
-  hargaBeli: number
-  hargaJual: number
-  aktif: boolean
+  id: string;
+  kode: string;
+  nama: string;
+  merk?: string;
+  tipe?: string;
+  ukuran?: string;
+  satuan: string;
+  hargaBeli: number;
+  hargaJual: number;
+  aktif: boolean;
 }
 
 interface BarangMasuk {
-  id: string
-  noDokumen: string
-  tanggal: string
-  supplierId: string
+  id: string;
+  noDokumen: string;
+  tanggal: string;
+  supplierId: string;
   supplier: {
-    id: string
-    kode: string
-    nama: string
-  }
+    id: string;
+    kode: string;
+    nama: string;
+  };
 }
 
 interface ReturBeliStatistics {
-  totalTransactions: number
-  draftCount: number
-  approvedCount: number
-  completedCount: number
-  totalValue: number
-  totalQuantity: number
+  totalTransactions: number;
+  draftCount: number;
+  approvedCount: number;
+  completedCount: number;
+  totalValue: number;
+  totalQuantity: number;
 }
 
 interface FormData {
-  barangId: string
-  qty: number
-  harga: number
-  alasan: string
+  barangId: string;
+  qty: number;
+  harga: number;
+  alasan: string;
 }
 
-type ReturBeliFormValues = z.input<typeof returBeliSchema>
+type ReturBeliFormValues = z.input<typeof returBeliSchema>;
 const defaultReturBeliFormValues: ReturBeliFormValues = {
-  noRetur: '',
+  noRetur: "",
   tanggal: new Date(),
-  supplierId: '',
-  barangMasukRef: '',
-  alasan: '',
+  supplierId: "",
+  barangMasukRef: "",
+  alasan: "",
   items: [],
-}
+};
 
 export default function ReturBeliPage() {
-  const printRef = useRef<ReturBeliPrintRef>(null)
-  const [returBelis, setReturBelis] = useState<ReturBeli[]>([])
-  const [suppliers, setSuppliers] = useState<Supplier[]>([])
-  const [barangs, setBarangs] = useState<Barang[]>([])
-  const [barangMasukList, setBarangMasukList] = useState<BarangMasuk[]>([])
+  const printRef = useRef<ReturBeliPrintRef>(null);
+  const [returBelis, setReturBelis] = useState<ReturBeli[]>([]);
+  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+  const [barangs, setBarangs] = useState<Barang[]>([]);
+  const [barangMasukList, setBarangMasukList] = useState<BarangMasuk[]>([]);
   const [statistics, setStatistics] = useState<ReturBeliStatistics>({
     totalTransactions: 0,
     draftCount: 0,
@@ -166,27 +168,31 @@ export default function ReturBeliPage() {
     completedCount: 0,
     totalValue: 0,
     totalQuantity: 0,
-  })
-  const [loading, setLoading] = useState(true)
-  const [submitting, setSubmitting] = useState(false)
-  const [search, setSearch] = useState('')
-  const [selectedSupplier, setSelectedSupplier] = useState('')
-  const [selectedStatus, setSelectedStatus] = useState('')
-  const [startDate, setStartDate] = useState('')
-  const [endDate, setEndDate] = useState('')
+  });
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [search, setSearch] = useState("");
+  const [selectedSupplier, setSelectedSupplier] = useState("");
+  const [selectedStatus, setSelectedStatus] = useState("");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
   const [pagination, setPagination] = useState({
     page: 1,
     limit: 10,
     total: 0,
     totalPages: 0,
-  })
-  const [dialogOpen, setDialogOpen] = useState(false)
-  const [viewDialogOpen, setViewDialogOpen] = useState(false)
-  const [editingReturBeli, setEditingReturBeli] = useState<ReturBeli | null>(null)
-  const [viewingReturBeli, setViewingReturBeli] = useState<ReturBeli | null>(null)
+  });
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [viewDialogOpen, setViewDialogOpen] = useState(false);
+  const [editingReturBeli, setEditingReturBeli] = useState<ReturBeli | null>(
+    null
+  );
+  const [viewingReturBeli, setViewingReturBeli] = useState<ReturBeli | null>(
+    null
+  );
   const [items, setItems] = useState<FormData[]>([
-    { barangId: '', qty: 1, harga: 0, alasan: '' }
-  ])
+    { barangId: "", qty: 1, harga: 0, alasan: "" },
+  ]);
 
   const {
     register,
@@ -194,681 +200,998 @@ export default function ReturBeliPage() {
     reset,
     setValue,
     watch,
-    control,
     formState: { errors },
   } = useForm<ReturBeliFormValues>({
     resolver: zodResolver(returBeliSchema),
     defaultValues: defaultReturBeliFormValues,
-  })
+  });
 
-  const watchedValues = watch()
+  const watchedValues = watch();
 
   // Fetch master data
   const fetchMasterData = async () => {
     try {
       const [suppliersRes, barangsRes, barangMasukRes] = await Promise.all([
-        fetch('/api/master/supplier?limit=100'),
-        fetch('/api/master/barang?limit=100&aktif=true'),
-        fetch('/api/transaksi/barang-masuk?limit=100&status=posted'),
-      ])
+        fetch("/api/master/supplier?limit=100"),
+        fetch("/api/master/barang?limit=100&aktif=true"),
+        fetch("/api/transaksi/barang-masuk?limit=100&status=posted"),
+      ]);
 
       const [suppliersData, barangsData, barangMasukData] = await Promise.all([
         suppliersRes.json(),
         barangsRes.json(),
         barangMasukRes.json(),
-      ])
+      ]);
 
-      if (suppliersData.success) setSuppliers(suppliersData.data)
-      if (barangsData.success) setBarangs(barangsData.data)
-      if (barangMasukData.success) setBarangMasukList(barangMasukData.data)
+      if (suppliersData.success) setSuppliers(suppliersData.data);
+      if (barangsData.success) setBarangs(barangsData.data);
+      if (barangMasukData.success) setBarangMasukList(barangMasukData.data);
     } catch (error) {
-      console.error('Error fetching master data:', error)
-      toast.error('Gagal mengambil data master')
+      console.error("Error fetching master data:", error);
+      toast.error("Gagal mengambil data master");
     }
-  }
+  };
 
   // Fetch Retur Beli transactions
-  const fetchReturBelis = async () => {
+  const fetchReturBelis = useCallback(async () => {
     try {
-      setLoading(true)
+      setLoading(true);
       const params = new URLSearchParams({
         page: pagination.page.toString(),
         limit: pagination.limit.toString(),
         search,
-      })
+      });
 
-      if (selectedSupplier) params.append('supplierId', selectedSupplier)
-      if (selectedStatus) params.append('status', selectedStatus)
-      if (startDate) params.append('startDate', startDate)
-      if (endDate) params.append('endDate', endDate)
+      if (selectedSupplier) params.append("supplierId", selectedSupplier);
+      if (selectedStatus) params.append("status", selectedStatus);
+      if (startDate) params.append("startDate", startDate);
+      if (endDate) params.append("endDate", endDate);
 
-      const response = await fetch(`/api/transaksi/retur-beli?${params}`)
-      const result = await response.json()
+      const response = await fetch(`/api/transaksi/retur-beli?${params}`);
+      const result = await response.json();
 
       if (result.success) {
-        setReturBelis(result.data)
-        setPagination(result.pagination)
-        setStatistics(result.statistics)
+        setReturBelis(result.data);
+        setPagination(result.pagination);
+        setStatistics(result.statistics);
       } else {
-        toast.error('Gagal mengambil data Retur Beli')
+        toast.error("Gagal mengambil data Retur Beli");
       }
     } catch (error) {
-      toast.error('Terjadi kesalahan saat mengambil data')
+      toast.error("Terjadi kesalahan saat mengambil data");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  }, [
+    pagination.page,
+    pagination.limit,
+    search,
+    selectedSupplier,
+    selectedStatus,
+    startDate,
+    endDate,
+  ]);
 
   useEffect(() => {
-    fetchMasterData()
-  }, [])
+    fetchMasterData();
+  }, []);
 
   useEffect(() => {
-    fetchReturBelis()
-  }, [pagination.page, search, selectedSupplier, selectedStatus, startDate, endDate])
+    fetchReturBelis();
+  }, [fetchReturBelis]);
 
   // Update form items when items state changes
   useEffect(() => {
-    setValue('items', items.filter(item => item.barangId).map(item => ({
-      barangId: item.barangId,
-      qty: Number(item.qty) || 0,
-      harga: Number(item.harga) || 0,
-      alasan: item.alasan || '',
-    })))
-  }, [items, setValue])
+    setValue(
+      "items",
+      items
+        .filter((item) => item.barangId)
+        .map((item) => ({
+          barangId: item.barangId,
+          qty: Number(item.qty) || 0,
+          harga: Number(item.harga) || 0,
+          alasan: item.alasan || "",
+        }))
+    );
+  }, [items, setValue]);
 
   const onSubmit = async (data: ReturBeliFormValues) => {
     // Use items from form data (already synchronized)
     if (!data.items || data.items.length === 0) {
-      toast.error('Minimal harus ada 1 item yang valid')
-      return
+      toast.error("Minimal harus ada 1 item yang valid");
+      return;
     }
 
-    setSubmitting(true)
+    setSubmitting(true);
     try {
       const payload = returBeliSchema.parse({
         ...data,
-        items: data.items.filter(item => item.alasan), // Filter items yang punya alasan
-      })
+        items: data.items.filter((item) => item.alasan), // Filter items yang punya alasan
+      });
 
       const url = editingReturBeli
         ? `/api/transaksi/retur-beli/${editingReturBeli.id}`
-        : '/api/transaksi/retur-beli'
-      const method = editingReturBeli ? 'PUT' : 'POST'
+        : "/api/transaksi/retur-beli";
+      const method = editingReturBeli ? "PUT" : "POST";
 
       const response = await fetch(url, {
         method,
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify(payload),
-      })
+      });
 
-      const result = await response.json()
+      const result = await response.json();
 
       if (result.success) {
         toast.success(
           editingReturBeli
-            ? 'Retur Beli berhasil diperbarui'
-            : 'Retur Beli berhasil dibuat'
-        )
-        setDialogOpen(false)
+            ? "Retur Beli berhasil diperbarui"
+            : "Retur Beli berhasil dibuat"
+        );
+        setDialogOpen(false);
         reset({
           ...defaultReturBeliFormValues,
           tanggal: new Date(),
           items: [],
-        })
-        setEditingReturBeli(null)
-        setItems([{ barangId: '', qty: 1, harga: 0, alasan: '' }])
-        fetchReturBelis()
+        });
+        setEditingReturBeli(null);
+        setItems([{ barangId: "", qty: 1, harga: 0, alasan: "" }]);
+        fetchReturBelis();
       } else {
-        toast.error(result.error || 'Gagal menyimpan data')
+        toast.error(result.error || "Gagal menyimpan data");
       }
     } catch (error) {
-      toast.error('Terjadi kesalahan saat menyimpan data')
+      toast.error("Terjadi kesalahan saat menyimpan data");
     } finally {
-      setSubmitting(false)
+      setSubmitting(false);
     }
-  }
+  };
 
   const handleApprove = async (returBeli: ReturBeli) => {
     try {
-      const response = await fetch(`/api/transaksi/retur-beli/${returBeli.id}/approve`, {
-        method: 'POST',
-      })
+      const response = await fetch(
+        `/api/transaksi/retur-beli/${returBeli.id}/approve`,
+        {
+          method: "POST",
+        }
+      );
 
-      const result = await response.json()
+      const result = await response.json();
 
       if (result.success) {
-        toast.success('Retur Beli berhasil diapprove dan stok dikurangi')
-        fetchReturBelis()
+        toast.success("Retur Beli berhasil diapprove dan stok dikurangi");
+        fetchReturBelis();
       } else {
-        toast.error(result.error || 'Gagal mengapprove transaksi')
+        toast.error(result.error || "Gagal mengapprove transaksi");
       }
     } catch (error) {
-      toast.error('Terjadi kesalahan saat mengapprove transaksi')
+      toast.error("Terjadi kesalahan saat mengapprove transaksi");
     }
-  }
+  };
 
   const handleComplete = async (returBeli: ReturBeli) => {
     try {
-      const response = await fetch(`/api/transaksi/retur-beli/${returBeli.id}/complete`, {
-        method: 'POST',
-      })
+      const response = await fetch(
+        `/api/transaksi/retur-beli/${returBeli.id}/complete`,
+        {
+          method: "POST",
+        }
+      );
 
-      const result = await response.json()
+      const result = await response.json();
 
       if (result.success) {
-        toast.success('Retur Beli berhasil selesai')
-        fetchReturBelis()
+        toast.success("Retur Beli berhasil selesai");
+        fetchReturBelis();
       } else {
-        toast.error(result.error || 'Gagal menyelesaikan transaksi')
+        toast.error(result.error || "Gagal menyelesaikan transaksi");
       }
     } catch (error) {
-      toast.error('Terjadi kesalahan saat menyelesaikan transaksi')
+      toast.error("Terjadi kesalahan saat menyelesaikan transaksi");
     }
-  }
+  };
 
   const handleEdit = (returBeli: ReturBeli) => {
-    if (returBeli.status !== 'draft') {
-      toast.error('Hanya transaksi dengan status draft yang bisa diedit')
-      return
+    if (returBeli.status !== "draft") {
+      toast.error("Hanya transaksi dengan status draft yang bisa diedit");
+      return;
     }
 
-    setEditingReturBeli(returBeli)
-    setValue('supplierId', returBeli.supplierId)
-    setValue('tanggal', new Date(returBeli.tanggal))
-    setValue('noRetur', returBeli.noRetur ?? '')
-    setValue('alasan', returBeli.alasan)
-    setValue('barangMasukRef', returBeli.barangMasukRef ?? '')
+    setEditingReturBeli(returBeli);
+    setValue("supplierId", returBeli.supplierId);
+    setValue("tanggal", new Date(returBeli.tanggal));
+    setValue("noRetur", returBeli.noRetur ?? "");
+    setValue("alasan", returBeli.alasan);
+    setValue("barangMasukRef", returBeli.barangMasukRef ?? "");
 
-    const formItems = returBeli.detail.map(detail => ({
+    const formItems = returBeli.detail.map((detail) => ({
       barangId: detail.barangId,
       qty: detail.qty,
       harga: Number(detail.harga),
       alasan: detail.alasan,
-    }))
-    setItems(formItems)
+    }));
+    setItems(formItems);
 
-    setDialogOpen(true)
-  }
+    setDialogOpen(true);
+  };
 
   const handleView = async (returBeli: ReturBeli) => {
     try {
-      const response = await fetch(`/api/transaksi/retur-beli/${returBeli.id}`)
-      const result = await response.json()
+      const response = await fetch(`/api/transaksi/retur-beli/${returBeli.id}`);
+      const result = await response.json();
 
       if (result.success) {
-        setViewingReturBeli(result.data)
-        setViewDialogOpen(true)
+        setViewingReturBeli(result.data);
+        setViewDialogOpen(true);
       } else {
-        toast.error('Gagal mengambil detail transaksi')
+        toast.error("Gagal mengambil detail transaksi");
       }
     } catch (error) {
-      toast.error('Terjadi kesalahan saat mengambil detail')
+      toast.error("Terjadi kesalahan saat mengambil detail");
     }
-  }
+  };
 
   const handleDelete = async (returBeli: ReturBeli) => {
-    if (returBeli.status !== 'draft') {
-      toast.error('Hanya transaksi dengan status draft yang bisa dihapus')
-      return
+    if (returBeli.status !== "draft") {
+      toast.error("Hanya transaksi dengan status draft yang bisa dihapus");
+      return;
     }
 
-    if (!confirm(`Apakah Anda yakin ingin menghapus transaksi "${returBeli.noRetur}"?`)) {
-      return
+    if (
+      !confirm(
+        `Apakah Anda yakin ingin menghapus transaksi "${returBeli.noRetur}"?`
+      )
+    ) {
+      return;
     }
 
     try {
-      const response = await fetch(`/api/transaksi/retur-beli/${returBeli.id}`, {
-        method: 'DELETE',
-      })
+      const response = await fetch(
+        `/api/transaksi/retur-beli/${returBeli.id}`,
+        {
+          method: "DELETE",
+        }
+      );
 
-      const result = await response.json()
+      const result = await response.json();
 
       if (result.success) {
-        toast.success('Retur Beli berhasil dihapus')
-        fetchReturBelis()
+        toast.success("Retur Beli berhasil dihapus");
+        fetchReturBelis();
       } else {
-        toast.error(result.error || 'Gagal menghapus Retur Beli')
+        toast.error(result.error || "Gagal menghapus Retur Beli");
       }
     } catch (error) {
-      toast.error('Terjadi kesalahan saat menghapus Retur Beli')
+      toast.error("Terjadi kesalahan saat menghapus Retur Beli");
     }
-  }
+  };
 
   const openAddDialog = () => {
-    setEditingReturBeli(null)
+    setEditingReturBeli(null);
     reset({
       ...defaultReturBeliFormValues,
       tanggal: new Date(),
       items: [],
-    })
-    setItems([{ barangId: '', qty: 1, harga: 0, alasan: '' }])
-    setDialogOpen(true)
-  }
+    });
+    setItems([{ barangId: "", qty: 1, harga: 0, alasan: "" }]);
+    setDialogOpen(true);
+  };
 
   const addItem = () => {
-    setItems([...items, { barangId: '', qty: 1, harga: 0, alasan: '' }])
-  }
+    setItems([...items, { barangId: "", qty: 1, harga: 0, alasan: "" }]);
+  };
 
   const removeItem = (index: number) => {
     if (items.length > 1) {
-      const newItems = items.filter((_, i) => i !== index)
-      setItems(newItems)
+      const newItems = items.filter((_, i) => i !== index);
+      setItems(newItems);
     }
-  }
+  };
 
-  const updateItem = (index: number, field: keyof FormData, value: any) => {
-    const newItems = [...items]
-    if (field === 'barangId') {
+  const updateItem = (index: number, field: keyof FormData, value: unknown) => {
+    const newItems = [...items];
+    if (field === "barangId") {
       // Set default harga from barang when selected
-      const barang = barangs.find(b => b.id === value)
+      const stringValue = String(value);
+      const barang = barangs.find((b) => b.id === stringValue);
       newItems[index] = {
         ...newItems[index],
-        [field]: value,
+        [field]: stringValue,
         harga: barang?.hargaBeli || 0,
-      }
+      };
+    } else if (field === "qty" || field === "harga") {
+      const numericValue = Number(value);
+      newItems[index] = {
+        ...newItems[index],
+        [field]: Number.isNaN(numericValue) ? 0 : numericValue,
+      };
     } else {
       newItems[index] = {
         ...newItems[index],
-        [field]: field === 'qty' || field === 'harga' ? Number(value) : value,
-      }
+        [field]: String(value ?? ""),
+      };
     }
-    setItems(newItems)
-  }
+    setItems(newItems);
+  };
 
   const calculateSubtotal = (item: FormData) => {
-    return item.qty * item.harga
-  }
+    return item.qty * item.harga;
+  };
 
   const calculateGrandTotal = () => {
-    return items.reduce((total, item) => total + calculateSubtotal(item), 0)
-  }
+    return items.reduce((total, item) => total + calculateSubtotal(item), 0);
+  };
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('id-ID', {
-      style: 'currency',
-      currency: 'IDR',
+    return new Intl.NumberFormat("id-ID", {
+      style: "currency",
+      currency: "IDR",
       minimumFractionDigits: 0,
-    }).format(amount)
-  }
+    }).format(amount);
+  };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('id-ID', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-    })
-  }
+    return new Date(dateString).toLocaleDateString("id-ID", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    });
+  };
 
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case 'draft':
-        return <Badge variant="secondary"><Clock className="w-3 h-3 mr-1" />Draft</Badge>
-      case 'approved':
-        return <Badge variant="default"><CheckCircle className="w-3 h-3 mr-1" />Approved</Badge>
-      case 'completed':
-        return <Badge variant="default"><CheckCircle className="w-3 h-3 mr-1" />Completed</Badge>
+      case "draft":
+        return (
+          <Badge variant="secondary">
+            <Clock className="w-3 h-3 mr-1" />
+            Draft
+          </Badge>
+        );
+      case "approved":
+        return (
+          <Badge variant="default">
+            <CheckCircle className="w-3 h-3 mr-1" />
+            Approved
+          </Badge>
+        );
+      case "completed":
+        return (
+          <Badge variant="default">
+            <CheckCircle className="w-3 h-3 mr-1" />
+            Completed
+          </Badge>
+        );
       default:
-        return <Badge variant="outline">{status}</Badge>
+        return <Badge variant="outline">{status}</Badge>;
     }
-  }
+  };
 
   const clearFilters = () => {
-    setSelectedSupplier('')
-    setSelectedStatus('')
-    setStartDate('')
-    setEndDate('')
-    setSearch('')
-  }
+    setSelectedSupplier("");
+    setSelectedStatus("");
+    setStartDate("");
+    setEndDate("");
+    setSearch("");
+  };
 
   const handlePrint = (returBeli: ReturBeli) => {
-    setViewingReturBeli(returBeli)
+    setViewingReturBeli(returBeli);
     setTimeout(() => {
-      printRef.current?.print()
-    }, 100)
-  }
+      printRef.current?.print();
+    }, 100);
+  };
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Retur Beli</h1>
-          <p className="text-muted-foreground">
-            Kelola transaksi pengembalian barang ke supplier
-          </p>
-        </div>
-        <Button onClick={openAddDialog}>
-          <Plus className="mr-2 h-4 w-4" />
-          Retur Beli Baru
-        </Button>
+      <div>
+        <h1 className="text-3xl font-bold tracking-tight">Retur Beli</h1>
+        <p className="text-muted-foreground">
+          Kelola transaksi pengembalian barang ke supplier
+        </p>
       </div>
 
-      {/* Statistics Cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-6">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Transaksi</CardTitle>
-            <FileText className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{statistics.totalTransactions}</div>
-            <p className="text-xs text-muted-foreground">
-              Semua transaksi
-            </p>
-          </CardContent>
-        </Card>
+      <Tabs defaultValue="browse" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="browse">
+            <Package className="mr-2 h-4 w-4" />
+            Browse Data
+          </TabsTrigger>
+          <TabsTrigger value="input">
+            <Plus className="mr-2 h-4 w-4" />
+            Input Transaksi
+          </TabsTrigger>
+        </TabsList>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Draft</CardTitle>
-            <Clock className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-orange-600">{statistics.draftCount}</div>
-            <p className="text-xs text-muted-foreground">
-              Menunggu approve
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Approved</CardTitle>
-            <CheckCircle className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-blue-600">{statistics.approvedCount}</div>
-            <p className="text-xs text-muted-foreground">
-              Stok sudah dikurangi
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Completed</CardTitle>
-            <CheckCircle className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600">{statistics.completedCount}</div>
-            <p className="text-xs text-muted-foreground">
-              Transaksi selesai
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Qty</CardTitle>
-            <Package className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-blue-600">{statistics.totalQuantity}</div>
-            <p className="text-xs text-muted-foreground">
-              Total barang diretur
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Nilai</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(statistics.totalValue)}</div>
-            <p className="text-xs text-muted-foreground">
-              Nilai total retur
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Filters */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center">
-            <Filter className="mr-2 h-4 w-4" />
-            Filter & Pencarian
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-              <Input
-                placeholder="Cari transaksi..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-
-            <Select
-              value={selectedSupplier || undefined}
-              onValueChange={(value) => setSelectedSupplier(value === 'all' ? '' : value)}
+        <TabsContent value="browse" className="space-y-4">
+          {/* Statistics Cards */}
+          <div className="w-full overflow-hidden">
+            <div
+              className="
+      grid gap-4
+      grid-cols-1
+      sm:grid-cols-2
+      md:grid-cols-3
+      lg:grid-cols-4
+      xl:grid-cols-6
+      2xl:grid-cols-6
+      min-w-0
+    "
             >
-              <SelectTrigger>
-                <SelectValue placeholder="Semua Supplier" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Semua Supplier</SelectItem>
-                {suppliers.map((supplier) => (
-                  <SelectItem key={supplier.id} value={supplier.id}>
-                    {supplier.kode} - {supplier.nama}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              {/* Total Transaksi */}
+              <Card className="min-w-0 transition-all duration-200 hover:scale-[1.02] hover:shadow-md">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">
+                    Total Transaksi
+                  </CardTitle>
+                  <FileText className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">
+                    {statistics.totalTransactions}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Semua transaksi
+                  </p>
+                </CardContent>
+              </Card>
 
-            <Select
-              value={selectedStatus || undefined}
-              onValueChange={(value) => setSelectedStatus(value === 'all' ? '' : value)}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Semua Status</SelectItem>
-                <SelectItem value="draft">Draft</SelectItem>
-                <SelectItem value="approved">Approved</SelectItem>
-                <SelectItem value="completed">Completed</SelectItem>
-              </SelectContent>
-            </Select>
+              {/* Draft */}
+              <Card className="min-w-0 transition-all duration-200 hover:scale-[1.02] hover:shadow-md">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Draft</CardTitle>
+                  <Clock className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-orange-600">
+                    {statistics.draftCount}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Menunggu approve
+                  </p>
+                </CardContent>
+              </Card>
 
-            <Input
-              type="date"
-              placeholder="Tanggal Awal"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-            />
+              {/* Approved */}
+              <Card className="min-w-0 transition-all duration-200 hover:scale-[1.02] hover:shadow-md">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">
+                    Approved
+                  </CardTitle>
+                  <CheckCircle className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-blue-600">
+                    {statistics.approvedCount}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Stok sudah dikurangi
+                  </p>
+                </CardContent>
+              </Card>
 
-            <div className="flex space-x-2">
-              <Input
-                type="date"
-                placeholder="Tanggal Akhir"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-              />
-              <Button variant="outline" onClick={clearFilters}>
-                Reset
-              </Button>
+              {/* Completed */}
+              <Card className="min-w-0 transition-all duration-200 hover:scale-[1.02] hover:shadow-md">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">
+                    Completed
+                  </CardTitle>
+                  <CheckCircle className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-green-600">
+                    {statistics.completedCount}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Transaksi selesai
+                  </p>
+                </CardContent>
+              </Card>
+
+              {/* Total Qty */}
+              <Card className="min-w-0 transition-all duration-200 hover:scale-[1.02] hover:shadow-md">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">
+                    Total Qty
+                  </CardTitle>
+                  <Package className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-blue-600">
+                    {statistics.totalQuantity}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Total barang diretur
+                  </p>
+                </CardContent>
+              </Card>
+
+              {/* Total Nilai */}
+              <Card className="min-w-0 transition-all duration-200 hover:scale-[1.02] hover:shadow-md">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">
+                    Total Nilai
+                  </CardTitle>
+                  <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold truncate">
+                    {formatCurrency(statistics.totalValue)}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Nilai total retur
+                  </p>
+                </CardContent>
+              </Card>
             </div>
           </div>
-        </CardContent>
-      </Card>
 
-      {/* Main Table */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Daftar Transaksi Retur Beli</CardTitle>
-          <CardDescription>
-            Total {pagination.total} transaksi terdaftar
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {loading ? (
-            <div className="flex items-center justify-center py-8">
-              <div className="text-sm text-gray-500">Memuat data...</div>
-            </div>
-          ) : (
-            <>
-              <div className="rounded-md border">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>No Retur</TableHead>
-                      <TableHead>Tanggal</TableHead>
-                      <TableHead>Supplier</TableHead>
-                      <TableHead>Total Qty</TableHead>
-                      <TableHead>Total Nilai</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead className="text-right">Aksi</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {returBelis.map((returBeli) => (
-                      <TableRow key={returBeli.id}>
-                        <TableCell className="font-medium">{returBeli.noRetur}</TableCell>
-                        <TableCell>{formatDate(returBeli.tanggal)}</TableCell>
-                        <TableCell>
-                          <div>
-                            <div className="font-medium">{returBeli.supplier.nama}</div>
-                            <div className="text-sm text-gray-500">{returBeli.supplier.kode}</div>
-                          </div>
-                        </TableCell>
-                        <TableCell>{returBeli.totalQty}</TableCell>
-                        <TableCell>{formatCurrency(Number(returBeli.totalNilai))}</TableCell>
-                        <TableCell>{getStatusBadge(returBeli.status)}</TableCell>
-                        <TableCell className="text-right">
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="sm">
-                                <MoreHorizontal className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={() => handleView(returBeli)}>
-                                <Eye className="mr-2 h-4 w-4" />
-                                Detail
-                              </DropdownMenuItem>
-                              {returBeli.status === 'draft' && (
-                                <>
-                                  <DropdownMenuItem onClick={() => handleEdit(returBeli)}>
-                                    <Edit className="mr-2 h-4 w-4" />
-                                    Edit
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem
-                                    onClick={() => handleApprove(returBeli)}
-                                    className="text-blue-600"
-                                  >
-                                    <Send className="mr-2 h-4 w-4" />
-                                    Approve
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem
-                                    onClick={() => handleDelete(returBeli)}
-                                    className="text-red-600"
-                                  >
-                                    <Trash2 className="mr-2 h-4 w-4" />
-                                    Hapus
-                                  </DropdownMenuItem>
-                                </>
-                              )}
-                              {returBeli.status === 'approved' && (
-                                <DropdownMenuItem
-                                  onClick={() => handleComplete(returBeli)}
-                                  className="text-green-600"
-                                >
-                                  <CheckCircle className="mr-2 h-4 w-4" />
-                                  Complete
-                                </DropdownMenuItem>
-                              )}
-                              {(returBeli.status === 'approved' || returBeli.status === 'completed') && (
-                                <DropdownMenuItem onClick={() => handlePrint(returBeli)}>
-                                  <Printer className="mr-2 h-4 w-4" />
-                                  Cetak
-                                </DropdownMenuItem>
-                              )}
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </TableCell>
-                      </TableRow>
+          {/* Filters */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <Filter className="mr-2 h-4 w-4" />
+                Filter & Pencarian
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <Input
+                    placeholder="Cari transaksi..."
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
+
+                <Select
+                  value={selectedSupplier || undefined}
+                  onValueChange={(value) =>
+                    setSelectedSupplier(value === "all" ? "" : value)
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Semua Supplier" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Semua Supplier</SelectItem>
+                    {suppliers.map((supplier) => (
+                      <SelectItem key={supplier.id} value={supplier.id}>
+                        {supplier.kode} - {supplier.nama}
+                      </SelectItem>
                     ))}
-                  </TableBody>
-                </Table>
-              </div>
+                  </SelectContent>
+                </Select>
 
-              {returBelis.length === 0 && (
-                <div className="flex flex-col items-center justify-center py-8">
-                  <ShoppingCart className="h-12 w-12 text-gray-400 mb-4" />
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">
-                    Belum ada transaksi Retur Beli
-                  </h3>
-                  <p className="text-gray-500 mb-4">
-                    Mulai dengan membuat transaksi Retur Beli pertama
-                  </p>
-                  <Button onClick={openAddDialog}>
-                    <Plus className="mr-2 h-4 w-4" />
-                    Retur Beli Baru
+                <Select
+                  value={selectedStatus || undefined}
+                  onValueChange={(value) =>
+                    setSelectedStatus(value === "all" ? "" : value)
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Semua Status</SelectItem>
+                    <SelectItem value="draft">Draft</SelectItem>
+                    <SelectItem value="approved">Approved</SelectItem>
+                    <SelectItem value="completed">Completed</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                <Input
+                  type="date"
+                  placeholder="Tanggal Awal"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                />
+
+                <div className="flex space-x-2">
+                  <Input
+                    type="date"
+                    placeholder="Tanggal Akhir"
+                    value={endDate}
+                    onChange={(e) => setEndDate(e.target.value)}
+                  />
+                  <Button variant="outline" onClick={clearFilters}>
+                    Reset
                   </Button>
                 </div>
-              )}
+              </div>
+            </CardContent>
+          </Card>
 
-              {pagination.totalPages > 1 && (
-                <div className="flex items-center justify-between mt-4">
-                  <div className="text-sm text-gray-500">
-                    Menampilkan {returBelis.length} dari {pagination.total} data
+          {/* Main Table */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Daftar Transaksi Retur Beli</CardTitle>
+              <CardDescription>
+                Total {pagination.total} transaksi terdaftar
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {loading ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="text-sm text-gray-500">Memuat data...</div>
+                </div>
+              ) : (
+                <>
+                  <div className="rounded-md border">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>No Retur</TableHead>
+                          <TableHead>Tanggal</TableHead>
+                          <TableHead>Supplier</TableHead>
+                          <TableHead>Total Qty</TableHead>
+                          <TableHead>Total Nilai</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead className="text-right">Aksi</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {returBelis.map((returBeli) => (
+                          <TableRow key={returBeli.id}>
+                            <TableCell className="font-medium">
+                              {returBeli.noRetur}
+                            </TableCell>
+                            <TableCell>
+                              {formatDate(returBeli.tanggal)}
+                            </TableCell>
+                            <TableCell>
+                              <div>
+                                <div className="font-medium">
+                                  {returBeli.supplier.nama}
+                                </div>
+                                <div className="text-sm text-gray-500">
+                                  {returBeli.supplier.kode}
+                                </div>
+                              </div>
+                            </TableCell>
+                            <TableCell>{returBeli.totalQty}</TableCell>
+                            <TableCell>
+                              {formatCurrency(Number(returBeli.totalNilai))}
+                            </TableCell>
+                            <TableCell>
+                              {getStatusBadge(returBeli.status)}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" size="sm">
+                                    <MoreHorizontal className="h-4 w-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  <DropdownMenuItem
+                                    onClick={() => handleView(returBeli)}
+                                  >
+                                    <Eye className="mr-2 h-4 w-4" />
+                                    Detail
+                                  </DropdownMenuItem>
+                                  {returBeli.status === "draft" && (
+                                    <>
+                                      <DropdownMenuItem
+                                        onClick={() => handleEdit(returBeli)}
+                                      >
+                                        <Edit className="mr-2 h-4 w-4" />
+                                        Edit
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem
+                                        onClick={() => handleApprove(returBeli)}
+                                        className="text-blue-600"
+                                      >
+                                        <Send className="mr-2 h-4 w-4" />
+                                        Approve
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem
+                                        onClick={() => handleDelete(returBeli)}
+                                        className="text-red-600"
+                                      >
+                                        <Trash2 className="mr-2 h-4 w-4" />
+                                        Hapus
+                                      </DropdownMenuItem>
+                                    </>
+                                  )}
+                                  {returBeli.status === "approved" && (
+                                    <DropdownMenuItem
+                                      onClick={() => handleComplete(returBeli)}
+                                      className="text-green-600"
+                                    >
+                                      <CheckCircle className="mr-2 h-4 w-4" />
+                                      Complete
+                                    </DropdownMenuItem>
+                                  )}
+                                  {(returBeli.status === "approved" ||
+                                    returBeli.status === "completed") && (
+                                    <DropdownMenuItem
+                                      onClick={() => handlePrint(returBeli)}
+                                    >
+                                      <Printer className="mr-2 h-4 w-4" />
+                                      Cetak
+                                    </DropdownMenuItem>
+                                  )}
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
                   </div>
-                  <div className="flex space-x-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() =>
-                        setPagination((prev) => ({
-                          ...prev,
-                          page: Math.max(1, prev.page - 1),
-                        }))
-                      }
-                      disabled={pagination.page === 1}
-                    >
-                      <ArrowLeft className="h-4 w-4 mr-1" />
-                      Sebelumnya
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() =>
-                        setPagination((prev) => ({
-                          ...prev,
-                          page: Math.min(prev.totalPages, prev.page + 1),
-                        }))
-                      }
-                      disabled={pagination.page === pagination.totalPages}
-                    >
-                      Selanjutnya
-                      <ArrowRight className="h-4 w-4 ml-1" />
-                    </Button>
+
+                  {returBelis.length === 0 && (
+                    <div className="flex flex-col items-center justify-center py-8">
+                      <ShoppingCart className="h-12 w-12 text-gray-400 mb-4" />
+                      <h3 className="text-lg font-medium text-gray-900 mb-2">
+                        Belum ada transaksi Retur Beli
+                      </h3>
+                      <p className="text-gray-500 mb-4">
+                        Mulai dengan membuat transaksi Retur Beli pertama
+                      </p>
+                      <Button onClick={openAddDialog}>
+                        <Plus className="mr-2 h-4 w-4" />
+                        Retur Beli Baru
+                      </Button>
+                    </div>
+                  )}
+
+                  {pagination.totalPages > 1 && (
+                    <div className="flex items-center justify-between mt-4">
+                      <div className="text-sm text-gray-500">
+                        Menampilkan {returBelis.length} dari {pagination.total}{" "}
+                        data
+                      </div>
+                      <div className="flex space-x-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() =>
+                            setPagination((prev) => ({
+                              ...prev,
+                              page: Math.max(1, prev.page - 1),
+                            }))
+                          }
+                          disabled={pagination.page === 1}
+                        >
+                          <ArrowLeft className="h-4 w-4 mr-1" />
+                          Sebelumnya
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() =>
+                            setPagination((prev) => ({
+                              ...prev,
+                              page: Math.min(prev.totalPages, prev.page + 1),
+                            }))
+                          }
+                          disabled={pagination.page === pagination.totalPages}
+                        >
+                          Selanjutnya
+                          <ArrowRight className="h-4 w-4 ml-1" />
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="input" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Input Transaksi Retur Beli Baru</CardTitle>
+              <CardDescription>
+                Buat transaksi pengembalian barang ke supplier
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+                <div className="grid gap-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="grid gap-2">
+                      <Label htmlFor="supplierId-input">Supplier</Label>
+                      <Select
+                        value={watchedValues.supplierId}
+                        onValueChange={(value) => setValue("supplierId", value)}
+                        disabled={submitting}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Pilih Supplier" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {suppliers.map((supplier) => (
+                            <SelectItem key={supplier.id} value={supplier.id}>
+                              {supplier.kode} - {supplier.nama}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {errors.supplierId && (
+                        <p className="text-sm text-red-600">
+                          {errors.supplierId.message}
+                        </p>
+                      )}
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="tanggal-input">Tanggal</Label>
+                      <Input
+                        id="tanggal-input"
+                        type="date"
+                        {...register("tanggal", { valueAsDate: true })}
+                        disabled={submitting}
+                      />
+                      {errors.tanggal && (
+                        <p className="text-sm text-red-600">
+                          {errors.tanggal.message}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="grid gap-2">
+                    <Label htmlFor="alasan-input">Alasan Retur</Label>
+                    <Textarea
+                      id="alasan-input"
+                      {...register("alasan")}
+                      placeholder="Jelaskan alasan pengembalian barang"
+                      disabled={submitting}
+                    />
+                    {errors.alasan && (
+                      <p className="text-sm text-red-600">
+                        {errors.alasan.message}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Items Section */}
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-base font-semibold">
+                        Detail Barang
+                      </Label>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={addItem}
+                      >
+                        <Plus className="h-4 w-4 mr-1" />
+                        Tambah Item
+                      </Button>
+                    </div>
+
+                    <div className="space-y-2">
+                      {items.map((item, index) => (
+                        <div
+                          key={index}
+                          className="grid grid-cols-12 gap-2 items-end"
+                        >
+                          <div className="col-span-5">
+                            <Label>Barang</Label>
+                            <Select
+                              value={item.barangId}
+                              onValueChange={(value) =>
+                                updateItem(index, "barangId", value)
+                              }
+                              disabled={submitting}
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="Pilih Barang" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {barangs.map((barang) => (
+                                  <SelectItem key={barang.id} value={barang.id}>
+                                    {barang.kode} - {barang.nama}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="col-span-2">
+                            <Label>Qty</Label>
+                            <Input
+                              type="number"
+                              min="1"
+                              value={item.qty}
+                              onChange={(e) =>
+                                updateItem(index, "qty", e.target.value)
+                              }
+                              disabled={submitting}
+                            />
+                          </div>
+                          <div className="col-span-2">
+                            <Label>Harga</Label>
+                            <Input
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              value={item.harga}
+                              onChange={(e) =>
+                                updateItem(index, "harga", e.target.value)
+                              }
+                              disabled={submitting}
+                            />
+                          </div>
+                          <div className="col-span-2">
+                            <Label>Subtotal</Label>
+                            <div className="flex items-center h-10 px-3 py-2 rounded-md border bg-gray-50">
+                              <span className="text-sm font-medium">
+                                {formatCurrency(calculateSubtotal(item))}
+                              </span>
+                            </div>
+                          </div>
+                          <div className="col-span-1">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => removeItem(index)}
+                              disabled={items.length === 1 || submitting}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Grand Total */}
+                  <div className="border-t pt-4">
+                    <div className="flex justify-between items-center">
+                      <span className="text-lg font-semibold">
+                        Grand Total:
+                      </span>
+                      <span className="text-xl font-bold text-green-600">
+                        {formatCurrency(calculateGrandTotal())}
+                      </span>
+                    </div>
                   </div>
                 </div>
-              )}
-            </>
-          )}
-        </CardContent>
-      </Card>
+
+                <div className="flex justify-end space-x-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      reset(defaultReturBeliFormValues);
+                      setItems([
+                        { barangId: "", qty: 1, alasan: "", harga: 0 },
+                      ]);
+                    }}
+                    disabled={submitting}
+                  >
+                    Reset
+                  </Button>
+                  <Button type="submit" disabled={submitting}>
+                    {submitting ? "Menyimpan..." : "Simpan Transaksi"}
+                  </Button>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
 
       {/* Add/Edit Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="sm:max-w-[900px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
-              {editingReturBeli ? 'Edit Retur Beli' : 'Retur Beli Baru'}
+              {editingReturBeli ? "Edit Retur Beli" : "Retur Beli Baru"}
             </DialogTitle>
             <DialogDescription>
               {editingReturBeli
-                ? 'Edit informasi transaksi Retur Beli yang sudah ada.'
-                : 'Buat transaksi Retur Beli baru untuk mengembalikan barang ke supplier.'}
+                ? "Edit informasi transaksi Retur Beli yang sudah ada."
+                : "Buat transaksi Retur Beli baru untuk mengembalikan barang ke supplier."}
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleSubmit(onSubmit)}>
@@ -878,7 +1201,7 @@ export default function ReturBeliPage() {
                   <Label htmlFor="supplierId">Supplier</Label>
                   <Select
                     value={watchedValues.supplierId}
-                    onValueChange={(value) => setValue('supplierId', value)}
+                    onValueChange={(value) => setValue("supplierId", value)}
                     disabled={submitting}
                   >
                     <SelectTrigger>
@@ -893,7 +1216,9 @@ export default function ReturBeliPage() {
                     </SelectContent>
                   </Select>
                   {errors.supplierId && (
-                    <p className="text-sm text-red-600">{errors.supplierId.message}</p>
+                    <p className="text-sm text-red-600">
+                      {errors.supplierId.message}
+                    </p>
                   )}
                 </div>
                 <div className="grid gap-2">
@@ -901,22 +1226,29 @@ export default function ReturBeliPage() {
                   <Input
                     id="tanggal"
                     type="date"
-                    {...register('tanggal', { valueAsDate: true })}
+                    {...register("tanggal", { valueAsDate: true })}
                     disabled={submitting}
                   />
                   {errors.tanggal && (
-                    <p className="text-sm text-red-600">{errors.tanggal.message}</p>
+                    <p className="text-sm text-red-600">
+                      {errors.tanggal.message}
+                    </p>
                   )}
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="grid gap-2">
-                  <Label htmlFor="barangMasukRef">Ref. Barang Masuk (Opsional)</Label>
+                  <Label htmlFor="barangMasukRef">
+                    Ref. Barang Masuk (Opsional)
+                  </Label>
                   <Select
-                    value={watchedValues.barangMasukRef || 'none'}
+                    value={watchedValues.barangMasukRef || "none"}
                     onValueChange={(value) =>
-                      setValue('barangMasukRef', value === 'none' ? undefined : value)
+                      setValue(
+                        "barangMasukRef",
+                        value === "none" ? undefined : value
+                      )
                     }
                     disabled={submitting}
                   >
@@ -933,19 +1265,23 @@ export default function ReturBeliPage() {
                     </SelectContent>
                   </Select>
                   {errors.barangMasukRef && (
-                    <p className="text-sm text-red-600">{errors.barangMasukRef.message}</p>
+                    <p className="text-sm text-red-600">
+                      {errors.barangMasukRef.message}
+                    </p>
                   )}
                 </div>
                 <div className="grid gap-2">
                   <Label htmlFor="alasan">Alasan Retur</Label>
                   <Input
                     id="alasan"
-                    {...register('alasan')}
+                    {...register("alasan")}
                     placeholder="Alasan pengembalian"
                     disabled={submitting}
                   />
                   {errors.alasan && (
-                    <p className="text-sm text-red-600">{errors.alasan.message}</p>
+                    <p className="text-sm text-red-600">
+                      {errors.alasan.message}
+                    </p>
                   )}
                 </div>
               </div>
@@ -953,8 +1289,15 @@ export default function ReturBeliPage() {
               {/* Items Section */}
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <Label className="text-base font-semibold">Detail Barang</Label>
-                  <Button type="button" variant="outline" size="sm" onClick={addItem}>
+                  <Label className="text-base font-semibold">
+                    Detail Barang
+                  </Label>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={addItem}
+                  >
                     <Plus className="h-4 w-4 mr-1" />
                     Tambah Item
                   </Button>
@@ -962,12 +1305,17 @@ export default function ReturBeliPage() {
 
                 <div className="space-y-2">
                   {items.map((item, index) => (
-                    <div key={index} className="grid grid-cols-12 gap-2 items-end">
+                    <div
+                      key={index}
+                      className="grid grid-cols-12 gap-2 items-end"
+                    >
                       <div className="col-span-3">
                         <Label>Barang</Label>
                         <Select
                           value={item.barangId}
-                          onValueChange={(value) => updateItem(index, 'barangId', value)}
+                          onValueChange={(value) =>
+                            updateItem(index, "barangId", value)
+                          }
                           disabled={submitting}
                         >
                           <SelectTrigger>
@@ -988,7 +1336,9 @@ export default function ReturBeliPage() {
                           type="number"
                           min="1"
                           value={item.qty}
-                          onChange={(e) => updateItem(index, 'qty', e.target.value)}
+                          onChange={(e) =>
+                            updateItem(index, "qty", e.target.value)
+                          }
                           disabled={submitting}
                         />
                       </div>
@@ -999,7 +1349,9 @@ export default function ReturBeliPage() {
                           min="0"
                           step="0.01"
                           value={item.harga}
-                          onChange={(e) => updateItem(index, 'harga', e.target.value)}
+                          onChange={(e) =>
+                            updateItem(index, "harga", e.target.value)
+                          }
                           disabled={submitting}
                         />
                       </div>
@@ -1007,7 +1359,9 @@ export default function ReturBeliPage() {
                         <Label>Alasan Item</Label>
                         <Input
                           value={item.alasan}
-                          onChange={(e) => updateItem(index, 'alasan', e.target.value)}
+                          onChange={(e) =>
+                            updateItem(index, "alasan", e.target.value)
+                          }
                           placeholder="Rusak, Tidak sesuai, dll"
                           disabled={submitting}
                         />
@@ -1056,7 +1410,11 @@ export default function ReturBeliPage() {
                 Batal
               </Button>
               <Button type="submit" disabled={submitting}>
-                {submitting ? 'Menyimpan...' : editingReturBeli ? 'Perbarui' : 'Simpan'}
+                {submitting
+                  ? "Menyimpan..."
+                  : editingReturBeli
+                    ? "Perbarui"
+                    : "Simpan"}
               </Button>
             </DialogFooter>
           </form>
@@ -1087,11 +1445,16 @@ export default function ReturBeliPage() {
                   </div>
                   <div>
                     <Label>Tanggal</Label>
-                    <p className="font-medium">{formatDate(viewingReturBeli.tanggal)}</p>
+                    <p className="font-medium">
+                      {formatDate(viewingReturBeli.tanggal)}
+                    </p>
                   </div>
                   <div>
                     <Label>Supplier</Label>
-                    <p className="font-medium">{viewingReturBeli.supplier.kode} - {viewingReturBeli.supplier.nama}</p>
+                    <p className="font-medium">
+                      {viewingReturBeli.supplier.kode} -{" "}
+                      {viewingReturBeli.supplier.nama}
+                    </p>
                   </div>
                   <div>
                     <Label>Status</Label>
@@ -1101,16 +1464,22 @@ export default function ReturBeliPage() {
                   </div>
                   <div>
                     <Label>Total Qty</Label>
-                    <p className="font-medium">{viewingReturBeli.totalQty} unit</p>
+                    <p className="font-medium">
+                      {viewingReturBeli.totalQty} unit
+                    </p>
                   </div>
                   <div>
                     <Label>Total Nilai</Label>
-                    <p className="font-medium">{formatCurrency(Number(viewingReturBeli.totalNilai))}</p>
+                    <p className="font-medium">
+                      {formatCurrency(Number(viewingReturBeli.totalNilai))}
+                    </p>
                   </div>
                   {viewingReturBeli.barangMasukRef && (
                     <div>
                       <Label>Ref. Barang Masuk</Label>
-                      <p className="font-medium">{viewingReturBeli.barangMasukRef}</p>
+                      <p className="font-medium">
+                        {viewingReturBeli.barangMasukRef}
+                      </p>
                     </div>
                   )}
                   <div className="col-span-2">
@@ -1122,11 +1491,15 @@ export default function ReturBeliPage() {
                 <div className="grid grid-cols-2 gap-4 pt-4 border-t">
                   <div>
                     <Label>Dibuat Tanggal</Label>
-                    <p className="font-medium">{formatDate(viewingReturBeli.createdAt)}</p>
+                    <p className="font-medium">
+                      {formatDate(viewingReturBeli.createdAt)}
+                    </p>
                   </div>
                   <div>
                     <Label>Terakhir Diubah</Label>
-                    <p className="font-medium">{formatDate(viewingReturBeli.updatedAt)}</p>
+                    <p className="font-medium">
+                      {formatDate(viewingReturBeli.updatedAt)}
+                    </p>
                   </div>
                 </div>
               </TabsContent>
@@ -1152,14 +1525,24 @@ export default function ReturBeliPage() {
                           <TableCell>{index + 1}</TableCell>
                           <TableCell>{item.barang.kode}</TableCell>
                           <TableCell>{item.barang.nama}</TableCell>
-                          <TableCell>{item.qty} {item.barang.satuan}</TableCell>
-                          <TableCell>{formatCurrency(Number(item.harga))}</TableCell>
-                          <TableCell>{formatCurrency(Number(item.subtotal))}</TableCell>
+                          <TableCell>
+                            {item.qty} {item.barang.satuan}
+                          </TableCell>
+                          <TableCell>
+                            {formatCurrency(Number(item.harga))}
+                          </TableCell>
+                          <TableCell>
+                            {formatCurrency(Number(item.subtotal))}
+                          </TableCell>
                           <TableCell>{item.alasan}</TableCell>
                           <TableCell>
-                            <span className={`font-medium ${
-                              (item.currentStock || 0) > 0 ? 'text-green-600' : 'text-red-600'
-                            }`}>
+                            <span
+                              className={`font-medium ${
+                                (item.currentStock || 0) > 0
+                                  ? "text-green-600"
+                                  : "text-red-600"
+                              }`}
+                            >
                               {item.currentStock || 0} {item.barang.satuan}
                             </span>
                           </TableCell>
@@ -1168,7 +1551,10 @@ export default function ReturBeliPage() {
                     </TableBody>
                     <tfoot>
                       <TableRow>
-                        <TableCell colSpan={6} className="text-right font-semibold">
+                        <TableCell
+                          colSpan={6}
+                          className="text-right font-semibold"
+                        >
                           Total:
                         </TableCell>
                         <TableCell className="font-semibold">
@@ -1184,15 +1570,17 @@ export default function ReturBeliPage() {
           )}
 
           <DialogFooter>
-            {viewingReturBeli && (viewingReturBeli.status === 'approved' || viewingReturBeli.status === 'completed') && (
-              <Button
-                variant="outline"
-                onClick={() => handlePrint(viewingReturBeli)}
-              >
-                <Printer className="mr-2 h-4 w-4" />
-                Cetak
-              </Button>
-            )}
+            {viewingReturBeli &&
+              (viewingReturBeli.status === "approved" ||
+                viewingReturBeli.status === "completed") && (
+                <Button
+                  variant="outline"
+                  onClick={() => handlePrint(viewingReturBeli)}
+                >
+                  <Printer className="mr-2 h-4 w-4" />
+                  Cetak
+                </Button>
+              )}
             <Button variant="outline" onClick={() => setViewDialogOpen(false)}>
               Tutup
             </Button>
@@ -1206,10 +1594,10 @@ export default function ReturBeliPage() {
           ref={printRef}
           data={viewingReturBeli}
           onPrintComplete={() => {
-            toast.success('Dokumen berhasil dicetak')
+            toast.success("Dokumen berhasil dicetak");
           }}
         />
       )}
     </div>
-  )
+  );
 }
