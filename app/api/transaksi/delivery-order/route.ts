@@ -68,6 +68,7 @@ export async function GET(request: NextRequest) {
       where.OR = [
         { noDO: { contains: search } },
         { gudangTujuan: { contains: search } },
+        { gudangTujuanRel: { nama: { contains: search } } },
         { namaSupir: { contains: search } },
         { nopolKendaraan: { contains: search } },
       ]
@@ -86,6 +87,7 @@ export async function GET(request: NextRequest) {
         where,
         include: {
           gudangAsal: true,
+          gudangTujuanRel: true,
           detail: true,
           _count: {
             select: { detail: true }
@@ -131,12 +133,37 @@ export async function POST(request: NextRequest) {
     // Generate document number if not provided
     const noDO = body.noDO || await generateDocumentNumber()
 
+    // Validate stock availability before creating delivery order
+    for (const item of body.items) {
+      const stokBarang = await prisma.stokBarang.findFirst({
+        where: {
+          barangId: item.barangId,
+          gudangId: body.gudangAsalId
+        }
+      })
+
+      if (!stokBarang || stokBarang.qty < item.qty) {
+        return NextResponse.json(
+          {
+            error: `Stok tidak mencukupi untuk barang ${item.namaBarang}. Tersedia: ${stokBarang?.qty || 0}, Diminta: ${item.qty}`
+          },
+          { status: 400 }
+        )
+      }
+    }
+
+    // Get gudang tujuan name for backward compatibility
+    const gudangTujuan = await prisma.gudang.findUnique({
+      where: { id: body.gudangTujuanId }
+    });
+
     const deliveryOrder = await prisma.deliveryOrder.create({
       data: {
         noDO,
         tanggal: body.tanggal ? new Date(body.tanggal) : new Date(),
         gudangAsalId: body.gudangAsalId,
-        gudangTujuan: body.gudangTujuan,
+        gudangTujuan: gudangTujuan?.nama || 'Unknown',
+        gudangTujuanId: body.gudangTujuanId,
         namaSupir: body.namaSupir,
         nopolKendaraan: body.nopolKendaraan,
         keterangan: body.keterangan || null,
@@ -154,6 +181,7 @@ export async function POST(request: NextRequest) {
       },
       include: {
         gudangAsal: true,
+        gudangTujuanRel: true,
         detail: true
       }
     })

@@ -85,7 +85,7 @@ type DeliveryOrderForm = {
   noDO?: string;
   tanggal?: Date;
   gudangAsalId: string;
-  gudangTujuan: string;
+  gudangTujuanId: string;
   namaSupir: string;
   nopolKendaraan: string;
   keterangan?: string;
@@ -113,7 +113,7 @@ export default function DeliveryOrderPage() {
 
   const [form, setForm] = useState<DeliveryOrderForm>({
     gudangAsalId: "",
-    gudangTujuan: "",
+    gudangTujuanId: "",
     namaSupir: "",
     nopolKendaraan: "",
     keterangan: "",
@@ -134,21 +134,36 @@ export default function DeliveryOrderPage() {
   });
 
   const { data: gudangList } = useGudangList();
+  const [availableBarang, setAvailableBarang] = useState<any[]>([]);
+  const [selectedBarang, setSelectedBarang] = useState<any | null>(null);
 
   // Mutation hooks
   const createDeliveryOrder = useCreateDeliveryOrder();
   const updateStatus = useUpdateDeliveryOrderStatus();
   const deleteDeliveryOrder = useDeleteDeliveryOrder();
 
+  // Fetch available barang when gudang asal changes
+  const fetchAvailableBarang = async (gudangId: string) => {
+    if (!gudangId) {
+      setAvailableBarang([]);
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/transaksi/delivery-order/stock-info?gudangId=${gudangId}`);
+      const data = await response.json();
+      if (data.success) {
+        setAvailableBarang(data.data);
+      }
+    } catch (error) {
+      console.error('Error fetching available barang:', error);
+    }
+  };
+
   const handleCreate = async () => {
     try {
-      // Convert selected tujuan (id) to gudang name, API expects string name
-      const tujuanGudang = gudangList?.data.find(
-        (g) => g.id === form.gudangTujuan
-      );
       const payload = {
         ...form,
-        gudangTujuan: tujuanGudang ? tujuanGudang.nama : form.gudangTujuan,
       };
       const result = await createDeliveryOrder.mutateAsync(payload);
       if (result.success) {
@@ -156,12 +171,13 @@ export default function DeliveryOrderPage() {
         setIsCreateModalOpen(false);
         setForm({
           gudangAsalId: "",
-          gudangTujuan: "",
+          gudangTujuanId: "",
           namaSupir: "",
           nopolKendaraan: "",
           keterangan: "",
           items: [],
         });
+        setAvailableBarang([]);
         refetch();
       }
     } catch (error) {
@@ -199,15 +215,60 @@ export default function DeliveryOrderPage() {
     }
   };
 
+  const addBarangToForm = () => {
+    if (!selectedBarang) return;
+
+    const existingItemIndex = form.items.findIndex(item => item.barangId === selectedBarang.barangId);
+
+    if (existingItemIndex >= 0) {
+      // Update existing item quantity
+      const updatedItems = [...form.items];
+      updatedItems[existingItemIndex].qty += 1;
+      setForm({ ...form, items: updatedItems });
+    } else {
+      // Add new item
+      setForm({
+        ...form,
+        items: [
+          ...form.items,
+          {
+            barangId: selectedBarang.barangId,
+            namaBarang: selectedBarang.barangNama,
+            qty: 1,
+            satuan: selectedBarang.satuan,
+            keterangan: ''
+          }
+        ]
+      });
+    }
+
+    setSelectedBarang(null);
+  };
+
+  const removeBarangFromForm = (index: number) => {
+    const updatedItems = form.items.filter((_, i) => i !== index);
+    setForm({ ...form, items: updatedItems });
+  };
+
+  const updateItemQuantity = (index: number, qty: number) => {
+    if (qty < 1) return;
+
+    const updatedItems = [...form.items];
+    updatedItems[index].qty = qty;
+    setForm({ ...form, items: updatedItems });
+  };
+
   const openAddDialog = () => {
     setForm({
       gudangAsalId: "",
-      gudangTujuan: "",
+      gudangTujuanId: "",
       namaSupir: "",
       nopolKendaraan: "",
       keterangan: "",
       items: [],
     });
+    setAvailableBarang([]);
+    setSelectedBarang(null);
     setIsCreateModalOpen(true);
   };
 
@@ -394,7 +455,9 @@ export default function DeliveryOrderPage() {
                             )}
                           </TableCell>
                           <TableCell>{deliveryOrder.gudangAsal.nama}</TableCell>
-                          <TableCell>{deliveryOrder.gudangTujuan}</TableCell>
+                          <TableCell>
+                            {deliveryOrder.gudangTujuanRel?.nama || deliveryOrder.gudangTujuan}
+                          </TableCell>
                           <TableCell>{deliveryOrder.namaSupir}</TableCell>
                           <TableCell>{deliveryOrder.nopolKendaraan}</TableCell>
                           <TableCell>
@@ -548,9 +611,10 @@ export default function DeliveryOrderPage() {
                     <Label htmlFor="gudangAsal-input">Gudang Asal</Label>
                     <Select
                       value={form.gudangAsalId}
-                      onValueChange={(value) =>
-                        setForm({ ...form, gudangAsalId: value })
-                      }
+                      onValueChange={(value) => {
+                        setForm({ ...form, gudangAsalId: value, items: [] });
+                        fetchAvailableBarang(value);
+                      }}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Pilih Gudang" />
@@ -622,6 +686,83 @@ export default function DeliveryOrderPage() {
                     }
                   />
                 </div>
+
+                {/* Barang Selection */}
+                {form.gudangAsalId && (
+                  <div>
+                    <Label>Pilih Barang</Label>
+                    <div className="flex gap-2 mt-2">
+                      <Select
+                        value={selectedBarang?.barangId || ""}
+                        onValueChange={(value) => {
+                          const barang = availableBarang.find(b => b.barangId === value);
+                          setSelectedBarang(barang || null);
+                        }}
+                      >
+                        <SelectTrigger className="flex-1">
+                          <SelectValue placeholder="Pilih barang yang akan dipindahkan" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {availableBarang.map((barang) => (
+                            <SelectItem key={barang.barangId} value={barang.barangId}>
+                              {barang.barangNama} (Stok: {barang.stok} {barang.satuan})
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <Button
+                        onClick={addBarangToForm}
+                        disabled={!selectedBarang}
+                        type="button"
+                      >
+                        Tambah
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Items Table */}
+                {form.items.length > 0 && (
+                  <div>
+                    <Label>Barang yang Akan Dipindahkan</Label>
+                    <Table className="mt-2">
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Barang</TableHead>
+                          <TableHead>Qty</TableHead>
+                          <TableHead>Satuan</TableHead>
+                          <TableHead>Aksi</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {form.items.map((item, index) => (
+                          <TableRow key={index}>
+                            <TableCell>{item.namaBarang}</TableCell>
+                            <TableCell>
+                              <Input
+                                type="number"
+                                min="1"
+                                value={item.qty}
+                                onChange={(e) => updateItemQuantity(index, parseInt(e.target.value) || 1)}
+                                className="w-20"
+                              />
+                            </TableCell>
+                            <TableCell>{item.satuan}</TableCell>
+                            <TableCell>
+                              <Button
+                                variant="destructive"
+                                size="sm"
+                                onClick={() => removeBarangFromForm(index)}
+                              >
+                                Hapus
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
               </div>
               <div className="flex justify-end space-x-2 mt-6">
                 <Button
@@ -629,12 +770,14 @@ export default function DeliveryOrderPage() {
                   onClick={() => {
                     setForm({
                       gudangAsalId: "",
-                      gudangTujuan: "",
+                      gudangTujuanId: "",
                       namaSupir: "",
                       nopolKendaraan: "",
                       keterangan: "",
                       items: [],
                     });
+                    setAvailableBarang([]);
+                    setSelectedBarang(null);
                   }}
                 >
                   Reset
@@ -643,9 +786,10 @@ export default function DeliveryOrderPage() {
                   onClick={handleCreate}
                   disabled={
                     !form.gudangAsalId ||
-                    !form.gudangTujuan ||
+                    !form.gudangTujuanId ||
                     !form.namaSupir ||
-                    !form.nopolKendaraan
+                    !form.nopolKendaraan ||
+                    form.items.length === 0
                   }
                 >
                   Simpan Transaksi
@@ -671,9 +815,10 @@ export default function DeliveryOrderPage() {
                 <Label htmlFor="gudangAsal">Gudang Asal</Label>
                 <Select
                   value={form.gudangAsalId}
-                  onValueChange={(value) =>
-                    setForm({ ...form, gudangAsalId: value })
-                  }
+                  onValueChange={(value) => {
+                    setForm({ ...form, gudangAsalId: value, items: [] });
+                    fetchAvailableBarang(value);
+                  }}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Pilih Gudang" />
@@ -690,9 +835,9 @@ export default function DeliveryOrderPage() {
               <div>
                 <Label htmlFor="gudangTujuan">Gudang Tujuan</Label>
                 <Select
-                  value={form.gudangTujuan}
+                  value={form.gudangTujuanId}
                   onValueChange={(value) =>
-                    setForm({ ...form, gudangTujuan: value })
+                    setForm({ ...form, gudangTujuanId: value })
                   }
                 >
                   <SelectTrigger>
@@ -745,6 +890,83 @@ export default function DeliveryOrderPage() {
                 }
               />
             </div>
+
+            {/* Barang Selection */}
+            {form.gudangAsalId && (
+              <div>
+                <Label>Pilih Barang</Label>
+                <div className="flex gap-2 mt-2">
+                  <Select
+                    value={selectedBarang?.barangId || ""}
+                    onValueChange={(value) => {
+                      const barang = availableBarang.find(b => b.barangId === value);
+                      setSelectedBarang(barang || null);
+                    }}
+                  >
+                    <SelectTrigger className="flex-1">
+                      <SelectValue placeholder="Pilih barang yang akan dipindahkan" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableBarang.map((barang) => (
+                        <SelectItem key={barang.barangId} value={barang.barangId}>
+                          {barang.barangNama} (Stok: {barang.stok} {barang.satuan})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Button
+                    onClick={addBarangToForm}
+                    disabled={!selectedBarang}
+                    type="button"
+                  >
+                    Tambah
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {/* Items Table */}
+            {form.items.length > 0 && (
+              <div>
+                <Label>Barang yang Akan Dipindahkan</Label>
+                <Table className="mt-2">
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Barang</TableHead>
+                      <TableHead>Qty</TableHead>
+                      <TableHead>Satuan</TableHead>
+                      <TableHead>Aksi</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {form.items.map((item, index) => (
+                      <TableRow key={index}>
+                        <TableCell>{item.namaBarang}</TableCell>
+                        <TableCell>
+                          <Input
+                            type="number"
+                            min="1"
+                            value={item.qty}
+                            onChange={(e) => updateItemQuantity(index, parseInt(e.target.value) || 1)}
+                            className="w-20"
+                          />
+                        </TableCell>
+                        <TableCell>{item.satuan}</TableCell>
+                        <TableCell>
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => removeBarangFromForm(index)}
+                          >
+                            Hapus
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
           </div>
           <DialogFooter>
             <Button
@@ -757,9 +979,10 @@ export default function DeliveryOrderPage() {
               onClick={handleCreate}
               disabled={
                 !form.gudangAsalId ||
-                !form.gudangTujuan ||
+                !form.gudangTujuanId ||
                 !form.namaSupir ||
-                !form.nopolKendaraan
+                !form.nopolKendaraan ||
+                form.items.length === 0
               }
             >
               Simpan
@@ -803,7 +1026,7 @@ export default function DeliveryOrderPage() {
                 <div>
                   <Label>Tujuan</Label>
                   <p className="font-medium">
-                    {selectedDeliveryOrder.gudangTujuan}
+                    {selectedDeliveryOrder.gudangTujuanRel?.nama || selectedDeliveryOrder.gudangTujuan}
                   </p>
                 </div>
                 <div>

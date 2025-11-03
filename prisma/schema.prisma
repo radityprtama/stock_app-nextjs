@@ -24,10 +24,11 @@ model Gudang {
   updatedAt   DateTime @updatedAt
 
   // Relations
-  stokBarang      StokBarang[]
-  barangMasuk     BarangMasuk[]
-  deliveryOrders  DeliveryOrder[]
-  suratJalan      SuratJalan[]
+  stokBarang        StokBarang[]
+  barangMasuk       BarangMasuk[]
+  deliveryOrders    DeliveryOrder[]
+  deliveryOrdersTujuan DeliveryOrder[] @relation("GudangTujuan")
+  suratJalan        SuratJalan[]
 }
 
 model Customer {
@@ -213,7 +214,9 @@ model DeliveryOrder {
 
   gudangAsalId    String
   gudangAsal      Gudang   @relation(fields: [gudangAsalId], references: [id])
-  gudangTujuan    String   // bisa nama gudang lain atau alamat
+  gudangTujuan    String   // bisa nama gudang lain atau alamat (legacy)
+  gudangTujuanId  String?
+  gudangTujuanRel Gudang?   @relation("GudangTujuan", fields: [gudangTujuanId], references: [id])
 
   namaSupir       String
   nopolKendaraan  String
@@ -232,6 +235,7 @@ model DeliveryOrder {
   detail          DetailDeliveryOrder[]
 
   @@index([gudangAsalId])
+  @@index([gudangTujuanId])
   @@index([tanggal])
 }
 

@@ -68,11 +68,111 @@ export async function POST(
       updateData.tanggalSampai = new Date()
     }
 
+    // Get delivery order with details for stock processing
+    const deliveryOrderWithDetails = await prisma.deliveryOrder.findUnique({
+      where: { id },
+      include: {
+        gudangAsal: true,
+        gudangTujuanRel: true,
+        detail: {
+          include: {
+            barang: true
+          }
+        }
+      }
+    })
+
+    if (!deliveryOrderWithDetails) {
+      return NextResponse.json(
+        { error: 'Delivery Order not found' },
+        { status: 404 }
+      )
+    }
+
+    // Process stock movement when status changes to DELIVERED
+    if (status === TRANSACTION_STATUS.DELIVERED && existingDeliveryOrder.status !== TRANSACTION_STATUS.DELIVERED) {
+      if (!deliveryOrderWithDetails.gudangTujuanId) {
+        return NextResponse.json(
+          { error: 'Gudang tujuan tidak valid' },
+          { status: 400 }
+        )
+      }
+
+      await prisma.$transaction(async (tx) => {
+        for (const detailItem of deliveryOrderWithDetails.detail) {
+          // Reduce stock from source warehouse
+          const stokAsal = await tx.stokBarang.findFirst({
+            where: {
+              barangId: detailItem.barangId,
+              gudangId: deliveryOrderWithDetails.gudangAsalId
+            }
+          })
+
+          if (!stokAsal || stokAsal.qty < detailItem.qty) {
+            throw new Error(`Stok tidak mencukupi untuk ${detailItem.barang.nama} di gudang ${deliveryOrderWithDetails.gudangAsal.nama}`)
+          }
+
+          await tx.stokBarang.update({
+            where: { id: stokAsal.id },
+            data: {
+              qty: stokAsal.qty - detailItem.qty
+            }
+          })
+
+          // Add stock to destination warehouse
+          const stokTujuan = await tx.stokBarang.findFirst({
+            where: {
+              barangId: detailItem.barangId,
+              gudangId: deliveryOrderWithDetails.gudangTujuanId
+            }
+          })
+
+          if (stokTujuan) {
+            await tx.stokBarang.update({
+              where: { id: stokTujuan.id },
+              data: {
+                qty: stokTujuan.qty + detailItem.qty
+              }
+            })
+          } else {
+            await tx.stokBarang.create({
+              data: {
+                barangId: detailItem.barangId,
+                gudangId: deliveryOrderWithDetails.gudangTujuanId,
+                qty: detailItem.qty
+              }
+            })
+          }
+
+          // Update currentStock in Barang table
+          await tx.barang.update({
+            where: { id: detailItem.barangId },
+            data: {
+              currentStock: {
+                decrement: detailItem.qty
+              }
+            }
+          })
+
+          // Add back the stock (since we're just moving between warehouses)
+          await tx.barang.update({
+            where: { id: detailItem.barangId },
+            data: {
+              currentStock: {
+                increment: detailItem.qty
+              }
+            }
+          })
+        }
+      })
+    }
+
     const updatedDeliveryOrder = await prisma.deliveryOrder.update({
       where: { id },
       data: updateData,
       include: {
         gudangAsal: true,
+        gudangTujuanRel: true,
         detail: true
       }
     })
@@ -102,6 +202,8 @@ export async function POST(
           noDO: updatedDeliveryOrder.noDO,
           gudangAsalId: updatedDeliveryOrder.gudangAsalId,
           gudangAsal: updatedDeliveryOrder.gudangAsal.nama,
+          gudangTujuanId: updatedDeliveryOrder.gudangTujuanRel?.id,
+          gudangTujuan: updatedDeliveryOrder.gudangTujuanRel?.nama || updatedDeliveryOrder.gudangTujuan,
           totalItems: updatedDeliveryOrder.detail.length,
           status: status,
           previousStatus: existingDeliveryOrder.status
