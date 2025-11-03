@@ -377,6 +377,7 @@ export async function POST(request: NextRequest) {
             qty: item.qty,
             hargaJual: item.hargaJual,
             subtotal: item.qty * item.hargaJual,
+            namaAlias: item.namaAlias || null,
             isDropship: item.isDropship,
             supplierId: item.supplierId,
             statusDropship: item.statusDropship,

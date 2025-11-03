@@ -100,6 +100,11 @@ export async function POST(
 
       await prisma.$transaction(async (tx) => {
         for (const detailItem of deliveryOrderWithDetails.detail) {
+          // Skip stock processing for custom items
+          if (detailItem.isCustom || !detailItem.barangId) {
+            continue;
+          }
+
           // Reduce stock from source warehouse
           const stokAsal = await tx.stokBarang.findFirst({
             where: {

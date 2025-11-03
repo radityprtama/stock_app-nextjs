@@ -185,6 +185,7 @@ interface FormData {
   qty: number;
   hargaJual: number;
   keterangan?: string;
+  namaAlias?: string; // Nama custom per customer
   isDropship?: boolean;
   supplierId?: string;
   statusDropship?: "pending" | "ordered" | "received";
@@ -250,7 +251,7 @@ export default function SuratJalanPage() {
   );
   const [stockCheckResult, setStockCheckResult] = useState<any>(null);
   const [items, setItems] = useState<FormData[]>([
-    { barangId: "", qty: 1, hargaJual: 0 },
+    { barangId: "", qty: 1, hargaJual: 0, namaAlias: "" },
   ]);
   const [deliveryOption, setDeliveryOption] = useState<"partial" | "complete">(
     "complete"
@@ -416,7 +417,7 @@ export default function SuratJalanPage() {
           deliveryOption: "complete",
         });
         setEditingSuratJalan(null);
-        setItems([{ barangId: "", qty: 1, hargaJual: 0 }]);
+        setItems([{ barangId: "", qty: 1, hargaJual: 0, namaAlias: "" }]);
         setDeliveryOption("complete");
         setValue("deliveryOption", "complete");
         fetchSuratJalans();
@@ -598,14 +599,14 @@ export default function SuratJalanPage() {
       items: [],
       deliveryOption: "complete",
     });
-    setItems([{ barangId: "", qty: 1, hargaJual: 0 }]);
+    setItems([{ barangId: "", qty: 1, hargaJual: 0, namaAlias: "" }]);
     setDeliveryOption("complete");
     setValue("deliveryOption", "complete");
     setDialogOpen(true);
   };
 
   const addItem = () => {
-    setItems([...items, { barangId: "", qty: 1, hargaJual: 0 }]);
+    setItems([...items, { barangId: "", qty: 1, hargaJual: 0, namaAlias: "" }]);
   };
 
   const removeItem = (index: number) => {
@@ -1480,7 +1481,7 @@ export default function SuratJalanPage() {
                           key={index}
                           className="grid grid-cols-12 gap-2 items-end border rounded-lg p-3"
                         >
-                          <div className="col-span-4">
+                          <div className="col-span-3">
                             <Label>Barang</Label>
                             <Select
                               value={item.barangId}
@@ -1522,6 +1523,17 @@ export default function SuratJalanPage() {
                               value={item.hargaJual}
                               onChange={(e) =>
                                 updateItem(index, "hargaJual", e.target.value)
+                              }
+                              disabled={submitting}
+                            />
+                          </div>
+                          <div className="col-span-2">
+                            <Label>Nama Alias (Optional)</Label>
+                            <Input
+                              placeholder="Nama custom untuk customer"
+                              value={item.namaAlias || ""}
+                              onChange={(e) =>
+                                updateItem(index, "namaAlias", e.target.value)
                               }
                               disabled={submitting}
                             />
@@ -1798,7 +1810,7 @@ export default function SuratJalanPage() {
                       key={index}
                       className="grid grid-cols-12 gap-2 items-end border rounded-lg p-3"
                     >
-                      <div className="col-span-4">
+                      <div className="col-span-3">
                         <Label>Barang</Label>
                         <Select
                           value={item.barangId}
@@ -1840,6 +1852,17 @@ export default function SuratJalanPage() {
                           value={item.hargaJual}
                           onChange={(e) =>
                             updateItem(index, "hargaJual", e.target.value)
+                          }
+                          disabled={submitting}
+                        />
+                      </div>
+                      <div className="col-span-2">
+                        <Label>Nama Alias (Optional)</Label>
+                        <Input
+                          placeholder="Nama custom untuk customer"
+                          value={item.namaAlias || ""}
+                          onChange={(e) =>
+                            updateItem(index, "namaAlias", e.target.value)
                           }
                           disabled={submitting}
                         />

@@ -113,6 +113,7 @@ model Barang {
   stokBarang        StokBarang[]
   detailBarangMasuk DetailBarangMasuk[]
   detailSuratJalan  DetailSuratJalan[]
+  detailDeliveryOrder DetailDeliveryOrder[]
   detailReturBeli   DetailReturBeli[]
   detailReturJual   DetailReturJual[]
   supplierBarang    SupplierBarang[]
@@ -243,11 +244,21 @@ model DetailDeliveryOrder {
   id              String        @id @default(cuid())
   deliveryOrderId String
   deliveryOrder   DeliveryOrder @relation(fields: [deliveryOrderId], references: [id], onDelete: Cascade)
-  barangId        String
+  barangId        String?       // nullable for custom items
+  barang          Barang?       @relation(fields: [barangId], references: [id])
 
-  namaBarang      String // snapshot untuk history
+  // For standard warehouse items
+  namaBarang      String        // snapshot untuk history
+
+  // For custom/dropship items
+  isCustom        Boolean       @default(false)
+  customKode      String?       // kode barang custom
+  customNama      String?       // nama barang custom (overrides namaBarang if custom)
+  customSatuan    String?       // satuan custom (overrides satuan if custom)
+  customHarga     Decimal?      @db.Decimal(15,2) // harga beli custom
+
   qty             Int
-  satuan          String
+  satuan          String        // kept for backward compatibility
 
   keterangan      String?
 
@@ -304,6 +315,9 @@ model DetailSuratJalan {
   qty           Int
   hargaJual     Decimal     @db.Decimal(15,2)
   subtotal      Decimal     @db.Decimal(15,2)
+
+  // Nama alias per customer untuk produk yang sama
+  namaAlias     String?     // nama custom untuk customer
 
   // Flag untuk barang dropship (ambil dari supplier lain)
   isDropship    Boolean     @default(false)

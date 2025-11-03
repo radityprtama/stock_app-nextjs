@@ -133,8 +133,23 @@ export async function POST(request: NextRequest) {
     // Generate document number if not provided
     const noDO = body.noDO || await generateDocumentNumber()
 
-    // Validate stock availability before creating delivery order
+    // Validate stock availability for non-custom items before creating delivery order
     for (const item of body.items) {
+      // Skip stock validation for custom items
+      if (item.isCustom) {
+        // Validate custom item required fields
+        if (!item.customKode || !item.customNama || !item.customSatuan) {
+          return NextResponse.json(
+            {
+              error: `Barang custom ${item.customNama || 'tanpa nama'} harus memiliki kode, nama, dan satuan`
+            },
+            { status: 400 }
+          )
+        }
+        continue;
+      }
+
+      // Validate standard warehouse items
       const stokBarang = await prisma.stokBarang.findFirst({
         where: {
           barangId: item.barangId,
@@ -171,11 +186,18 @@ export async function POST(request: NextRequest) {
         createdBy: session.user.id,
         detail: {
           create: body.items.map((item: any) => ({
-            barangId: item.barangId,
-            namaBarang: item.namaBarang,
+            barangId: item.isCustom ? null : item.barangId,
+            namaBarang: item.isCustom ? item.customNama : item.namaBarang,
             qty: item.qty,
-            satuan: item.satuan,
+            satuan: item.isCustom ? item.customSatuan : item.satuan,
             keterangan: item.keterangan || null,
+
+            // Custom item fields
+            isCustom: item.isCustom || false,
+            customKode: item.isCustom ? item.customKode : null,
+            customNama: item.isCustom ? item.customNama : null,
+            customSatuan: item.isCustom ? item.customSatuan : null,
+            customHarga: item.isCustom ? item.customHarga : null,
           }))
         }
       },
