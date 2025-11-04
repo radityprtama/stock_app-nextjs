@@ -1,9 +1,9 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { notifications } from '../route'
 
 // PUT /api/notifications/read-all - Mark all notifications as read
-export async function PUT(request: NextRequest) {
+export async function PUT() {
   try {
     const session = await auth()
     if (!session) {

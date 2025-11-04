@@ -186,18 +186,11 @@ export async function POST(request: NextRequest) {
         createdBy: session.user.id,
         detail: {
           create: body.items.map((item: any) => ({
-            barangId: item.isCustom ? null : item.barangId,
-            namaBarang: item.isCustom ? item.customNama : item.namaBarang,
+            barangId: item.barangId,
+            namaBarang: item.namaBarang,
             qty: item.qty,
-            satuan: item.isCustom ? item.customSatuan : item.satuan,
+            satuan: item.satuan,
             keterangan: item.keterangan || null,
-
-            // Custom item fields
-            isCustom: item.isCustom || false,
-            customKode: item.isCustom ? item.customKode : null,
-            customNama: item.isCustom ? item.customNama : null,
-            customSatuan: item.isCustom ? item.customSatuan : null,
-            customHarga: item.isCustom ? item.customHarga : null,
           }))
         }
       },

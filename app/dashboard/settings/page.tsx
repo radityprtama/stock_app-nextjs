@@ -1,21 +1,27 @@
-'use client'
+"use client";
 
-import { useState } from 'react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
-import { Switch } from '@/components/ui/switch'
-import { Badge } from '@/components/ui/badge'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { useState } from "react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select'
+} from "@/components/ui/select";
 import {
   Dialog,
   DialogContent,
@@ -23,7 +29,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from '@/components/ui/dialog'
+} from "@/components/ui/dialog";
 import {
   User,
   Bell,
@@ -44,79 +50,79 @@ import {
   Crown,
   Eye,
   EyeOff,
-} from 'lucide-react'
-import { useSession } from 'next-auth/react'
-import { NotificationSettings } from '@/components/notifications/notification-system'
+} from "lucide-react";
+import { useSession } from "next-auth/react";
+import { NotificationSettings } from "@/components/notifications/notification-system";
 
 export default function SettingsPage() {
-  const { data: session } = useSession()
-  const [activeTab, setActiveTab] = useState('profile')
+  const { data: session } = useSession();
+  const [activeTab, setActiveTab] = useState("profile");
 
   // Profile state
   const [profile, setProfile] = useState({
-    namaLengkap: session?.user?.name || '',
-    email: session?.user?.email || '',
-    telepon: '',
-    alamat: '',
-  })
+    namaLengkap: session?.user?.name || "",
+    email: session?.user?.email || "",
+    telepon: "",
+    alamat: "",
+  });
 
   // Password state
   const [password, setPassword] = useState({
-    currentPassword: '',
-    newPassword: '',
-    confirmPassword: '',
-  })
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: "",
+  });
 
   // System settings state
   const [systemSettings, setSystemSettings] = useState({
-    companyName: 'Stocky Inventory',
-    companyEmail: 'info@stocky.com',
-    companyPhone: '+62 812-3456-7890',
-    companyAddress: 'Jakarta, Indonesia',
-    currency: 'IDR',
-    dateFormat: 'dd/MM/yyyy',
-    timeFormat: '24h',
-    language: 'id',
-    timezone: 'Asia/Jakarta',
-  })
+    companyName: "Inventory Inventory",
+    companyEmail: "info@Inventory.com",
+    companyPhone: "+62 812-3456-7890",
+    companyAddress: "Jakarta, Indonesia",
+    currency: "IDR",
+    dateFormat: "dd/MM/yyyy",
+    timeFormat: "24h",
+    language: "id",
+    timezone: "Asia/Jakarta",
+  });
 
   // Backup settings state
   const [backupSettings, setBackupSettings] = useState({
     autoBackup: true,
-    backupFrequency: 'daily',
-    backupRetention: '30',
-    lastBackup: '2024-01-15 14:30:00',
-    backupLocation: 'local',
-  })
+    backupFrequency: "daily",
+    backupRetention: "30",
+    lastBackup: "2024-01-15 14:30:00",
+    backupLocation: "local",
+  });
 
   const handleProfileSave = () => {
     // TODO: Implement profile update API
-    console.log('Saving profile:', profile)
-  }
+    console.log("Saving profile:", profile);
+  };
 
   const handlePasswordChange = () => {
     // TODO: Implement password change API
     if (password.newPassword !== password.confirmPassword) {
-      alert('Password baru tidak cocok!')
-      return
+      alert("Password baru tidak cocok!");
+      return;
     }
-    console.log('Changing password')
-  }
+    console.log("Changing password");
+  };
 
   const handleSystemSettingsSave = () => {
     // TODO: Implement system settings update API
-    console.log('Saving system settings:', systemSettings)
-  }
+    console.log("Saving system settings:", systemSettings);
+  };
 
   const handleBackup = () => {
     // TODO: Implement backup functionality
-    console.log('Creating backup...')
-  }
+    console.log("Creating backup...");
+  };
 
   const handleRestore = () => {
     // TODO: Implement restore functionality
-    console.log('Restoring backup...')
-  }
+    console.log("Restoring backup...");
+  };
 
   return (
     <div className="space-y-6">
@@ -127,13 +133,20 @@ export default function SettingsPage() {
         </p>
       </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+      <Tabs
+        value={activeTab}
+        onValueChange={setActiveTab}
+        className="space-y-6"
+      >
         <TabsList className="grid w-full grid-cols-7">
           <TabsTrigger value="profile" className="flex items-center space-x-2">
             <User className="h-4 w-4" />
             <span className="hidden sm:inline">Profil</span>
           </TabsTrigger>
-          <TabsTrigger value="notifications" className="flex items-center space-x-2">
+          <TabsTrigger
+            value="notifications"
+            className="flex items-center space-x-2"
+          >
             <Bell className="h-4 w-4" />
             <span className="hidden sm:inline">Notifikasi</span>
           </TabsTrigger>
@@ -178,7 +191,9 @@ export default function SettingsPage() {
                   <Input
                     id="namaLengkap"
                     value={profile.namaLengkap}
-                    onChange={(e) => setProfile({ ...profile, namaLengkap: e.target.value })}
+                    onChange={(e) =>
+                      setProfile({ ...profile, namaLengkap: e.target.value })
+                    }
                   />
                 </div>
                 <div className="space-y-2">
@@ -187,7 +202,9 @@ export default function SettingsPage() {
                     id="email"
                     type="email"
                     value={profile.email}
-                    onChange={(e) => setProfile({ ...profile, email: e.target.value })}
+                    onChange={(e) =>
+                      setProfile({ ...profile, email: e.target.value })
+                    }
                   />
                 </div>
               </div>
@@ -196,7 +213,9 @@ export default function SettingsPage() {
                 <Input
                   id="telepon"
                   value={profile.telepon}
-                  onChange={(e) => setProfile({ ...profile, telepon: e.target.value })}
+                  onChange={(e) =>
+                    setProfile({ ...profile, telepon: e.target.value })
+                  }
                 />
               </div>
               <div className="space-y-2">
@@ -204,7 +223,9 @@ export default function SettingsPage() {
                 <Textarea
                   id="alamat"
                   value={profile.alamat}
-                  onChange={(e) => setProfile({ ...profile, alamat: e.target.value })}
+                  onChange={(e) =>
+                    setProfile({ ...profile, alamat: e.target.value })
+                  }
                   rows={3}
                 />
               </div>
@@ -212,9 +233,14 @@ export default function SettingsPage() {
                 <Badge variant="outline" className="text-blue-600">
                   {session?.user?.role}
                 </Badge>
-                <span className="text-sm text-muted-foreground">Role Pengguna</span>
+                <span className="text-sm text-muted-foreground">
+                  Role Pengguna
+                </span>
               </div>
-              <Button onClick={handleProfileSave} className="flex items-center space-x-2">
+              <Button
+                onClick={handleProfileSave}
+                className="flex items-center space-x-2"
+              >
                 <Save className="h-4 w-4" />
                 <span>Simpan Profil</span>
               </Button>
@@ -246,7 +272,12 @@ export default function SettingsPage() {
                   id="currentPassword"
                   type="password"
                   value={password.currentPassword}
-                  onChange={(e) => setPassword({ ...password, currentPassword: e.target.value })}
+                  onChange={(e) =>
+                    setPassword({
+                      ...password,
+                      currentPassword: e.target.value,
+                    })
+                  }
                 />
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -256,7 +287,9 @@ export default function SettingsPage() {
                     id="newPassword"
                     type="password"
                     value={password.newPassword}
-                    onChange={(e) => setPassword({ ...password, newPassword: e.target.value })}
+                    onChange={(e) =>
+                      setPassword({ ...password, newPassword: e.target.value })
+                    }
                   />
                 </div>
                 <div className="space-y-2">
@@ -265,11 +298,19 @@ export default function SettingsPage() {
                     id="confirmPassword"
                     type="password"
                     value={password.confirmPassword}
-                    onChange={(e) => setPassword({ ...password, confirmPassword: e.target.value })}
+                    onChange={(e) =>
+                      setPassword({
+                        ...password,
+                        confirmPassword: e.target.value,
+                      })
+                    }
                   />
                 </div>
               </div>
-              <Button onClick={handlePasswordChange} className="flex items-center space-x-2">
+              <Button
+                onClick={handlePasswordChange}
+                className="flex items-center space-x-2"
+              >
                 <Key className="h-4 w-4" />
                 <span>Ubah Password</span>
               </Button>
@@ -282,9 +323,7 @@ export default function SettingsPage() {
                 <Shield className="mr-2 h-5 w-5" />
                 Keamanan Akun
               </CardTitle>
-              <CardDescription>
-                Pengaturan keamanan tambahan
-              </CardDescription>
+              <CardDescription>Pengaturan keamanan tambahan</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center justify-between">
@@ -321,7 +360,8 @@ export default function SettingsPage() {
         {/* Role Management Settings */}
         <TabsContent value="roles" className="space-y-6">
           {/* Check if user has permission to access role management */}
-          {session?.user?.role === 'super_admin' || session?.user?.role === 'admin' ? (
+          {session?.user?.role === "super_admin" ||
+          session?.user?.role === "admin" ? (
             <>
               <Card>
                 <CardHeader>
@@ -341,16 +381,23 @@ export default function SettingsPage() {
                       <div className="border rounded-lg p-4">
                         <div className="flex items-center justify-between mb-3">
                           <div className="flex items-center space-x-2">
-                            <Badge className="bg-purple-100 text-purple-800">Super Admin</Badge>
-                            <span className="font-medium">Administrator Sistem</span>
+                            <Badge className="bg-purple-100 text-purple-800">
+                              Super Admin
+                            </Badge>
+                            <span className="font-medium">
+                              Administrator Sistem
+                            </span>
                           </div>
                           <div className="flex items-center space-x-2">
                             <Eye className="h-4 w-4 text-green-600" />
-                            <span className="text-sm text-green-600">Full Access</span>
+                            <span className="text-sm text-green-600">
+                              Full Access
+                            </span>
                           </div>
                         </div>
                         <p className="text-sm text-muted-foreground mb-3">
-                          Akses penuh ke seluruh sistem termasuk manajemen user dan konfigurasi sistem
+                          Akses penuh ke seluruh sistem termasuk manajemen user
+                          dan konfigurasi sistem
                         </p>
                         <div className="space-y-2">
                           <div className="flex flex-wrap gap-2">
@@ -366,16 +413,21 @@ export default function SettingsPage() {
                       <div className="border rounded-lg p-4">
                         <div className="flex items-center justify-between mb-3">
                           <div className="flex items-center space-x-2">
-                            <Badge className="bg-blue-100 text-blue-800">Admin</Badge>
+                            <Badge className="bg-blue-100 text-blue-800">
+                              Admin
+                            </Badge>
                             <span className="font-medium">Administrator</span>
                           </div>
                           <div className="flex items-center space-x-2">
                             <Eye className="h-4 w-4 text-blue-600" />
-                            <span className="text-sm text-blue-600">High Access</span>
+                            <span className="text-sm text-blue-600">
+                              High Access
+                            </span>
                           </div>
                         </div>
                         <p className="text-sm text-muted-foreground mb-3">
-                          Akses lengkap ke master data, transaksi, laporan, dan manajemen user
+                          Akses lengkap ke master data, transaksi, laporan, dan
+                          manajemen user
                         </p>
                         <div className="space-y-2">
                           <div className="flex flex-wrap gap-2">
@@ -392,16 +444,21 @@ export default function SettingsPage() {
                       <div className="border rounded-lg p-4">
                         <div className="flex items-center justify-between mb-3">
                           <div className="flex items-center space-x-2">
-                            <Badge className="bg-green-100 text-green-800">Manager</Badge>
+                            <Badge className="bg-green-100 text-green-800">
+                              Manager
+                            </Badge>
                             <span className="font-medium">Manajer</span>
                           </div>
                           <div className="flex items-center space-x-2">
                             <Eye className="h-4 w-4 text-green-600" />
-                            <span className="text-sm text-green-600">Supervisor Access</span>
+                            <span className="text-sm text-green-600">
+                              Supervisor Access
+                            </span>
                           </div>
                         </div>
                         <p className="text-sm text-muted-foreground mb-3">
-                          Akses supervisi untuk melaporkan dan menyetujui transaksi penting
+                          Akses supervisi untuk melaporkan dan menyetujui
+                          transaksi penting
                         </p>
                         <div className="space-y-2">
                           <div className="flex flex-wrap gap-2">
@@ -418,16 +475,21 @@ export default function SettingsPage() {
                       <div className="border rounded-lg p-4">
                         <div className="flex items-center justify-between mb-3">
                           <div className="flex items-center space-x-2">
-                            <Badge className="bg-orange-100 text-orange-800">Staff Gudang</Badge>
+                            <Badge className="bg-orange-100 text-orange-800">
+                              Staff Gudang
+                            </Badge>
                             <span className="font-medium">Staff Gudang</span>
                           </div>
                           <div className="flex items-center space-x-2">
                             <Eye className="h-4 w-4 text-orange-600" />
-                            <span className="text-sm text-orange-600">Operational Access</span>
+                            <span className="text-sm text-orange-600">
+                              Operational Access
+                            </span>
                           </div>
                         </div>
                         <p className="text-sm text-muted-foreground mb-3">
-                          Akses operasional untuk transaksi barang masuk/keluar dan manajemen stok
+                          Akses operasional untuk transaksi barang masuk/keluar
+                          dan manajemen stok
                         </p>
                         <div className="space-y-2">
                           <div className="flex flex-wrap gap-2">
@@ -444,16 +506,21 @@ export default function SettingsPage() {
                       <div className="border rounded-lg p-4">
                         <div className="flex items-center justify-between mb-3">
                           <div className="flex items-center space-x-2">
-                            <Badge className="bg-teal-100 text-teal-800">Sales</Badge>
+                            <Badge className="bg-teal-100 text-teal-800">
+                              Sales
+                            </Badge>
                             <span className="font-medium">Sales</span>
                           </div>
                           <div className="flex items-center space-x-2">
                             <Eye className="h-4 w-4 text-teal-600" />
-                            <span className="text-sm text-teal-600">Sales Access</span>
+                            <span className="text-sm text-teal-600">
+                              Sales Access
+                            </span>
                           </div>
                         </div>
                         <p className="text-sm text-muted-foreground mb-3">
-                          Akses untuk manajemen customer, membuat surat jalan, dan retur penjualan
+                          Akses untuk manajemen customer, membuat surat jalan,
+                          dan retur penjualan
                         </p>
                         <div className="space-y-2">
                           <div className="flex flex-wrap gap-2">
@@ -469,7 +536,9 @@ export default function SettingsPage() {
                   </div>
 
                   <div className="space-y-4">
-                    <h3 className="text-lg font-semibold">Current User Access</h3>
+                    <h3 className="text-lg font-semibold">
+                      Current User Access
+                    </h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <Card>
                         <CardContent className="p-4">
@@ -478,14 +547,18 @@ export default function SettingsPage() {
                             <span className="font-medium">Total Users</span>
                           </div>
                           <p className="text-2xl font-bold">24</p>
-                          <p className="text-sm text-muted-foreground">Active users in system</p>
+                          <p className="text-sm text-muted-foreground">
+                            Active users in system
+                          </p>
                         </CardContent>
                       </Card>
                       <Card>
                         <CardContent className="p-4">
                           <div className="flex items-center space-x-3 mb-2">
                             <Crown className="h-5 w-5 text-purple-600" />
-                            <span className="font-medium">Role Distribution</span>
+                            <span className="font-medium">
+                              Role Distribution
+                            </span>
                           </div>
                           <div className="space-y-1">
                             <div className="flex justify-between text-sm">
@@ -580,7 +653,8 @@ export default function SettingsPage() {
                         </tbody>
                       </table>
                       <div className="mt-2 text-xs text-muted-foreground">
-                        ✅ Full Access | 👁️ View Only | 🔄 Limited | 📊 Reports Only | 🔧 Partial | ❌ No Access
+                        ✅ Full Access | 👁️ View Only | 🔄 Limited | 📊 Reports
+                        Only | 🔧 Partial | ❌ No Access
                       </div>
                     </div>
                   </div>
@@ -590,7 +664,10 @@ export default function SettingsPage() {
                       <Users className="h-4 w-4" />
                       <span>Manage Users</span>
                     </Button>
-                    <Button variant="outline" className="flex items-center space-x-2">
+                    <Button
+                      variant="outline"
+                      className="flex items-center space-x-2"
+                    >
                       <RefreshCw className="h-4 w-4" />
                       <span>Refresh Permissions</span>
                     </Button>
@@ -602,9 +679,12 @@ export default function SettingsPage() {
             <Card>
               <CardContent className="flex flex-col items-center justify-center py-12">
                 <EyeOff className="h-12 w-12 text-muted-foreground mb-4" />
-                <h3 className="text-lg font-semibold mb-2">Access Restricted</h3>
+                <h3 className="text-lg font-semibold mb-2">
+                  Access Restricted
+                </h3>
                 <p className="text-muted-foreground text-center">
-                  Only Super Admin and Admin can access role management settings.
+                  Only Super Admin and Admin can access role management
+                  settings.
                 </p>
                 <div className="mt-4">
                   <Badge variant="outline">
@@ -635,7 +715,12 @@ export default function SettingsPage() {
                   <Input
                     id="companyName"
                     value={systemSettings.companyName}
-                    onChange={(e) => setSystemSettings({ ...systemSettings, companyName: e.target.value })}
+                    onChange={(e) =>
+                      setSystemSettings({
+                        ...systemSettings,
+                        companyName: e.target.value,
+                      })
+                    }
                   />
                 </div>
                 <div className="space-y-2">
@@ -644,19 +729,31 @@ export default function SettingsPage() {
                     id="companyEmail"
                     type="email"
                     value={systemSettings.companyEmail}
-                    onChange={(e) => setSystemSettings({ ...systemSettings, companyEmail: e.target.value })}
+                    onChange={(e) =>
+                      setSystemSettings({
+                        ...systemSettings,
+                        companyEmail: e.target.value,
+                      })
+                    }
                   />
                 </div>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="currency">Mata Uang</Label>
-                  <Select value={systemSettings.currency} onValueChange={(value) => setSystemSettings({ ...systemSettings, currency: value })}>
+                  <Select
+                    value={systemSettings.currency}
+                    onValueChange={(value) =>
+                      setSystemSettings({ ...systemSettings, currency: value })
+                    }
+                  >
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="IDR">Indonesian Rupiah (IDR)</SelectItem>
+                      <SelectItem value="IDR">
+                        Indonesian Rupiah (IDR)
+                      </SelectItem>
                       <SelectItem value="USD">US Dollar (USD)</SelectItem>
                       <SelectItem value="EUR">Euro (EUR)</SelectItem>
                     </SelectContent>
@@ -664,7 +761,12 @@ export default function SettingsPage() {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="language">Bahasa</Label>
-                  <Select value={systemSettings.language} onValueChange={(value) => setSystemSettings({ ...systemSettings, language: value })}>
+                  <Select
+                    value={systemSettings.language}
+                    onValueChange={(value) =>
+                      setSystemSettings({ ...systemSettings, language: value })
+                    }
+                  >
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
@@ -680,11 +782,19 @@ export default function SettingsPage() {
                 <Textarea
                   id="companyAddress"
                   value={systemSettings.companyAddress}
-                  onChange={(e) => setSystemSettings({ ...systemSettings, companyAddress: e.target.value })}
+                  onChange={(e) =>
+                    setSystemSettings({
+                      ...systemSettings,
+                      companyAddress: e.target.value,
+                    })
+                  }
                   rows={2}
                 />
               </div>
-              <Button onClick={handleSystemSettingsSave} className="flex items-center space-x-2">
+              <Button
+                onClick={handleSystemSettingsSave}
+                className="flex items-center space-x-2"
+              >
                 <Save className="h-4 w-4" />
                 <span>Simpan Pengaturan</span>
               </Button>
@@ -700,9 +810,7 @@ export default function SettingsPage() {
                 <Download className="mr-2 h-5 w-5" />
                 Backup & Restore
               </CardTitle>
-              <CardDescription>
-                Kelola backup data sistem
-              </CardDescription>
+              <CardDescription>Kelola backup data sistem</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -717,13 +825,26 @@ export default function SettingsPage() {
                     </div>
                     <Switch
                       checked={backupSettings.autoBackup}
-                      onCheckedChange={(checked) => setBackupSettings({ ...backupSettings, autoBackup: checked })}
+                      onCheckedChange={(checked) =>
+                        setBackupSettings({
+                          ...backupSettings,
+                          autoBackup: checked,
+                        })
+                      }
                     />
                   </div>
                   {backupSettings.autoBackup && (
                     <div className="space-y-2">
                       <Label>Frekuensi Backup</Label>
-                      <Select value={backupSettings.backupFrequency} onValueChange={(value) => setBackupSettings({ ...backupSettings, backupFrequency: value })}>
+                      <Select
+                        value={backupSettings.backupFrequency}
+                        onValueChange={(value) =>
+                          setBackupSettings({
+                            ...backupSettings,
+                            backupFrequency: value,
+                          })
+                        }
+                      >
                         <SelectTrigger>
                           <SelectValue />
                         </SelectTrigger>
@@ -740,7 +861,12 @@ export default function SettingsPage() {
                     <Input
                       type="number"
                       value={backupSettings.backupRetention}
-                      onChange={(e) => setBackupSettings({ ...backupSettings, backupRetention: e.target.value })}
+                      onChange={(e) =>
+                        setBackupSettings({
+                          ...backupSettings,
+                          backupRetention: e.target.value,
+                        })
+                      }
                     />
                   </div>
                 </div>
@@ -749,23 +875,33 @@ export default function SettingsPage() {
                   <div className="space-y-2">
                     <div className="flex justify-between">
                       <span className="text-sm">Backup Terakhir:</span>
-                      <span className="text-sm font-medium">{backupSettings.lastBackup}</span>
+                      <span className="text-sm font-medium">
+                        {backupSettings.lastBackup}
+                      </span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-sm">Lokasi Backup:</span>
-                      <span className="text-sm font-medium">{backupSettings.backupLocation}</span>
+                      <span className="text-sm font-medium">
+                        {backupSettings.backupLocation}
+                      </span>
                     </div>
                   </div>
                 </div>
               </div>
               <div className="flex flex-col sm:flex-row gap-4">
-                <Button onClick={handleBackup} className="flex items-center space-x-2">
+                <Button
+                  onClick={handleBackup}
+                  className="flex items-center space-x-2"
+                >
                   <Download className="h-4 w-4" />
                   <span>Backup Sekarang</span>
                 </Button>
                 <Dialog>
                   <DialogTrigger asChild>
-                    <Button variant="outline" className="flex items-center space-x-2">
+                    <Button
+                      variant="outline"
+                      className="flex items-center space-x-2"
+                    >
                       <Upload className="h-4 w-4" />
                       <span>Restore Backup</span>
                     </Button>
@@ -774,7 +910,8 @@ export default function SettingsPage() {
                     <DialogHeader>
                       <DialogTitle>Restore Backup</DialogTitle>
                       <DialogDescription>
-                        Pilih file backup untuk restore. Tindakan ini akan mengganti data saat ini.
+                        Pilih file backup untuk restore. Tindakan ini akan
+                        mengganti data saat ini.
                       </DialogDescription>
                     </DialogHeader>
                     <div className="space-y-4">
@@ -801,9 +938,7 @@ export default function SettingsPage() {
                 <Key className="mr-2 h-5 w-5" />
                 Pengaturan Lanjutan
               </CardTitle>
-              <CardDescription>
-                Pengaturan teknis dan debugging
-              </CardDescription>
+              <CardDescription>Pengaturan teknis dan debugging</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center justify-between">
@@ -853,17 +988,26 @@ export default function SettingsPage() {
               <div className="pt-4 border-t">
                 <h3 className="font-medium mb-4">Danger Zone</h3>
                 <div className="space-y-2">
-                  <Button variant="outline" className="flex items-center space-x-2">
+                  <Button
+                    variant="outline"
+                    className="flex items-center space-x-2"
+                  >
                     <RefreshCw className="h-4 w-4" />
                     <span>Clear Cache</span>
                   </Button>
-                  <Button variant="outline" className="flex items-center space-x-2">
+                  <Button
+                    variant="outline"
+                    className="flex items-center space-x-2"
+                  >
                     <Database className="h-4 w-4" />
                     <span>Optimize Database</span>
                   </Button>
                   <Dialog>
                     <DialogTrigger asChild>
-                      <Button variant="destructive" className="flex items-center space-x-2">
+                      <Button
+                        variant="destructive"
+                        className="flex items-center space-x-2"
+                      >
                         <Trash2 className="h-4 w-4" />
                         <span>Reset All Settings</span>
                       </Button>
@@ -872,7 +1016,8 @@ export default function SettingsPage() {
                       <DialogHeader>
                         <DialogTitle>Reset All Settings</DialogTitle>
                         <DialogDescription>
-                          Ini akan mengembalikan semua pengaturan ke default. Tindakan ini tidak dapat dibatalkan.
+                          Ini akan mengembalikan semua pengaturan ke default.
+                          Tindakan ini tidak dapat dibatalkan.
                         </DialogDescription>
                       </DialogHeader>
                       <div className="flex justify-end space-x-2">
@@ -888,5 +1033,5 @@ export default function SettingsPage() {
         </TabsContent>
       </Tabs>
     </div>
-  )
+  );
 }

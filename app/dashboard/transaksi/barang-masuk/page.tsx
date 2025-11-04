@@ -47,6 +47,12 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import {
   Plus,
   Search,
   MoreHorizontal,
@@ -57,7 +63,7 @@ import {
   Send,
   Package,
   TrendingUp,
-  Calendar,
+  Calendar as CalendarIcon,
   Building,
   User,
   AlertTriangle,
@@ -75,6 +81,14 @@ import { BarangMasukFormData, barangMasukSchema } from "@/lib/validations";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { format } from "date-fns";
+import { id as idLocale } from "date-fns/locale";
+import {
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+  Tooltip,
+} from "@/components/ui/tooltip";
 
 interface BarangMasuk {
   id: string;
@@ -191,8 +205,8 @@ export default function BarangMasukPage() {
   const [selectedSupplier, setSelectedSupplier] = useState("");
   const [selectedGudang, setSelectedGudang] = useState("");
   const [selectedStatus, setSelectedStatus] = useState("");
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
+  const [startDate, setStartDate] = useState<Date | undefined>(undefined);
+  const [endDate, setEndDate] = useState<Date | undefined>(undefined);
   const [pagination, setPagination] = useState({
     page: 1,
     limit: 10,
@@ -261,8 +275,9 @@ export default function BarangMasukPage() {
       if (selectedSupplier) params.append("supplierId", selectedSupplier);
       if (selectedGudang) params.append("gudangId", selectedGudang);
       if (selectedStatus) params.append("status", selectedStatus);
-      if (startDate) params.append("startDate", startDate);
-      if (endDate) params.append("endDate", endDate);
+      if (startDate)
+        params.append("startDate", format(startDate, "yyyy-MM-dd"));
+      if (endDate) params.append("endDate", format(endDate, "yyyy-MM-dd"));
 
       const response = await fetch(`/api/transaksi/barang-masuk?${params}`);
       const result = await response.json();
@@ -646,8 +661,8 @@ export default function BarangMasukPage() {
     setSelectedSupplier("");
     setSelectedGudang("");
     setSelectedStatus("");
-    setStartDate("");
-    setEndDate("");
+    setStartDate(undefined);
+    setEndDate(undefined);
     setSearch("");
   };
 
@@ -835,22 +850,32 @@ export default function BarangMasukPage() {
               </Card>
 
               {/* Total Nilai */}
-              <Card className="flex-1 min-w-0">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">
-                    Total Nilai
-                  </CardTitle>
-                  <TrendingUp className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold truncate">
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Card className="flex-1 min-w-0">
+                      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">
+                          Total Nilai
+                        </CardTitle>
+                        <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-2xl font-bold truncate">
+                          {formatCurrency(statistics.totalValue)}
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          Nilai total transaksi
+                        </p>
+                      </CardContent>
+                    </Card>
+                  </TooltipTrigger>
+
+                  <TooltipContent side="top" className="text-sm">
                     {formatCurrency(statistics.totalValue)}
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    Nilai total transaksi
-                  </p>
-                </CardContent>
-              </Card>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
 
               {/* Cancelled */}
               <Card className="flex-1 min-w-0">
@@ -881,7 +906,7 @@ export default function BarangMasukPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-6">
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                   <Input
@@ -912,25 +937,6 @@ export default function BarangMasukPage() {
                 </Select>
 
                 <Select
-                  value={selectedGudang || undefined}
-                  onValueChange={(value) =>
-                    setSelectedGudang(value === "all" ? "" : value)
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Semua Gudang" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Semua Gudang</SelectItem>
-                    {gudangs.map((gudang) => (
-                      <SelectItem key={gudang.id} value={gudang.id}>
-                        {gudang.kode} - {gudang.nama}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-
-                <Select
                   value={selectedStatus || undefined}
                   onValueChange={(value) =>
                     setSelectedStatus(value === "all" ? "" : value)
@@ -942,25 +948,61 @@ export default function BarangMasukPage() {
                   <SelectContent>
                     <SelectItem value="all">Semua Status</SelectItem>
                     <SelectItem value="draft">Draft</SelectItem>
-                    <SelectItem value="posted">Posted</SelectItem>
-                    <SelectItem value="cancelled">Cancelled</SelectItem>
+                    <SelectItem value="approved">Approved</SelectItem>
+                    <SelectItem value="completed">Completed</SelectItem>
                   </SelectContent>
                 </Select>
 
-                <Input
-                  type="date"
-                  placeholder="Tanggal Awal"
-                  value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
-                />
+                {/* Start Date Calendar */}
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className="w-full justify-start text-left font-normal"
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {startDate
+                        ? format(startDate, "dd MMM yyyy", { locale: idLocale })
+                        : "Tanggal Awal"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={startDate}
+                      onSelect={setStartDate}
+                      disabled={(date) => (endDate ? date > endDate : false)}
+                      locale={idLocale}
+                    />
+                  </PopoverContent>
+                </Popover>
 
-                <div className="flex space-x-2">
-                  <Input
-                    type="date"
-                    placeholder="Tanggal Akhir"
-                    value={endDate}
-                    onChange={(e) => setEndDate(e.target.value)}
-                  />
+                {/* End Date Calendar */}
+                <div className="flex gap-2">
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className="flex-1 justify-start text-left font-normal"
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {endDate
+                          ? format(endDate, "dd MMM yyyy", { locale: idLocale })
+                          : "Tanggal Akhir"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={endDate}
+                        onSelect={setEndDate}
+                        disabled={(date) =>
+                          startDate ? date < startDate : false
+                        }
+                        locale={idLocale}
+                      />
+                    </PopoverContent>
+                  </Popover>
                   <Button variant="outline" onClick={clearFilters}>
                     Reset
                   </Button>
@@ -1215,13 +1257,39 @@ export default function BarangMasukPage() {
 
                   <div className="grid grid-cols-2 gap-4">
                     <div className="grid gap-2">
-                      <Label htmlFor="tanggal-input">Tanggal</Label>
-                      <Input
-                        id="tanggal-input"
-                        type="date"
-                        {...register("tanggal", { valueAsDate: true })}
-                        disabled={submitting}
-                      />
+                      <Label>Tanggal</Label>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            className="justify-start text-left font-normal"
+                            disabled={submitting}
+                          >
+                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            {watchedValues.tanggal
+                              ? format(
+                                  watchedValues.tanggal instanceof Date
+                                    ? watchedValues.tanggal
+                                    : new Date(watchedValues.tanggal as any),
+                                  "dd MMM yyyy",
+                                  {
+                                    locale: idLocale,
+                                  }
+                                )
+                              : "Pilih tanggal"}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={watchedValues.tanggal as Date}
+                            onSelect={(date) =>
+                              setValue("tanggal", date || new Date())
+                            }
+                            locale={idLocale}
+                          />
+                        </PopoverContent>
+                      </Popover>
                       {errors.tanggal && (
                         <p className="text-sm text-red-600">
                           {errors.tanggal.message}
@@ -1443,13 +1511,39 @@ export default function BarangMasukPage() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="grid gap-2">
-                  <Label htmlFor="tanggal">Tanggal</Label>
-                  <Input
-                    id="tanggal"
-                    type="date"
-                    {...register("tanggal", { valueAsDate: true })}
-                    disabled={submitting}
-                  />
+                  <Label>Tanggal</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className="justify-start text-left font-normal"
+                        disabled={submitting}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {watchedValues.tanggal
+                          ? format(
+                              watchedValues.tanggal instanceof Date
+                                ? watchedValues.tanggal
+                                : new Date(watchedValues.tanggal as any),
+                              "dd MMM yyyy",
+                              {
+                                locale: idLocale,
+                              }
+                            )
+                          : "Pilih tanggal"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={watchedValues.tanggal as Date}
+                        onSelect={(date) =>
+                          setValue("tanggal", date || new Date())
+                        }
+                        locale={idLocale}
+                      />
+                    </PopoverContent>
+                  </Popover>
                   {errors.tanggal && (
                     <p className="text-sm text-red-600">
                       {errors.tanggal.message}

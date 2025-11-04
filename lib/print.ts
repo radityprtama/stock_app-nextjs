@@ -1,60 +1,64 @@
-import jsPDF from 'jspdf'
-import 'jspdf-autotable'
-import type { UserOptions } from 'jspdf-autotable'
+import jsPDF from "jspdf";
+import "jspdf-autotable";
+import type { UserOptions } from "jspdf-autotable";
 
-type RGBColor = [number, number, number]
+type RGBColor = [number, number, number];
 
 // Type for autoTable options
-interface AutoTableOptions extends Omit<UserOptions, 'styles' | 'headStyles' | 'bodyStyles' | 'alternateRowStyles'> {
-  head: string[][]
-  body: string[][]
-  foot?: string[][]
-  theme?: 'striped' | 'grid' | 'plain'
+interface AutoTableOptions
+  extends Omit<
+    UserOptions,
+    "styles" | "headStyles" | "bodyStyles" | "alternateRowStyles"
+  > {
+  head: string[][];
+  body: string[][];
+  foot?: string[][];
+  theme?: "striped" | "grid" | "plain";
   styles?: {
-    font?: string
-    fontSize?: number
-    cellPadding?: number
-    fillColor?: RGBColor
-    textColor?: RGBColor
-    lineColor?: RGBColor
-    lineWidth?: number
-  }
+    font?: string;
+    fontSize?: number;
+    cellPadding?: number;
+    fillColor?: RGBColor;
+    textColor?: RGBColor;
+    lineColor?: RGBColor;
+    lineWidth?: number;
+  };
   headStyles?: {
-    fillColor?: RGBColor
-    textColor?: RGBColor
-    fontSize?: number
-    fontStyle?: 'normal' | 'bold' | 'italic' | 'bolditalic'
-  }
+    fillColor?: RGBColor;
+    textColor?: RGBColor;
+    fontSize?: number;
+    fontStyle?: "normal" | "bold" | "italic" | "bolditalic";
+  };
   bodyStyles?: {
-    fillColor?: RGBColor
-    textColor?: RGBColor
-    fontSize?: number
-  }
+    fillColor?: RGBColor;
+    textColor?: RGBColor;
+    fontSize?: number;
+  };
   alternateRowStyles?: {
-    fillColor?: RGBColor
-  }
-  margin?: { top: number; right: number; bottom: number; left: number }
+    fillColor?: RGBColor;
+  };
+  margin?: { top: number; right: number; bottom: number; left: number };
 }
 
 interface PrintCompanyInfo {
-  name: string
-  address: string
-  phone: string
-  email: string
+  name: string;
+  address: string;
+  phone: string;
+  email: string;
 }
 
 interface PrintConfig {
-  PAGE_WIDTH: number
-  PAGE_HEIGHT: number
-  MARGIN: number
-  TITLE_SIZE: number
-  HEADER_SIZE: number
-  BODY_SIZE: number
-  FOOTER_SIZE: number
-  BLACK: RGBColor
-  GRAY: RGBColor
-  LIGHT_GRAY: RGBColor
-  COMPANY: PrintCompanyInfo
+  PAGE_WIDTH: number;
+  PAGE_HEIGHT: number;
+  MARGIN: number;
+  TITLE_SIZE: number;
+  HEADER_SIZE: number;
+  BODY_SIZE: number;
+  FOOTER_SIZE: number;
+  BLACK: RGBColor;
+  GRAY: RGBColor;
+  LIGHT_GRAY: RGBColor;
+  COMPANY: PrintCompanyInfo;
 }
 
 // Print configuration
@@ -77,130 +81,143 @@ export const PRINT_CONFIG: PrintConfig = {
 
   // Company info
   COMPANY: {
-    name: 'PT. Stocky INDONESIA',
-    address: 'Jl. Raya No. 123, Jakarta Selatan',
-    phone: '(021) 1234-5678',
-    email: 'info@Stocky.com'
-  }
-}
+    name: "PT. Inventory INDONESIA",
+    address: "Jl. Raya No. 123, Jakarta Selatan",
+    phone: "(021) 1234-5678",
+    email: "info@Inventory.com",
+  },
+};
 
 // Utility function to format currency
 export const formatCurrencyForPrint = (amount: number): string => {
-  return new Intl.NumberFormat('id-ID', {
-    style: 'currency',
-    currency: 'IDR',
+  return new Intl.NumberFormat("id-ID", {
+    style: "currency",
+    currency: "IDR",
     minimumFractionDigits: 2,
-    maximumFractionDigits: 2
-  }).format(amount)
-}
+    maximumFractionDigits: 2,
+  }).format(amount);
+};
 
 // Utility function to format date
 export const formatDateForPrint = (date: Date): string => {
-  return new Intl.DateTimeFormat('id-ID', {
-    day: '2-digit',
-    month: 'long',
-    year: 'numeric'
-  }).format(date)
-}
+  return new Intl.DateTimeFormat("id-ID", {
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+  }).format(date);
+};
 
 // Utility function to add page header
 export const addPageHeader = (doc: jsPDF, title: string): number => {
-  let yPosition = PRINT_CONFIG.MARGIN
+  let yPosition = PRINT_CONFIG.MARGIN;
 
   // Company header
-  doc.setFontSize(PRINT_CONFIG.TITLE_SIZE)
-  doc.setFont('helvetica', 'bold')
-  doc.text(PRINT_CONFIG.COMPANY.name, PRINT_CONFIG.MARGIN, yPosition)
+  doc.setFontSize(PRINT_CONFIG.TITLE_SIZE);
+  doc.setFont("helvetica", "bold");
+  doc.text(PRINT_CONFIG.COMPANY.name, PRINT_CONFIG.MARGIN, yPosition);
 
-  yPosition += 8
-  doc.setFontSize(PRINT_CONFIG.BODY_SIZE)
-  doc.setFont('helvetica', 'normal')
-  doc.text(PRINT_CONFIG.COMPANY.address, PRINT_CONFIG.MARGIN, yPosition)
+  yPosition += 8;
+  doc.setFontSize(PRINT_CONFIG.BODY_SIZE);
+  doc.setFont("helvetica", "normal");
+  doc.text(PRINT_CONFIG.COMPANY.address, PRINT_CONFIG.MARGIN, yPosition);
 
-  yPosition += 5
-  doc.text(`Telp: ${PRINT_CONFIG.COMPANY.phone}`, PRINT_CONFIG.MARGIN, yPosition)
+  yPosition += 5;
+  doc.text(
+    `Telp: ${PRINT_CONFIG.COMPANY.phone}`,
+    PRINT_CONFIG.MARGIN,
+    yPosition
+  );
 
-  yPosition += 5
-  doc.text(`Email: ${PRINT_CONFIG.COMPANY.email}`, PRINT_CONFIG.MARGIN, yPosition)
+  yPosition += 5;
+  doc.text(
+    `Email: ${PRINT_CONFIG.COMPANY.email}`,
+    PRINT_CONFIG.MARGIN,
+    yPosition
+  );
 
   // Add line separator
-  yPosition += 8
-  doc.setLineWidth(0.5)
-  doc.setDrawColor(...PRINT_CONFIG.GRAY)
-  doc.line(PRINT_CONFIG.MARGIN, yPosition, PRINT_CONFIG.PAGE_WIDTH - PRINT_CONFIG.MARGIN, yPosition)
+  yPosition += 8;
+  doc.setLineWidth(0.5);
+  doc.setDrawColor(...PRINT_CONFIG.GRAY);
+  doc.line(
+    PRINT_CONFIG.MARGIN,
+    yPosition,
+    PRINT_CONFIG.PAGE_WIDTH - PRINT_CONFIG.MARGIN,
+    yPosition
+  );
 
-  yPosition += 8
-  doc.setFontSize(PRINT_CONFIG.HEADER_SIZE)
-  doc.setFont('helvetica', 'bold')
-  doc.text(title, PRINT_CONFIG.MARGIN, yPosition)
+  yPosition += 8;
+  doc.setFontSize(PRINT_CONFIG.HEADER_SIZE);
+  doc.setFont("helvetica", "bold");
+  doc.text(title, PRINT_CONFIG.MARGIN, yPosition);
 
-  return yPosition + 10
-}
+  return yPosition + 10;
+};
 
 // Utility function to add page footer
 export const addPageFooter = (doc: jsPDF): void => {
-  const yPosition = PRINT_CONFIG.PAGE_HEIGHT - PRINT_CONFIG.MARGIN
+  const yPosition = PRINT_CONFIG.PAGE_HEIGHT - PRINT_CONFIG.MARGIN;
 
-  doc.setFontSize(PRINT_CONFIG.FOOTER_SIZE)
-  doc.setFont('helvetica', 'italic')
+  doc.setFontSize(PRINT_CONFIG.FOOTER_SIZE);
+  doc.setFont("helvetica", "italic");
   doc.text(
-    `Dokumen ini dicetak pada ${formatDateForPrint(new Date)} jam ${new Date().toLocaleTimeString('id-ID')}`,
+    `Dokumen ini dicetak pada ${formatDateForPrint(new Date())} jam ${new Date().toLocaleTimeString("id-ID")}`,
     PRINT_CONFIG.MARGIN,
     yPosition
-  )
+  );
 
   // Add page number
-  const pageCount = doc.internal.pages.length - 1
-  const pageNumber = pageCount
+  const pageCount = doc.internal.pages.length - 1;
+  const pageNumber = pageCount;
   doc.text(
     `Halaman ${pageNumber}`,
     PRINT_CONFIG.PAGE_WIDTH - PRINT_CONFIG.MARGIN - 20,
     yPosition,
-    { align: 'right' }
-  )
-}
+    { align: "right" }
+  );
+};
 
 // Utility function to create a table
 export const createTable = (doc: jsPDF, options: AutoTableOptions): number => {
   const defaultOptions: AutoTableOptions = {
-    theme: 'grid',
+    theme: "grid",
     styles: {
-      font: 'helvetica',
+      font: "helvetica",
       fontSize: PRINT_CONFIG.BODY_SIZE,
       cellPadding: 3,
       lineColor: PRINT_CONFIG.GRAY,
-      lineWidth: 0.1
+      lineWidth: 0.1,
     },
     headStyles: {
       fillColor: PRINT_CONFIG.LIGHT_GRAY,
       textColor: PRINT_CONFIG.BLACK,
       fontSize: PRINT_CONFIG.BODY_SIZE,
-      fontStyle: 'bold'
+      fontStyle: "bold",
     },
     bodyStyles: {
       fillColor: [255, 255, 255],
-      textColor: PRINT_CONFIG.BLACK
+      textColor: PRINT_CONFIG.BLACK,
     },
     alternateRowStyles: {
-      fillColor: [248, 248, 248]
+      fillColor: [248, 248, 248],
     },
     margin: {
       top: PRINT_CONFIG.MARGIN,
       right: PRINT_CONFIG.MARGIN,
       bottom: PRINT_CONFIG.MARGIN,
-      left: PRINT_CONFIG.MARGIN
+      left: PRINT_CONFIG.MARGIN,
     },
-    ...options
-  }
+    ...options,
+  };
 
   // Use any type to avoid TypeScript issues with jsPDF autotable
-  const autoTable = (doc as any).autoTable || (doc as any).setTable
-  if (typeof autoTable === 'function') {
-    autoTable.call(doc, defaultOptions)
+  const autoTable = (doc as any).autoTable || (doc as any).setTable;
+  if (typeof autoTable === "function") {
+    autoTable.call(doc, defaultOptions);
   }
 
-  return (doc as any).lastAutoTable.finalY || PRINT_CONFIG.MARGIN + 50
-}
+  return (doc as any).lastAutoTable.finalY || PRINT_CONFIG.MARGIN + 50;
+};
 
 // Utility function to add signature section
 export const addSignatureSection = (
@@ -209,63 +226,74 @@ export const addSignatureSection = (
   leftSignatures: Array<{ title: string; name: string }>,
   rightSignatures: Array<{ title: string; name: string }>
 ): number => {
-  const signatureWidth = 80
-  const signatureHeight = 40
-  const spacing = 30
+  const signatureWidth = 80;
+  const signatureHeight = 40;
+  const spacing = 30;
 
-  yPosition += 20
+  yPosition += 20;
 
   // Left signatures
   leftSignatures.forEach((sig, index) => {
-    const xPosition = PRINT_CONFIG.MARGIN
+    const xPosition = PRINT_CONFIG.MARGIN;
 
     // Draw signature line
-    doc.setLineWidth(0.5)
-    doc.line(xPosition, yPosition + signatureHeight, xPosition + signatureWidth, yPosition + signatureHeight)
+    doc.setLineWidth(0.5);
+    doc.line(
+      xPosition,
+      yPosition + signatureHeight,
+      xPosition + signatureWidth,
+      yPosition + signatureHeight
+    );
 
     // Add title and name
-    doc.setFontSize(PRINT_CONFIG.BODY_SIZE)
-    doc.text(sig.title, xPosition, yPosition + signatureHeight + 5)
-    doc.text(sig.name, xPosition, yPosition + signatureHeight + 10)
+    doc.setFontSize(PRINT_CONFIG.BODY_SIZE);
+    doc.text(sig.title, xPosition, yPosition + signatureHeight + 5);
+    doc.text(sig.name, xPosition, yPosition + signatureHeight + 10);
 
     if (index < leftSignatures.length - 1) {
-      yPosition += spacing
+      yPosition += spacing;
     }
-  })
+  });
 
   // Right signatures
-  const rightXPosition = PRINT_CONFIG.PAGE_WIDTH - PRINT_CONFIG.MARGIN - signatureWidth
+  const rightXPosition =
+    PRINT_CONFIG.PAGE_WIDTH - PRINT_CONFIG.MARGIN - signatureWidth;
 
   rightSignatures.forEach((sig, index) => {
     // Draw signature line
-    doc.setLineWidth(0.5)
-    doc.line(rightXPosition, yPosition + signatureHeight, rightXPosition + signatureWidth, yPosition + signatureHeight)
+    doc.setLineWidth(0.5);
+    doc.line(
+      rightXPosition,
+      yPosition + signatureHeight,
+      rightXPosition + signatureWidth,
+      yPosition + signatureHeight
+    );
 
     // Add title and name
-    doc.setFontSize(PRINT_CONFIG.BODY_SIZE)
-    doc.text(sig.title, rightXPosition, yPosition + signatureHeight + 5)
-    doc.text(sig.name, rightXPosition, yPosition + signatureHeight + 10)
+    doc.setFontSize(PRINT_CONFIG.BODY_SIZE);
+    doc.text(sig.title, rightXPosition, yPosition + signatureHeight + 5);
+    doc.text(sig.name, rightXPosition, yPosition + signatureHeight + 10);
 
     if (index < rightSignatures.length - 1) {
-      yPosition += spacing
+      yPosition += spacing;
     }
-  })
+  });
 
-  return yPosition + 60
-}
+  return yPosition + 60;
+};
 
 // Print function for browser print (react-to-print)
 export const printElement = (elementId: string): void => {
-  const element = document.getElementById(elementId)
+  const element = document.getElementById(elementId);
   if (!element) {
-    console.error(`Element with id '${elementId}' not found`)
-    return
+    console.error(`Element with id '${elementId}' not found`);
+    return;
   }
 
-  const printWindow = window.open('', '_blank')
+  const printWindow = window.open("", "_blank");
   if (!printWindow) {
-    console.error('Failed to open print window')
-    return
+    console.error("Failed to open print window");
+    return;
   }
 
   // Create print content
@@ -381,20 +409,20 @@ export const printElement = (elementId: string): void => {
       <body>
         ${element.innerHTML}
         <div class="footer">
-          Dokumen ini dicetak pada ${new Date().toLocaleString('id-ID')}
+          Dokumen ini dicetak pada ${new Date().toLocaleString("id-ID")}
         </div>
       </body>
     </html>
-  `
+  `;
 
-  printWindow.document.write(printContent)
-  printWindow.document.close()
-  printWindow.focus()
-  printWindow.print()
-  printWindow.close()
-}
+  printWindow.document.write(printContent);
+  printWindow.document.close();
+  printWindow.focus();
+  printWindow.print();
+  printWindow.close();
+};
 
 // Save PDF function
 export const savePDF = (doc: jsPDF, filename: string): void => {
-  doc.save(filename)
-}
+  doc.save(filename);
+};

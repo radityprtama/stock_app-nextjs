@@ -44,6 +44,12 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import {
   Plus,
   Search,
   MoreHorizontal,
@@ -54,6 +60,7 @@ import {
   Send,
   Package,
   TrendingUp,
+  Calendar as CalendarIcon,
   CheckCircle,
   Clock,
   Filter,
@@ -74,6 +81,14 @@ import { returJualSchema } from "@/lib/validations";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { format } from "date-fns";
+import { id as idLocale } from "date-fns/locale";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 type ReturJualDetail = ReturJualPrintData["detail"][number] & {
   barangId: string;
@@ -185,8 +200,8 @@ export default function ReturJualPage() {
   const [search, setSearch] = useState("");
   const [selectedCustomer, setSelectedCustomer] = useState("");
   const [selectedStatus, setSelectedStatus] = useState("");
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
+  const [startDate, setStartDate] = useState<Date | undefined>(undefined);
+  const [endDate, setEndDate] = useState<Date | undefined>(undefined);
   const [pagination, setPagination] = useState({
     page: 1,
     limit: 10,
@@ -255,8 +270,9 @@ export default function ReturJualPage() {
 
       if (selectedCustomer) params.append("customerId", selectedCustomer);
       if (selectedStatus) params.append("status", selectedStatus);
-      if (startDate) params.append("startDate", startDate);
-      if (endDate) params.append("endDate", endDate);
+      if (startDate)
+        params.append("startDate", format(startDate, "yyyy-MM-dd"));
+      if (endDate) params.append("endDate", format(endDate, "yyyy-MM-dd"));
 
       const response = await fetch(`/api/transaksi/retur-jual?${params}`);
       const result = await response.json();
@@ -639,8 +655,8 @@ export default function ReturJualPage() {
   const clearFilters = () => {
     setSelectedCustomer("");
     setSelectedStatus("");
-    setStartDate("");
-    setEndDate("");
+    setStartDate(undefined);
+    setEndDate(undefined);
     setSearch("");
   };
 
@@ -774,22 +790,32 @@ export default function ReturJualPage() {
               </Card>
 
               {/* Total Nilai */}
-              <Card className="transition-all duration-200 hover:scale-[1.02] hover:shadow-md">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">
-                    Total Nilai
-                  </CardTitle>
-                  <TrendingUp className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold truncate">
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Card className="w-[180px] shrink-0 transition-all duration-200 hover:scale-[1.02] hover:shadow-md cursor-default">
+                      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">
+                          Total Nilai
+                        </CardTitle>
+                        <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-2xl font-bold truncate">
+                          {formatCurrency(statistics.totalValue)}
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          Nilai total retur
+                        </p>
+                      </CardContent>
+                    </Card>
+                  </TooltipTrigger>
+
+                  <TooltipContent side="top" className="text-sm">
                     {formatCurrency(statistics.totalValue)}
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    Nilai total retur
-                  </p>
-                </CardContent>
-              </Card>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             </div>
           </div>
 
@@ -849,20 +875,56 @@ export default function ReturJualPage() {
                   </SelectContent>
                 </Select>
 
-                <Input
-                  type="date"
-                  placeholder="Tanggal Awal"
-                  value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
-                />
+                {/* Start Date Calendar */}
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className="w-full justify-start text-left font-normal"
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {startDate
+                        ? format(startDate, "dd MMM yyyy", { locale: idLocale })
+                        : "Tanggal Awal"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={startDate}
+                      onSelect={setStartDate}
+                      disabled={(date) => (endDate ? date > endDate : false)}
+                      locale={idLocale}
+                    />
+                  </PopoverContent>
+                </Popover>
 
-                <div className="flex space-x-2">
-                  <Input
-                    type="date"
-                    placeholder="Tanggal Akhir"
-                    value={endDate}
-                    onChange={(e) => setEndDate(e.target.value)}
-                  />
+                {/* End Date Calendar */}
+                <div className="flex gap-2">
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className="flex-1 justify-start text-left font-normal"
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {endDate
+                          ? format(endDate, "dd MMM yyyy", { locale: idLocale })
+                          : "Tanggal Akhir"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={endDate}
+                        onSelect={setEndDate}
+                        disabled={(date) =>
+                          startDate ? date < startDate : false
+                        }
+                        locale={idLocale}
+                      />
+                    </PopoverContent>
+                  </Popover>
                   <Button variant="outline" onClick={clearFilters}>
                     Reset
                   </Button>
@@ -1087,13 +1149,37 @@ export default function ReturJualPage() {
                       )}
                     </div>
                     <div className="grid gap-2">
-                      <Label htmlFor="tanggal-input">Tanggal</Label>
-                      <Input
-                        id="tanggal-input"
-                        type="date"
-                        {...register("tanggal", { valueAsDate: true })}
-                        disabled={submitting}
-                      />
+                      <Label>Tanggal</Label>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            className="justify-start text-left font-normal"
+                            disabled={submitting}
+                          >
+                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            {watchedValues.tanggal
+                              ? format(
+                                  watchedValues.tanggal instanceof Date
+                                    ? watchedValues.tanggal
+                                    : new Date(watchedValues.tanggal as any),
+                                  "dd MMM yyyy",
+                                  { locale: idLocale }
+                                )
+                              : "Pilih tanggal"}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={watchedValues.tanggal as Date}
+                            onSelect={(date) =>
+                              setValue("tanggal", date || new Date())
+                            }
+                            locale={idLocale}
+                          />
+                        </PopoverContent>
+                      </Popover>
                       {errors.tanggal && (
                         <p className="text-sm text-red-600">
                           {errors.tanggal.message}
@@ -1102,19 +1188,56 @@ export default function ReturJualPage() {
                     </div>
                   </div>
 
-                  <div className="grid gap-2">
-                    <Label htmlFor="alasan-input">Alasan Retur</Label>
-                    <Textarea
-                      id="alasan-input"
-                      {...register("alasan")}
-                      placeholder="Jelaskan alasan pengembalian barang"
-                      disabled={submitting}
-                    />
-                    {errors.alasan && (
-                      <p className="text-sm text-red-600">
-                        {errors.alasan.message}
-                      </p>
-                    )}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="grid gap-2">
+                      <Label htmlFor="suratJalanId-input">
+                        Ref. Surat Jalan (Opsional)
+                      </Label>
+                      <Select
+                        value={watchedValues.suratJalanId || "none"}
+                        onValueChange={(value) =>
+                          setValue(
+                            "suratJalanId",
+                            value === "none" ? undefined : value
+                          )
+                        }
+                        disabled={submitting}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Pilih Surat Jalan" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">Tanpa Referensi</SelectItem>
+                          {suratJalanList.map((suratJalan) => (
+                            <SelectItem
+                              key={suratJalan.id}
+                              value={suratJalan.id}
+                            >
+                              {suratJalan.noSJ} - {suratJalan.customer.nama}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {errors.suratJalanId && (
+                        <p className="text-sm text-red-600">
+                          {errors.suratJalanId.message}
+                        </p>
+                      )}
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="alasan-input">Alasan Retur</Label>
+                      <Textarea
+                        id="alasan-input"
+                        {...register("alasan")}
+                        placeholder="Jelaskan alasan pengembalian barang"
+                        disabled={submitting}
+                      />
+                      {errors.alasan && (
+                        <p className="text-sm text-red-600">
+                          {errors.alasan.message}
+                        </p>
+                      )}
+                    </div>
                   </div>
 
                   {/* Items Section */}
@@ -1138,9 +1261,9 @@ export default function ReturJualPage() {
                       {items.map((item, index) => (
                         <div
                           key={index}
-                          className="grid grid-cols-12 gap-2 items-end"
+                          className="grid grid-cols-13 gap-2 items-end border rounded-lg p-3"
                         >
-                          <div className="col-span-5">
+                          <div className="col-span-3">
                             <Label>Barang</Label>
                             <Select
                               value={item.barangId}
@@ -1161,7 +1284,7 @@ export default function ReturJualPage() {
                               </SelectContent>
                             </Select>
                           </div>
-                          <div className="col-span-2">
+                          <div className="col-span-1">
                             <Label>Qty</Label>
                             <Input
                               type="number"
@@ -1183,6 +1306,39 @@ export default function ReturJualPage() {
                               onChange={(e) =>
                                 updateItem(index, "harga", e.target.value)
                               }
+                              disabled={submitting}
+                            />
+                          </div>
+                          <div className="col-span-2">
+                            <Label>Kondisi</Label>
+                            <Select
+                              value={item.kondisi}
+                              onValueChange={(
+                                value: "bisa_dijual_lagi" | "rusak_total"
+                              ) => updateItem(index, "kondisi", value)}
+                              disabled={submitting}
+                            >
+                              <SelectTrigger>
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="bisa_dijual_lagi">
+                                  Bisa Dijual Lagi
+                                </SelectItem>
+                                <SelectItem value="rusak_total">
+                                  Rusak Total
+                                </SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="col-span-3">
+                            <Label>Alasan Item</Label>
+                            <Input
+                              value={item.alasan}
+                              onChange={(e) =>
+                                updateItem(index, "alasan", e.target.value)
+                              }
+                              placeholder="Rusak, Tidak sesuai, dll"
                               disabled={submitting}
                             />
                           </div>
@@ -1294,13 +1450,37 @@ export default function ReturJualPage() {
                   )}
                 </div>
                 <div className="grid gap-2">
-                  <Label htmlFor="tanggal">Tanggal</Label>
-                  <Input
-                    id="tanggal"
-                    type="date"
-                    {...register("tanggal", { valueAsDate: true })}
-                    disabled={submitting}
-                  />
+                  <Label>Tanggal</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className="justify-start text-left font-normal"
+                        disabled={submitting}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {watchedValues.tanggal
+                          ? format(
+                              watchedValues.tanggal instanceof Date
+                                ? watchedValues.tanggal
+                                : new Date(watchedValues.tanggal as any),
+                              "dd MMM yyyy",
+                              { locale: idLocale }
+                            )
+                          : "Pilih tanggal"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={watchedValues.tanggal as Date}
+                        onSelect={(date) =>
+                          setValue("tanggal", date || new Date())
+                        }
+                        locale={idLocale}
+                      />
+                    </PopoverContent>
+                  </Popover>
                   {errors.tanggal && (
                     <p className="text-sm text-red-600">
                       {errors.tanggal.message}
@@ -1666,17 +1846,6 @@ export default function ReturJualPage() {
           )}
 
           <DialogFooter>
-            {viewingReturJual &&
-              (viewingReturJual.status === "approved" ||
-                viewingReturJual.status === "completed") && (
-                <Button
-                  variant="outline"
-                  onClick={() => handlePrint(viewingReturJual)}
-                >
-                  <Printer className="mr-2 h-4 w-4" />
-                  Cetak
-                </Button>
-              )}
             <Button variant="outline" onClick={() => setViewDialogOpen(false)}>
               Tutup
             </Button>

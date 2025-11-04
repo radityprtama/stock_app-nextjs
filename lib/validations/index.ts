@@ -102,15 +102,45 @@ export const deliveryOrderSchema = z.object({
 })
 
 const detailSuratJalanItemSchema = z.object({
-  barangId: z.string().min(1, 'Barang wajib dipilih'),
+  // For warehouse items
+  barangId: z.string().optional(),
   qty: z.number().min(1, 'Qty minimal 1'),
-  hargaJual: z.number().min(0, 'Harga jual tidak boleh negatif'),
+  hargaJual: z.number().min(0, 'Harga jual tidak boleh negatif').optional(),
   keterangan: z.string().optional().or(z.literal('')),
+
+  // Nama alias per customer
+  namaAlias: z.string().optional(),
+
+  // Custom item fields
+  isCustom: z.boolean().default(false),
+  customKode: z.string().optional(),
+  customNama: z.string().optional(),
+  customSatuan: z.string().optional(),
+  customHarga: z.number().min(0, 'Harga custom tidak boleh negatif').optional(),
+
   // Dropship fields
   isDropship: z.boolean().default(false),
   supplierId: z.string().optional(),
   statusDropship: z.enum(['pending', 'ordered', 'received']).optional(),
-})
+}).refine((data) => {
+  if (data.isCustom) {
+    return data.customKode && data.customNama && data.customSatuan && data.customHarga !== undefined;
+  } else {
+    return data.barangId;
+  }
+}, {
+  message: "Custom items require customKode, customNama, customSatuan, and customHarga. Warehouse items require barangId.",
+  path: ['barangId']
+}).refine((data) => {
+  if (data.isCustom) {
+    return !data.barangId;
+  } else {
+    return data.barangId;
+  }
+}, {
+  message: "Item cannot be both custom and warehouse item.",
+  path: ['isCustom']
+});
 
 export const suratJalanSchema = z.object({
   noSJ: z.string().optional(),

@@ -382,7 +382,7 @@ export default function DashboardPage() {
         // Calculate total stock value
         const totalNilaiStok =
           stok.data?.reduce((total: number, item: StokItem) => {
-            return total + item.qty * (item.barang.hargaBeli || 0);
+            return total + item.qty * (item.barang?.hargaBeli || 0);
           }, 0) || 0;
 
         setStats({
@@ -561,22 +561,22 @@ export default function DashboardPage() {
         setAllActivities(sortedActivities);
         setRecentActivities(sortedActivities.slice(0, 8));
 
-        // Build data-table rows from real stok data
-        const mapStatus = (s: string) => {
-          if (s === "low") return "Not Started";
-          if (s === "high") return "In Progress";
-          return "Done";
-        };
+        // Build data-table rows from real stok data with proper schema
         const rows = (stok.data || [])
           .slice(0, 25)
           .map((s: StokItem, idx: number) => ({
             id: idx + 1,
-            header: `${s.barang?.nama || "-"} @ ${s.gudang?.nama || "-"}`,
-            type: s.barang?.golongan?.nama || "-",
-            status: mapStatus(s.status),
-            target: String(s.barang?.minStok ?? 0),
-            limit: s.barang?.maxStok != null ? String(s.barang.maxStok) : "-",
-            reviewer: s.gudang?.nama || "Assign reviewer",
+            namaBarang: s.barang?.nama || "Unknown",
+            kode: s.barang?.kode || "N/A",
+            kategori: s.barang?.golongan?.nama || "Uncategorized",
+            gudang: s.gudang?.nama || "Unknown",
+            stok: s.qty,
+            minStok: s.barang?.minStok || 0,
+            maxStok: s.barang?.maxStok || "",
+            status: s.status === "low" ? "rendah" : s.status === "high" ? "aman" : "aman",
+            satuan: s.barang?.satuan || "pcs",
+            hargaBeli: s.barang?.hargaBeli || 0,
+            hargaJual: s.barang?.hargaJual || 0,
           }));
         setTableData(rows);
 
@@ -1085,7 +1085,7 @@ export default function DashboardPage() {
                   const urgencyLevel =
                     item.qty === 0
                       ? "critical"
-                      : item.qty < item.barang.minStok * 0.5
+                      : item.barang && item.barang && item.qty < item.barang.minStok * 0.5
                         ? "high"
                         : "medium";
                   const urgencyColor =
@@ -1100,10 +1100,10 @@ export default function DashboardPage() {
                       : urgencyLevel === "high"
                         ? "KRITIS"
                         : "RENDAH";
-                  const percentage = Math.min(
+                  const percentage = item.barang ? Math.min(
                     (item.qty / item.barang.minStok) * 100,
                     100
-                  );
+                  ) : 0;
 
                   return (
                     <div
@@ -1112,7 +1112,7 @@ export default function DashboardPage() {
                     >
                       <div className="flex-1">
                         <div className="flex items-center gap-2">
-                          <p className="font-medium">{item.barang.nama}</p>
+                          <p className="font-medium">{item.barang?.nama || 'Unknown'}</p>
                           <Badge
                             variant="outline"
                             className={`text-xs ${urgencyColor}`}
@@ -1127,13 +1127,13 @@ export default function DashboardPage() {
                           </div>
                           <div className="flex items-center gap-1">
                             <Package className="h-3.5 w-3.5" />
-                            <span>Min: {item.barang.minStok}</span>
+                            <span>Min: {item.barang?.minStok || 0}</span>
                           </div>
                           <div className="flex items-center gap-1">
                             <DollarSign className="h-3.5 w-3.5" />
                             <span>
                               Rp{" "}
-                              {(item.barang.hargaBeli || 0).toLocaleString(
+                              {(item.barang?.hargaBeli || 0).toLocaleString(
                                 "id-ID"
                               )}
                             </span>
@@ -1160,7 +1160,7 @@ export default function DashboardPage() {
                           className={`text-2xl font-semibold ${
                             item.qty === 0
                               ? "text-red-600"
-                              : item.qty < item.barang.minStok * 0.5
+                              : item.barang && item.qty < item.barang.minStok * 0.5
                                 ? "text-orange-600"
                                 : "text-yellow-600"
                           }`}
@@ -1172,7 +1172,7 @@ export default function DashboardPage() {
                         </div>
                         {item.qty > 0 && (
                           <div className="text-xs text-blue-600">
-                            Butuh {item.barang.minStok - item.qty} lagi
+                            Butuh {item.barang ? (item.barang.minStok - item.qty) : 0} lagi
                           </div>
                         )}
                       </div>
@@ -1218,10 +1218,18 @@ export default function DashboardPage() {
                 <Badge variant="secondary" className="text-xs">
                   {
                     tableData.filter((row) =>
-                      row.status?.toLowerCase().includes("rendah")
+                      row.status === "rendah"
                     ).length
                   }{" "}
-                  item rendah
+                  stok rendah
+                </Badge>
+                <Badge variant="destructive" className="text-xs">
+                  {
+                    tableData.filter((row) =>
+                      row.status === "habis"
+                    ).length
+                  }{" "}
+                  stok habis
                 </Badge>
                 <Badge variant="outline" className="text-xs">
                   Update:{" "}

@@ -56,6 +56,12 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import {
   MoreHorizontal,
   Eye,
   Trash2,
@@ -65,6 +71,8 @@ import {
   Package,
   Printer,
   Truck,
+  Calendar as CalendarIcon,
+  SendHorizontal,
 } from "lucide-react";
 import { useDeliveryOrderList } from "@/hooks/use-query-hooks";
 import {
@@ -80,29 +88,7 @@ import { toast } from "sonner";
 import DeliveryOrderPrint, {
   type DeliveryOrderPrintRef,
 } from "@/components/print/delivery-order-print";
-
-type DeliveryOrderForm = {
-  noDO?: string;
-  tanggal?: Date;
-  gudangAsalId: string;
-  gudangTujuanId: string;
-  namaSupir: string;
-  nopolKendaraan: string;
-  keterangan?: string;
-  items: {
-    isCustom?: boolean;
-    barangId?: string;
-    namaBarang: string;
-    qty: number;
-    satuan: string;
-    keterangan?: string;
-    // Custom item fields
-    customKode?: string;
-    customNama?: string;
-    customSatuan?: string;
-    customHarga?: number;
-  }[];
-};
+import type { DeliveryOrderForm } from "@/src/types";
 
 export default function DeliveryOrderPage() {
   const printRef = useRef<DeliveryOrderPrintRef>(null);
@@ -118,6 +104,7 @@ export default function DeliveryOrderPage() {
   const [page, setPage] = useState(1);
 
   const [form, setForm] = useState<DeliveryOrderForm>({
+    tanggal: new Date(),
     gudangAsalId: "",
     gudangTujuanId: "",
     namaSupir: "",
@@ -143,15 +130,6 @@ export default function DeliveryOrderPage() {
   const [availableBarang, setAvailableBarang] = useState<any[]>([]);
   const [selectedBarang, setSelectedBarang] = useState<any | null>(null);
 
-  // Custom item states
-  const [itemType, setItemType] = useState<'warehouse' | 'custom'>('warehouse');
-  const [customItem, setCustomItem] = useState({
-    kode: '',
-    nama: '',
-    satuan: '',
-    harga: ''
-  });
-
   // Mutation hooks
   const createDeliveryOrder = useCreateDeliveryOrder();
   const updateStatus = useUpdateDeliveryOrderStatus();
@@ -165,13 +143,15 @@ export default function DeliveryOrderPage() {
     }
 
     try {
-      const response = await fetch(`/api/transaksi/delivery-order/stock-info?gudangId=${gudangId}`);
+      const response = await fetch(
+        `/api/transaksi/delivery-order/stock-info?gudangId=${gudangId}`
+      );
       const data = await response.json();
       if (data.success) {
         setAvailableBarang(data.data);
       }
     } catch (error) {
-      console.error('Error fetching available barang:', error);
+      console.error("Error fetching available barang:", error);
     }
   };
 
@@ -185,6 +165,7 @@ export default function DeliveryOrderPage() {
         toast.success("Delivery Order berhasil dibuat");
         setIsCreateModalOpen(false);
         setForm({
+          tanggal: new Date(),
           gudangAsalId: "",
           gudangTujuanId: "",
           namaSupir: "",
@@ -193,8 +174,6 @@ export default function DeliveryOrderPage() {
           items: [],
         });
         setAvailableBarang([]);
-        setItemType('warehouse');
-        setCustomItem({ kode: '', nama: '', satuan: '', harga: '' });
         refetch();
       }
     } catch (error) {
@@ -233,61 +212,35 @@ export default function DeliveryOrderPage() {
   };
 
   const addBarangToForm = () => {
-    if (itemType === 'warehouse' && !selectedBarang) return;
-    if (itemType === 'custom' && (!customItem.kode || !customItem.nama || !customItem.satuan)) {
-      alert('Silakan lengkapi data custom barang (kode, nama, satuan)');
-      return;
-    }
+    if (!selectedBarang) return;
 
-    let newItem: any;
+    const existingItemIndex = form.items.findIndex(
+      (item) => item.barangId === selectedBarang.barangId
+    );
 
-    if (itemType === 'warehouse') {
-      const existingItemIndex = form.items.findIndex(
-        item => !item.isCustom && item.barangId === selectedBarang.barangId
-      );
-
-      if (existingItemIndex >= 0) {
-        // Update existing item quantity
-        const updatedItems = [...form.items];
-        updatedItems[existingItemIndex].qty += 1;
-        setForm({ ...form, items: updatedItems });
-        setSelectedBarang(null);
-        return;
-      }
-
-      newItem = {
-        isCustom: false,
-        barangId: selectedBarang.barangId,
-        namaBarang: selectedBarang.barangNama,
-        qty: 1,
-        satuan: selectedBarang.satuan,
-        keterangan: ''
-      };
+    if (existingItemIndex >= 0) {
+      // Update existing item quantity
+      const updatedItems = [...form.items];
+      updatedItems[existingItemIndex].qty += 1;
+      setForm({ ...form, items: updatedItems });
     } else {
-      // Custom item
-      newItem = {
-        isCustom: true,
-        barangId: undefined,
-        namaBarang: customItem.nama,
-        qty: 1,
-        satuan: customItem.satuan,
-        keterangan: '',
-        customKode: customItem.kode,
-        customNama: customItem.nama,
-        customSatuan: customItem.satuan,
-        customHarga: parseFloat(customItem.harga) || 0
-      };
+      // Add new item
+      setForm({
+        ...form,
+        items: [
+          ...form.items,
+          {
+            barangId: selectedBarang.barangId,
+            namaBarang: selectedBarang.barangNama,
+            qty: 1,
+            satuan: selectedBarang.satuan,
+            keterangan: "",
+          },
+        ],
+      });
     }
 
-    setForm({
-      ...form,
-      items: [...form.items, newItem]
-    });
-
-    // Reset form
     setSelectedBarang(null);
-    setCustomItem({ kode: '', nama: '', satuan: '', harga: '' });
-    setItemType('warehouse');
   };
 
   const removeBarangFromForm = (index: number) => {
@@ -305,6 +258,7 @@ export default function DeliveryOrderPage() {
 
   const openAddDialog = () => {
     setForm({
+      tanggal: new Date(),
       gudangAsalId: "",
       gudangTujuanId: "",
       namaSupir: "",
@@ -314,8 +268,6 @@ export default function DeliveryOrderPage() {
     });
     setAvailableBarang([]);
     setSelectedBarang(null);
-    setItemType('warehouse');
-    setCustomItem({ kode: '', nama: '', satuan: '', harga: '' });
     setIsCreateModalOpen(true);
   };
 
@@ -503,7 +455,8 @@ export default function DeliveryOrderPage() {
                           </TableCell>
                           <TableCell>{deliveryOrder.gudangAsal.nama}</TableCell>
                           <TableCell>
-                            {deliveryOrder.gudangTujuanRel?.nama || deliveryOrder.gudangTujuan}
+                            {deliveryOrder.gudangTujuanRel?.nama ||
+                              deliveryOrder.gudangTujuan}
                           </TableCell>
                           <TableCell>{deliveryOrder.namaSupir}</TableCell>
                           <TableCell>{deliveryOrder.nopolKendaraan}</TableCell>
@@ -534,6 +487,7 @@ export default function DeliveryOrderPage() {
                                       )
                                     }
                                   >
+                                    <SendHorizontal className="mr-2 h-4 w-4" />
                                     Kirim
                                   </DropdownMenuItem>
                                 )}
@@ -547,6 +501,7 @@ export default function DeliveryOrderPage() {
                                       )
                                     }
                                   >
+                                    <Truck className="mr-2 h-4 w-4" />
                                     Terima
                                   </DropdownMenuItem>
                                 )}
@@ -655,6 +610,34 @@ export default function DeliveryOrderPage() {
               <div className="grid gap-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
+                    <Label>Tanggal</Label>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className="w-full justify-start text-left font-normal"
+                        >
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {form.tanggal
+                            ? format(form.tanggal, "dd MMM yyyy", {
+                                locale: id,
+                              })
+                            : "Pilih tanggal"}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={form.tanggal}
+                          onSelect={(date) =>
+                            setForm({ ...form, tanggal: date || new Date() })
+                          }
+                          locale={id}
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                  <div>
                     <Label htmlFor="gudangAsal-input">Gudang Asal</Label>
                     <Select
                       value={form.gudangAsalId}
@@ -678,9 +661,9 @@ export default function DeliveryOrderPage() {
                   <div>
                     <Label htmlFor="gudangTujuan-input">Gudang Tujuan</Label>
                     <Select
-                      value={form.gudangTujuan}
+                      value={form.gudangTujuanId}
                       onValueChange={(value) =>
-                        setForm({ ...form, gudangTujuan: value })
+                        setForm({ ...form, gudangTujuanId: value })
                       }
                     >
                       <SelectTrigger>
@@ -737,109 +720,40 @@ export default function DeliveryOrderPage() {
                 {/* Barang Selection */}
                 {form.gudangAsalId && (
                   <div>
-                    <Label>Tipe Barang</Label>
+                    <Label>Pilih Barang</Label>
                     <div className="flex gap-2 mt-2">
-                      <Button
-                        variant={itemType === 'warehouse' ? 'default' : 'outline'}
-                        onClick={() => setItemType('warehouse')}
-                        type="button"
-                        className="flex-1"
+                      <Select
+                        value={selectedBarang?.barangId || ""}
+                        onValueChange={(value) => {
+                          const barang = availableBarang.find(
+                            (b) => b.barangId === value
+                          );
+                          setSelectedBarang(barang || null);
+                        }}
                       >
-                        Dari Gudang
-                      </Button>
+                        <SelectTrigger className="flex-1">
+                          <SelectValue placeholder="Pilih barang yang akan dipindahkan" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {availableBarang.map((barang) => (
+                            <SelectItem
+                              key={barang.barangId}
+                              value={barang.barangId}
+                            >
+                              {barang.barangNama} (Stok: {barang.stok}{" "}
+                              {barang.satuan})
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                       <Button
-                        variant={itemType === 'custom' ? 'default' : 'outline'}
-                        onClick={() => setItemType('custom')}
+                        onClick={addBarangToForm}
+                        disabled={!selectedBarang}
                         type="button"
-                        className="flex-1"
                       >
-                        Custom/Manual
+                        Tambah
                       </Button>
                     </div>
-
-                    {itemType === 'warehouse' ? (
-                      <div className="mt-4">
-                        <Label>Pilih Barang dari Gudang</Label>
-                        <div className="flex gap-2 mt-2">
-                          <Select
-                            value={selectedBarang?.barangId || ""}
-                            onValueChange={(value) => {
-                              const barang = availableBarang.find(b => b.barangId === value);
-                              setSelectedBarang(barang || null);
-                            }}
-                          >
-                            <SelectTrigger className="flex-1">
-                              <SelectValue placeholder="Pilih barang yang akan dipindahkan" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {availableBarang.map((barang) => (
-                                <SelectItem key={barang.barangId} value={barang.barangId}>
-                                  {barang.barangNama} (Stok: {barang.stok} {barang.satuan})
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <Button
-                            onClick={addBarangToForm}
-                            disabled={!selectedBarang}
-                            type="button"
-                          >
-                            Tambah
-                          </Button>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="mt-4 space-y-3">
-                        <Label>Input Barang Custom</Label>
-                        <div className="grid grid-cols-2 gap-3">
-                          <div>
-                            <Label htmlFor="custom-kode">Kode Barang</Label>
-                            <Input
-                              id="custom-kode"
-                              placeholder="Masukkan kode barang"
-                              value={customItem.kode}
-                              onChange={(e) => setCustomItem({...customItem, kode: e.target.value})}
-                            />
-                          </div>
-                          <div>
-                            <Label htmlFor="custom-nama">Nama Barang</Label>
-                            <Input
-                              id="custom-nama"
-                              placeholder="Masukkan nama barang"
-                              value={customItem.nama}
-                              onChange={(e) => setCustomItem({...customItem, nama: e.target.value})}
-                            />
-                          </div>
-                          <div>
-                            <Label htmlFor="custom-satuan">Satuan</Label>
-                            <Input
-                              id="custom-satuan"
-                              placeholder="pcs, box, dll"
-                              value={customItem.satuan}
-                              onChange={(e) => setCustomItem({...customItem, satuan: e.target.value})}
-                            />
-                          </div>
-                          <div>
-                            <Label htmlFor="custom-harga">Harga (Optional)</Label>
-                            <Input
-                              id="custom-harga"
-                              type="number"
-                              placeholder="0"
-                              value={customItem.harga}
-                              onChange={(e) => setCustomItem({...customItem, harga: e.target.value})}
-                            />
-                          </div>
-                        </div>
-                        <Button
-                          onClick={addBarangToForm}
-                          disabled={!customItem.kode || !customItem.nama || !customItem.satuan}
-                          type="button"
-                          className="w-full"
-                        >
-                          Tambah Barang Custom
-                        </Button>
-                      </div>
-                    )}
                   </div>
                 )}
 
@@ -850,7 +764,6 @@ export default function DeliveryOrderPage() {
                     <Table className="mt-2">
                       <TableHeader>
                         <TableRow>
-                          <TableHead>Tipe</TableHead>
                           <TableHead>Barang</TableHead>
                           <TableHead>Qty</TableHead>
                           <TableHead>Satuan</TableHead>
@@ -860,25 +773,18 @@ export default function DeliveryOrderPage() {
                       <TableBody>
                         {form.items.map((item, index) => (
                           <TableRow key={index}>
-                            <TableCell>
-                              <Badge variant={item.isCustom ? 'secondary' : 'default'}>
-                                {item.isCustom ? 'Custom' : 'Gudang'}
-                              </Badge>
-                            </TableCell>
-                            <TableCell>
-                              <div>
-                                <div className="font-medium">{item.namaBarang}</div>
-                                {item.isCustom && (
-                                  <div className="text-xs text-gray-500">Kode: {item.customKode}</div>
-                                )}
-                              </div>
-                            </TableCell>
+                            <TableCell>{item.namaBarang}</TableCell>
                             <TableCell>
                               <Input
                                 type="number"
                                 min="1"
                                 value={item.qty}
-                                onChange={(e) => updateItemQuantity(index, parseInt(e.target.value) || 1)}
+                                onChange={(e) =>
+                                  updateItemQuantity(
+                                    index,
+                                    parseInt(e.target.value) || 1
+                                  )
+                                }
                                 className="w-20"
                               />
                             </TableCell>
@@ -904,6 +810,7 @@ export default function DeliveryOrderPage() {
                   variant="outline"
                   onClick={() => {
                     setForm({
+                      tanggal: new Date(),
                       gudangAsalId: "",
                       gudangTujuanId: "",
                       namaSupir: "",
@@ -913,8 +820,6 @@ export default function DeliveryOrderPage() {
                     });
                     setAvailableBarang([]);
                     setSelectedBarang(null);
-                    setItemType('warehouse');
-                    setCustomItem({ kode: '', nama: '', satuan: '', harga: '' });
                   }}
                 >
                   Reset
@@ -948,6 +853,32 @@ export default function DeliveryOrderPage() {
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Tanggal</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className="w-full justify-start text-left font-normal"
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {form.tanggal
+                        ? format(form.tanggal, "dd MMM yyyy", { locale: id })
+                        : "Pilih tanggal"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={form.tanggal}
+                      onSelect={(date) =>
+                        setForm({ ...form, tanggal: date || new Date() })
+                      }
+                      locale={id}
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
               <div>
                 <Label htmlFor="gudangAsal">Gudang Asal</Label>
                 <Select
@@ -1031,109 +962,40 @@ export default function DeliveryOrderPage() {
             {/* Barang Selection */}
             {form.gudangAsalId && (
               <div>
-                <Label>Tipe Barang</Label>
+                <Label>Pilih Barang</Label>
                 <div className="flex gap-2 mt-2">
-                  <Button
-                    variant={itemType === 'warehouse' ? 'default' : 'outline'}
-                    onClick={() => setItemType('warehouse')}
-                    type="button"
-                    className="flex-1"
+                  <Select
+                    value={selectedBarang?.barangId || ""}
+                    onValueChange={(value) => {
+                      const barang = availableBarang.find(
+                        (b) => b.barangId === value
+                      );
+                      setSelectedBarang(barang || null);
+                    }}
                   >
-                    Dari Gudang
-                  </Button>
+                    <SelectTrigger className="flex-1">
+                      <SelectValue placeholder="Pilih barang yang akan dipindahkan" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableBarang.map((barang) => (
+                        <SelectItem
+                          key={barang.barangId}
+                          value={barang.barangId}
+                        >
+                          {barang.barangNama} (Stok: {barang.stok}{" "}
+                          {barang.satuan})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                   <Button
-                    variant={itemType === 'custom' ? 'default' : 'outline'}
-                    onClick={() => setItemType('custom')}
+                    onClick={addBarangToForm}
+                    disabled={!selectedBarang}
                     type="button"
-                    className="flex-1"
                   >
-                    Custom/Manual
+                    Tambah
                   </Button>
                 </div>
-
-                {itemType === 'warehouse' ? (
-                  <div className="mt-4">
-                    <Label>Pilih Barang dari Gudang</Label>
-                    <div className="flex gap-2 mt-2">
-                      <Select
-                        value={selectedBarang?.barangId || ""}
-                        onValueChange={(value) => {
-                          const barang = availableBarang.find(b => b.barangId === value);
-                          setSelectedBarang(barang || null);
-                        }}
-                      >
-                        <SelectTrigger className="flex-1">
-                          <SelectValue placeholder="Pilih barang yang akan dipindahkan" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {availableBarang.map((barang) => (
-                            <SelectItem key={barang.barangId} value={barang.barangId}>
-                              {barang.barangNama} (Stok: {barang.stok} {barang.satuan})
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <Button
-                        onClick={addBarangToForm}
-                        disabled={!selectedBarang}
-                        type="button"
-                      >
-                        Tambah
-                      </Button>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="mt-4 space-y-3">
-                    <Label>Input Barang Custom</Label>
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <Label htmlFor="custom-kode-modal">Kode Barang</Label>
-                        <Input
-                          id="custom-kode-modal"
-                          placeholder="Masukkan kode barang"
-                          value={customItem.kode}
-                          onChange={(e) => setCustomItem({...customItem, kode: e.target.value})}
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="custom-nama-modal">Nama Barang</Label>
-                        <Input
-                          id="custom-nama-modal"
-                          placeholder="Masukkan nama barang"
-                          value={customItem.nama}
-                          onChange={(e) => setCustomItem({...customItem, nama: e.target.value})}
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="custom-satuan-modal">Satuan</Label>
-                        <Input
-                          id="custom-satuan-modal"
-                          placeholder="pcs, box, dll"
-                          value={customItem.satuan}
-                          onChange={(e) => setCustomItem({...customItem, satuan: e.target.value})}
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="custom-harga-modal">Harga (Optional)</Label>
-                        <Input
-                          id="custom-harga-modal"
-                          type="number"
-                          placeholder="0"
-                          value={customItem.harga}
-                          onChange={(e) => setCustomItem({...customItem, harga: e.target.value})}
-                        />
-                      </div>
-                    </div>
-                    <Button
-                      onClick={addBarangToForm}
-                      disabled={!customItem.kode || !customItem.nama || !customItem.satuan}
-                      type="button"
-                      className="w-full"
-                    >
-                      Tambah Barang Custom
-                    </Button>
-                  </div>
-                )}
               </div>
             )}
 
@@ -1159,7 +1021,12 @@ export default function DeliveryOrderPage() {
                             type="number"
                             min="1"
                             value={item.qty}
-                            onChange={(e) => updateItemQuantity(index, parseInt(e.target.value) || 1)}
+                            onChange={(e) =>
+                              updateItemQuantity(
+                                index,
+                                parseInt(e.target.value) || 1
+                              )
+                            }
                             className="w-20"
                           />
                         </TableCell>
@@ -1238,7 +1105,8 @@ export default function DeliveryOrderPage() {
                 <div>
                   <Label>Tujuan</Label>
                   <p className="font-medium">
-                    {selectedDeliveryOrder.gudangTujuanRel?.nama || selectedDeliveryOrder.gudangTujuan}
+                    {selectedDeliveryOrder.gudangTujuanRel?.nama ||
+                      selectedDeliveryOrder.gudangTujuan}
                   </p>
                 </div>
                 <div>

@@ -73,14 +73,18 @@ export async function GET(
     // Get current stock for each item and supplier information if needed
     const itemsWithStock = await Promise.all(
       suratJalan.detail.map(async (item) => {
-        const stokBarang = await prisma.stokBarang.findUnique({
-          where: {
-            barangId_gudangId: {
-              barangId: item.barangId,
-              gudangId: suratJalan.gudangId
+        // Skip stock check for custom items
+        let stokBarang = null;
+        if (!item.isCustom && item.barangId) {
+          stokBarang = await prisma.stokBarang.findUnique({
+            where: {
+              barangId_gudangId: {
+                barangId: item.barangId,
+                gudangId: suratJalan.gudangId
+              }
             }
-          }
-        })
+          })
+        }
 
         // Get supplier information if supplierId exists
         let supplier = null
@@ -99,8 +103,8 @@ export async function GET(
 
         return {
           ...item,
-          currentStock: stokBarang?.qty || 0,
-          stockStatus: stokBarang ? (stokBarang.qty >= item.qty ? 'sufficient' : 'insufficient') : 'out_of_stock',
+          currentStock: item.isCustom ? null : (stokBarang?.qty || 0),
+          stockStatus: item.isCustom ? 'custom_item' : (stokBarang ? (stokBarang.qty >= item.qty ? 'sufficient' : 'insufficient') : 'out_of_stock'),
           supplier
         }
       })
@@ -112,9 +116,10 @@ export async function GET(
       detail: itemsWithStock,
       dropshipSummary: {
         totalItems: itemsWithStock.length,
-        normalItems: itemsWithStock.filter(item => !item.isDropship).length,
+        normalItems: itemsWithStock.filter(item => !item.isDropship && !item.isCustom).length,
+        customItems: itemsWithStock.filter(item => item.isCustom).length,
         dropshipItems: itemsWithStock.filter(item => item.isDropship).length,
-        readyItems: itemsWithStock.filter(item => !item.isDropship && item.stockStatus === 'sufficient').length,
+        readyItems: itemsWithStock.filter(item => !item.isDropship && (item.stockStatus === 'sufficient' || item.stockStatus === 'custom_item')).length,
         pendingDropship: itemsWithStock.filter(item => item.isDropship && item.statusDropship !== 'received').length,
         receivedDropship: itemsWithStock.filter(item => item.isDropship && item.statusDropship === 'received').length,
       }
@@ -206,7 +211,10 @@ export async function PUT(
 
     // Calculate totals
     const totalQty = processedItems.reduce((sum, item) => sum + item.qty, 0)
-    const totalNilai = processedItems.reduce((sum, item) => sum + (item.qty * item.hargaJual), 0)
+    const totalNilai = processedItems.reduce((sum, item) => {
+      const harga = item.isCustom ? (item.customHarga || 0) : (item.hargaJual || 0)
+      return sum + (item.qty * harga)
+    }, 0)
 
     const updatedSJ = await prisma.$transaction(async (tx) => {
       // Update Surat Jalan header
@@ -250,8 +258,14 @@ export async function PUT(
             suratJalanId: id,
             barangId: item.barangId,
             qty: item.qty,
-            hargaJual: item.hargaJual,
-            subtotal: item.qty * item.hargaJual,
+            hargaJual: item.isCustom ? (item.customHarga || 0) : item.hargaJual,
+            subtotal: item.qty * (item.isCustom ? (item.customHarga || 0) : item.hargaJual),
+            satuan: item.isCustom ? item.customSatuan : item.satuan,
+            isCustom: item.isCustom || false,
+            customKode: item.isCustom ? item.customKode : null,
+            customNama: item.isCustom ? item.customNama : null,
+            customSatuan: item.isCustom ? item.customSatuan : null,
+            customHarga: item.isCustom ? item.customHarga : null,
             isDropship: item.isDropship,
             supplierId: item.supplierId,
             statusDropship: item.statusDropship,
@@ -415,65 +429,82 @@ async function checkStockAndDropship(items: any[], gudangId: string) {
   const processedItems = []
 
   for (const item of items) {
-    // Get current stock for this item in the specified warehouse
-    const stokBarang = await prisma.stokBarang.findUnique({
-      where: {
-        barangId_gudangId: {
-          barangId: item.barangId,
-          gudangId: gudangId
-        }
-      }
-    })
-
-    const currentStock = stokBarang?.qty || 0
-
-    if (currentStock >= item.qty) {
-      // Sufficient stock available
+    if (item.isCustom) {
+      // Custom item - no stock checking, no dropship
       processedItems.push({
         ...item,
         isDropship: false,
         supplierId: null,
         statusDropship: null,
-        currentStock
+        currentStock: null,
+        barangId: null // Custom items don't have barangId
       })
     } else {
-      // Insufficient stock, check for dropship alternatives
-      const supplierBarangs = await prisma.supplierBarang.findMany({
+      // Warehouse item - check stock
+      if (!item.barangId) {
+        throw new Error('Barang ID wajib diisi untuk barang dari gudang')
+      }
+
+      // Get current stock for this item in the specified warehouse
+      const stokBarang = await prisma.stokBarang.findUnique({
         where: {
-          barangId: item.barangId,
-          supplier: {
-            aktif: true
+          barangId_gudangId: {
+            barangId: item.barangId,
+            gudangId: gudangId
           }
-        },
-        include: {
-          supplier: {
-            select: {
-              id: true,
-              kode: true,
-              nama: true
-            }
-          }
-        },
-        orderBy: [
-          { isPrimary: 'desc' },
-          { leadTime: 'asc' }
-        ]
+        }
       })
 
-      if (supplierBarangs.length > 0) {
-        // Found dropship supplier
-        const primarySupplier = supplierBarangs[0]
+      const currentStock = stokBarang?.qty || 0
+
+      if (currentStock >= item.qty) {
+        // Sufficient stock available
         processedItems.push({
           ...item,
-          isDropship: true,
-          supplierId: primarySupplier.supplierId,
-          statusDropship: 'pending',
-          currentStock,
-          dropshipSupplier: primarySupplier.supplier
+          isDropship: false,
+          supplierId: null,
+          statusDropship: null,
+          currentStock
         })
       } else {
-        // No dropship supplier available
-        throw new Error(`Stok tidak cukup dan tidak ada supplier dropship untuk barang ini`)
+        // Insufficient stock, check for dropship alternatives
+        const supplierBarangs = await prisma.supplierBarang.findMany({
+          where: {
+            barangId: item.barangId,
+            supplier: {
+              aktif: true
+            }
+          },
+          include: {
+            supplier: {
+              select: {
+                id: true,
+                kode: true,
+                nama: true
+              }
+            }
+          },
+          orderBy: [
+            { isPrimary: 'desc' },
+            { leadTime: 'asc' }
+          ]
+        })
+
+        if (supplierBarangs.length > 0) {
+          // Found dropship supplier
+          const primarySupplier = supplierBarangs[0]
+          processedItems.push({
+            ...item,
+            isDropship: true,
+            supplierId: primarySupplier.supplierId,
+            statusDropship: 'pending',
+            currentStock,
+            dropshipSupplier: primarySupplier.supplier
+          })
+        } else {
+          // No dropship supplier available
+          throw new Error(`Stok tidak cukup dan tidak ada supplier dropship untuk barang ini`)
+        }
       }
     }
   }

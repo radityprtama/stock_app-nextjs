@@ -180,9 +180,10 @@ export default function AnalyticsPage() {
       if (result.success) {
         setAnalytics(result.data)
       } else {
-        toast.error('Gagal mengambil data analytics')
+        toast.error(result.message || 'Gagal mengambil data analytics')
       }
     } catch (error) {
+      console.error('Analytics fetch error:', error)
       toast.error('Terjadi kesalahan saat mengambil data')
     } finally {
       setLoading(false)
@@ -550,40 +551,67 @@ export default function AnalyticsPage() {
         </Card>
       </div>
 
-      {/* Predictive Analytics */}
+      {/* Inventory Analytics */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center">
-            <Brain className="mr-2 h-5 w-5 text-purple-600" />
-            Predictive Analytics
+            <Package className="mr-2 h-5 w-5 text-orange-600" />
+            Inventory Analytics
           </CardTitle>
-          <CardDescription>Forecast dan rekomendasi berbasis AI</CardDescription>
+          <CardDescription>Analisis stok dan prediksi kebutuhan</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid gap-4 md:grid-cols-3">
-            {analytics.predictiveAnalytics.demandForecast.slice(0, 3).map((forecast) => (
-              <div key={forecast.product} className="border rounded-lg p-4">
-                <div className="flex items-center justify-between mb-2">
-                  <h4 className="font-medium">{forecast.product}</h4>
-                  <Badge variant={forecast.confidence > 80 ? 'default' : 'secondary'}>
-                    {forecast.confidence}% confidence
-                  </Badge>
-                </div>
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span>Current Demand:</span>
-                    <span>{forecast.currentDemand}</span>
+          <div className="grid gap-6 md:grid-cols-2">
+            {/* Stock Levels */}
+            <div>
+              <h4 className="font-medium mb-4">Distribusi Stok</h4>
+              <div className="space-y-3">
+                {analytics.inventoryAnalytics.stockLevels.map((level) => (
+                  <div key={level.status} className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      <div className={`w-3 h-3 rounded-full ${
+                        level.status === 'Sehat' ? 'bg-green-500' :
+                        level.status === 'Menipis' ? 'bg-yellow-500' :
+                        level.status === 'Kritis' ? 'bg-red-500' : 'bg-blue-500'
+                      }`} />
+                      <span className="text-sm font-medium">{level.status}</span>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm font-medium">{level.count} produk</p>
+                      <p className="text-xs text-gray-500">{formatCurrency(level.value)}</p>
+                    </div>
                   </div>
-                  <div className="flex justify-between">
-                    <span>Predicted Demand:</span>
-                    <span className="font-medium text-blue-600">{forecast.predictedDemand}</span>
-                  </div>
-                  <div className="pt-2 border-t">
-                    <p className="text-xs text-gray-600">{forecast.recommendation}</p>
-                  </div>
-                </div>
+                ))}
               </div>
-            ))}
+            </div>
+
+            {/* Demand Forecast */}
+            <div>
+              <h4 className="font-medium mb-4">Prediksi Permintaan</h4>
+              <div className="space-y-3">
+                {analytics.predictiveAnalytics.demandForecast.slice(0, 3).map((forecast) => (
+                  <div key={forecast.product} className="border rounded-lg p-3">
+                    <div className="flex items-center justify-between mb-2">
+                      <h5 className="font-medium text-sm">{forecast.product}</h5>
+                      <Badge variant={forecast.confidence > 80 ? 'default' : 'secondary'} className="text-xs">
+                        {forecast.confidence}%
+                      </Badge>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 text-xs">
+                      <div>
+                        <span className="text-gray-500">Current: </span>
+                        <span className="font-medium">{forecast.currentDemand}</span>
+                      </div>
+                      <div>
+                        <span className="text-gray-500">Predicted: </span>
+                        <span className="font-medium text-blue-600">{forecast.predictedDemand}</span>
+                      </div>
+                    </div>
+                    <p className="text-xs text-gray-600 mt-2">{forecast.recommendation}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         </CardContent>
       </Card>

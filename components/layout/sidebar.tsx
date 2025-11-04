@@ -1,10 +1,10 @@
-'use client'
+"use client";
 
-import Link from 'next/link'
-import { usePathname } from 'next/navigation'
-import { cn } from '@/lib/utils'
-import { Button } from '@/components/ui/button'
-import { ScrollArea } from '@/components/ui/scroll-area'
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   LayoutDashboard,
   Package,
@@ -21,152 +21,151 @@ import {
   Warehouse,
   ArrowLeftRight,
   ChartLine,
-} from 'lucide-react'
-import { signOut } from 'next-auth/react'
-import { useState } from 'react'
-import { getRoleText } from '@/lib/utils'
+} from "lucide-react";
+import { signOut } from "next-auth/react";
+import { useState } from "react";
+import { getRoleText } from "@/lib/utils";
 
 interface SidebarProps {
   user: {
-    name: string
-    email: string
-    role: string
-  }
+    name: string;
+    email: string;
+    role: string;
+  };
 }
 
 const navigation = [
   {
-    title: 'Menu Utama',
+    title: "Menu Utama",
     items: [
       {
-        title: 'Dashboard',
-        href: '/dashboard',
+        title: "Dashboard",
+        href: "/dashboard",
         icon: LayoutDashboard,
-        roles: ['super_admin', 'admin', 'manager', 'staff_gudang', 'sales'],
+        roles: ["super_admin", "admin", "manager", "staff_gudang", "sales"],
       },
     ],
   },
   {
-    title: 'Master Data',
+    title: "Master Data",
     items: [
       {
-        title: 'Gudang',
-        href: '/dashboard/master/gudang',
+        title: "Gudang",
+        href: "/dashboard/master/gudang",
         icon: Warehouse,
-        roles: ['super_admin', 'admin', 'manager'],
+        roles: ["super_admin", "admin", "manager"],
       },
       {
-        title: 'Barang',
-        href: '/dashboard/master/barang',
+        title: "Barang",
+        href: "/dashboard/master/barang",
         icon: Package,
-        roles: ['super_admin', 'admin', 'manager', 'staff_gudang'],
+        roles: ["super_admin", "admin", "manager", "staff_gudang"],
       },
       {
-        title: 'Customer',
-        href: '/dashboard/master/customer',
+        title: "Customer",
+        href: "/dashboard/master/customer",
         icon: Users,
-        roles: ['super_admin', 'admin', 'manager', 'sales'],
+        roles: ["super_admin", "admin", "manager", "sales"],
       },
       {
-        title: 'Supplier',
-        href: '/dashboard/master/supplier',
+        title: "Supplier",
+        href: "/dashboard/master/supplier",
         icon: Truck,
-        roles: ['super_admin', 'admin', 'manager', 'staff_gudang'],
+        roles: ["super_admin", "admin", "manager", "staff_gudang"],
       },
       {
-        title: 'Golongan',
-        href: '/dashboard/master/golongan',
+        title: "Golongan",
+        href: "/dashboard/master/golongan",
         icon: Building,
-        roles: ['super_admin', 'admin', 'manager'],
+        roles: ["super_admin", "admin", "manager"],
       },
     ],
   },
   {
-    title: 'Transaksi',
+    title: "Transaksi",
     items: [
       {
-        title: 'Barang Masuk',
-        href: '/dashboard/transaksi/barang-masuk',
+        title: "Barang Masuk",
+        href: "/dashboard/transaksi/barang-masuk",
         icon: ShoppingCart,
-        roles: ['super_admin', 'admin', 'manager', 'staff_gudang'],
+        roles: ["super_admin", "admin", "manager", "staff_gudang"],
       },
       {
-        title: 'Delivery Order',
-        href: '/dashboard/transaksi/delivery-order',
+        title: "Delivery Order",
+        href: "/dashboard/transaksi/delivery-order",
         icon: Truck,
-        roles: ['super_admin', 'admin', 'manager', 'staff_gudang'],
+        roles: ["super_admin", "admin", "manager", "staff_gudang"],
       },
       {
-        title: 'Surat Jalan',
-        href: '/dashboard/transaksi/surat-jalan',
+        title: "Surat Jalan",
+        href: "/dashboard/transaksi/surat-jalan",
         icon: FileText,
-        roles: ['super_admin', 'admin', 'manager', 'staff_gudang', 'sales'],
+        roles: ["super_admin", "admin", "manager", "staff_gudang", "sales"],
       },
       {
-        title: 'Retur Beli',
-        href: '/dashboard/transaksi/retur-beli',
+        title: "Retur Beli",
+        href: "/dashboard/transaksi/retur-beli",
         icon: RotateCcw,
-        roles: ['super_admin', 'admin', 'manager', 'staff_gudang'],
+        roles: ["super_admin", "admin", "manager", "staff_gudang"],
       },
       {
-        title: 'Retur Jual',
-        href: '/dashboard/transaksi/retur-jual',
+        title: "Retur Jual",
+        href: "/dashboard/transaksi/retur-jual",
         icon: RotateCcw,
-        roles: ['super_admin', 'admin', 'manager', 'sales'],
+        roles: ["super_admin", "admin", "manager", "sales"],
       },
     ],
   },
   {
-    title: 'Laporan',
+    title: "Laporan",
     items: [
       {
-        title: 'Stok',
-        href: '/dashboard/laporan/stok',
+        title: "Stok",
+        href: "/dashboard/laporan/stok",
         icon: BarChart3,
-        roles: ['super_admin', 'admin', 'manager', 'staff_gudang', 'sales'],
+        roles: ["super_admin", "admin", "manager", "staff_gudang", "sales"],
       },
       {
-        title: 'Analytics',
-        href: '/dashboard/analytics',
+        title: "Analytics",
+        href: "/dashboard/analytics",
         icon: ChartLine,
-        roles: ['super_admin', 'admin', 'manager']
-
+        roles: ["super_admin", "admin", "manager"],
       },
       {
-        title: 'Mutasi',
-        href: '/dashboard/laporan/mutasi',
+        title: "Mutasi",
+        href: "/dashboard/laporan/mutasi",
         icon: ArrowLeftRight,
-        roles: ['super_admin', 'admin', 'manager'],
+        roles: ["super_admin", "admin", "manager"],
       },
     ],
   },
   {
-    title: 'Pengaturan',
+    title: "Pengaturan",
     items: [
       {
-        title: 'User Management',
-        href: '/dashboard/users',
+        title: "User Management",
+        href: "/dashboard/users",
         icon: Settings,
-        roles: ['super_admin', 'admin'],
+        roles: ["super_admin", "admin"],
       },
     ],
   },
-]
+];
 
 export function Sidebar({ user }: SidebarProps) {
-  const pathname = usePathname()
-  const [isCollapsed, setIsCollapsed] = useState(false)
+  const pathname = usePathname();
+  const [isCollapsed, setIsCollapsed] = useState(false);
 
   const handleSignOut = () => {
-    signOut({ callbackUrl: '/auth/login' })
-  }
+    signOut({ callbackUrl: "/auth/login" });
+  };
 
-  const filteredNavigation = navigation.map((section) => ({
-    ...section,
-    items: section.items.filter((item) =>
-      item.roles.includes(user.role)
-    ),
-  })).filter((section) => section.items.length > 0)
+  const filteredNavigation = navigation
+    .map((section) => ({
+      ...section,
+      items: section.items.filter((item) => item.roles.includes(user.role)),
+    }))
+    .filter((section) => section.items.length > 0);
 
   return (
     <div
@@ -178,7 +177,7 @@ export function Sidebar({ user }: SidebarProps) {
       <div className="flex items-center justify-between p-4 border-b border-gray-200">
         {!isCollapsed && (
           <div>
-            <h2 className="text-lg font-semibold text-gray-900">Stocky</h2>
+            <h2 className="text-lg font-semibold text-gray-900">Inventory</h2>
             <p className="text-sm text-gray-500">Inventory System</p>
           </div>
         )}

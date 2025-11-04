@@ -101,7 +101,7 @@ export async function POST(
       await prisma.$transaction(async (tx) => {
         for (const detailItem of deliveryOrderWithDetails.detail) {
           // Skip stock processing for custom items
-          if (detailItem.isCustom || !detailItem.barangId) {
+          if (!detailItem.barangId) {
             continue;
           }
 
@@ -128,7 +128,7 @@ export async function POST(
           const stokTujuan = await tx.stokBarang.findFirst({
             where: {
               barangId: detailItem.barangId,
-              gudangId: deliveryOrderWithDetails.gudangTujuanId
+              gudangId: deliveryOrderWithDetails.gudangTujuanId!
             }
           })
 
@@ -143,7 +143,7 @@ export async function POST(
             await tx.stokBarang.create({
               data: {
                 barangId: detailItem.barangId,
-                gudangId: deliveryOrderWithDetails.gudangTujuanId,
+                gudangId: deliveryOrderWithDetails.gudangTujuanId!,
                 qty: detailItem.qty
               }
             })

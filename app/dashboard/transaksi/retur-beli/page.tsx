@@ -44,6 +44,12 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import {
   Plus,
   Search,
   MoreHorizontal,
@@ -54,6 +60,7 @@ import {
   Send,
   Package,
   TrendingUp,
+  Calendar as CalendarIcon,
   CheckCircle,
   Clock,
   Filter,
@@ -72,6 +79,14 @@ import { returBeliSchema } from "@/lib/validations";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { format } from "date-fns";
+import { id as idLocale } from "date-fns/locale";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 type ReturBeliDetail = ReturBeliPrintData["detail"][number] & {
   currentStock?: number;
@@ -174,8 +189,8 @@ export default function ReturBeliPage() {
   const [search, setSearch] = useState("");
   const [selectedSupplier, setSelectedSupplier] = useState("");
   const [selectedStatus, setSelectedStatus] = useState("");
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
+  const [startDate, setStartDate] = useState<Date | undefined>(undefined);
+  const [endDate, setEndDate] = useState<Date | undefined>(undefined);
   const [pagination, setPagination] = useState({
     page: 1,
     limit: 10,
@@ -244,8 +259,9 @@ export default function ReturBeliPage() {
 
       if (selectedSupplier) params.append("supplierId", selectedSupplier);
       if (selectedStatus) params.append("status", selectedStatus);
-      if (startDate) params.append("startDate", startDate);
-      if (endDate) params.append("endDate", endDate);
+      if (startDate)
+        params.append("startDate", format(startDate, "yyyy-MM-dd"));
+      if (endDate) params.append("endDate", format(endDate, "yyyy-MM-dd"));
 
       const response = await fetch(`/api/transaksi/retur-beli?${params}`);
       const result = await response.json();
@@ -423,7 +439,19 @@ export default function ReturBeliPage() {
       const result = await response.json();
 
       if (result.success) {
-        setViewingReturBeli(result.data);
+        const data = result.data as any;
+        // Coerce barangMasukRef object to printable string for UI/print
+        const bmRef = data?.barangMasukRef;
+        const barangMasukRefString = bmRef
+          ? typeof bmRef === "string"
+            ? bmRef
+            : `${bmRef.noDokumen}${bmRef.tanggal ? ` (${formatDate(String(bmRef.tanggal))})` : ""}`
+          : "";
+
+        setViewingReturBeli({
+          ...data,
+          barangMasukRef: barangMasukRefString,
+        });
         setViewDialogOpen(true);
       } else {
         toast.error("Gagal mengambil detail transaksi");
@@ -571,8 +599,8 @@ export default function ReturBeliPage() {
   const clearFilters = () => {
     setSelectedSupplier("");
     setSelectedStatus("");
-    setStartDate("");
-    setEndDate("");
+    setStartDate(undefined);
+    setEndDate(undefined);
     setSearch("");
   };
 
@@ -708,22 +736,32 @@ export default function ReturBeliPage() {
               </Card>
 
               {/* Total Nilai */}
-              <Card className="min-w-0 transition-all duration-200 hover:scale-[1.02] hover:shadow-md">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">
-                    Total Nilai
-                  </CardTitle>
-                  <TrendingUp className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold truncate">
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Card className="w-[180px] shrink-0 transition-all duration-200 hover:scale-[1.02] hover:shadow-md cursor-default">
+                      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">
+                          Total Nilai
+                        </CardTitle>
+                        <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-2xl font-bold truncate">
+                          {formatCurrency(statistics.totalValue)}
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          Nilai total retur
+                        </p>
+                      </CardContent>
+                    </Card>
+                  </TooltipTrigger>
+
+                  <TooltipContent side="top" className="text-sm">
                     {formatCurrency(statistics.totalValue)}
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    Nilai total retur
-                  </p>
-                </CardContent>
-              </Card>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             </div>
           </div>
 
@@ -783,20 +821,56 @@ export default function ReturBeliPage() {
                   </SelectContent>
                 </Select>
 
-                <Input
-                  type="date"
-                  placeholder="Tanggal Awal"
-                  value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
-                />
+                {/* Start Date Calendar */}
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className="w-full justify-start text-left font-normal"
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {startDate
+                        ? format(startDate, "dd MMM yyyy", { locale: idLocale })
+                        : "Tanggal Awal"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={startDate}
+                      onSelect={setStartDate}
+                      disabled={(date) => (endDate ? date > endDate : false)}
+                      locale={idLocale}
+                    />
+                  </PopoverContent>
+                </Popover>
 
-                <div className="flex space-x-2">
-                  <Input
-                    type="date"
-                    placeholder="Tanggal Akhir"
-                    value={endDate}
-                    onChange={(e) => setEndDate(e.target.value)}
-                  />
+                {/* End Date Calendar */}
+                <div className="flex gap-2">
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className="flex-1 justify-start text-left font-normal"
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {endDate
+                          ? format(endDate, "dd MMM yyyy", { locale: idLocale })
+                          : "Tanggal Akhir"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={endDate}
+                        onSelect={setEndDate}
+                        disabled={(date) =>
+                          startDate ? date < startDate : false
+                        }
+                        locale={idLocale}
+                      />
+                    </PopoverContent>
+                  </Popover>
                   <Button variant="outline" onClick={clearFilters}>
                     Reset
                   </Button>
@@ -1021,16 +1095,93 @@ export default function ReturBeliPage() {
                       )}
                     </div>
                     <div className="grid gap-2">
-                      <Label htmlFor="tanggal-input">Tanggal</Label>
-                      <Input
-                        id="tanggal-input"
-                        type="date"
-                        {...register("tanggal", { valueAsDate: true })}
-                        disabled={submitting}
-                      />
+                      <Label>Tanggal</Label>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            className="justify-start text-left font-normal"
+                            disabled={submitting}
+                          >
+                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            {watchedValues.tanggal
+                              ? format(
+                                  watchedValues.tanggal instanceof Date
+                                    ? watchedValues.tanggal
+                                    : new Date(watchedValues.tanggal as any),
+                                  "dd MMM yyyy",
+                                  { locale: idLocale }
+                                )
+                              : "Pilih tanggal"}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={watchedValues.tanggal as Date}
+                            onSelect={(date) =>
+                              setValue("tanggal", date || new Date())
+                            }
+                            locale={idLocale}
+                          />
+                        </PopoverContent>
+                      </Popover>
                       {errors.tanggal && (
                         <p className="text-sm text-red-600">
                           {errors.tanggal.message}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="grid gap-2">
+                      <Label htmlFor="barangMasukRef">
+                        Ref. Barang Masuk (Opsional)
+                      </Label>
+                      <Select
+                        value={watchedValues.barangMasukRef || "none"}
+                        onValueChange={(value) =>
+                          setValue(
+                            "barangMasukRef",
+                            value === "none" ? undefined : value
+                          )
+                        }
+                        disabled={submitting}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Pilih Barang Masuk" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">Tanpa Referensi</SelectItem>
+                          {barangMasukList.map((barangMasuk) => (
+                            <SelectItem
+                              key={barangMasuk.id}
+                              value={barangMasuk.id}
+                            >
+                              {barangMasuk.noDokumen} -{" "}
+                              {barangMasuk.supplier.nama}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {errors.barangMasukRef && (
+                        <p className="text-sm text-red-600">
+                          {errors.barangMasukRef.message}
+                        </p>
+                      )}
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="alasan">Alasan Retur</Label>
+                      <Input
+                        id="alasan"
+                        {...register("alasan")}
+                        placeholder="Alasan pengembalian"
+                        disabled={submitting}
+                      />
+                      {errors.alasan && (
+                        <p className="text-sm text-red-600">
+                          {errors.alasan.message}
                         </p>
                       )}
                     </div>
@@ -1072,9 +1223,9 @@ export default function ReturBeliPage() {
                       {items.map((item, index) => (
                         <div
                           key={index}
-                          className="grid grid-cols-12 gap-2 items-end"
+                          className="grid grid-cols-13 gap-2 items-end border rounded-lg p-3"
                         >
-                          <div className="col-span-5">
+                          <div className="col-span-3">
                             <Label>Barang</Label>
                             <Select
                               value={item.barangId}
@@ -1095,7 +1246,7 @@ export default function ReturBeliPage() {
                               </SelectContent>
                             </Select>
                           </div>
-                          <div className="col-span-2">
+                          <div className="col-span-1">
                             <Label>Qty</Label>
                             <Input
                               type="number"
@@ -1117,6 +1268,17 @@ export default function ReturBeliPage() {
                               onChange={(e) =>
                                 updateItem(index, "harga", e.target.value)
                               }
+                              disabled={submitting}
+                            />
+                          </div>
+                          <div className="col-span-4">
+                            <Label>Alasan Item</Label>
+                            <Input
+                              value={item.alasan}
+                              onChange={(e) =>
+                                updateItem(index, "alasan", e.target.value)
+                              }
+                              placeholder="Rusak, Tidak sesuai, dll"
                               disabled={submitting}
                             />
                           </div>
@@ -1164,7 +1326,7 @@ export default function ReturBeliPage() {
                     onClick={() => {
                       reset(defaultReturBeliFormValues);
                       setItems([
-                        { barangId: "", qty: 1, alasan: "", harga: 0 },
+                        { barangId: "", qty: 1, harga: 0, alasan: "" },
                       ]);
                     }}
                     disabled={submitting}
@@ -1222,13 +1384,37 @@ export default function ReturBeliPage() {
                   )}
                 </div>
                 <div className="grid gap-2">
-                  <Label htmlFor="tanggal">Tanggal</Label>
-                  <Input
-                    id="tanggal"
-                    type="date"
-                    {...register("tanggal", { valueAsDate: true })}
-                    disabled={submitting}
-                  />
+                  <Label>Tanggal</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className="justify-start text-left font-normal"
+                        disabled={submitting}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {watchedValues.tanggal
+                          ? format(
+                              watchedValues.tanggal instanceof Date
+                                ? watchedValues.tanggal
+                                : new Date(watchedValues.tanggal as any),
+                              "dd MMM yyyy",
+                              { locale: idLocale }
+                            )
+                          : "Pilih tanggal"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={watchedValues.tanggal as Date}
+                        onSelect={(date) =>
+                          setValue("tanggal", date || new Date())
+                        }
+                        locale={idLocale}
+                      />
+                    </PopoverContent>
+                  </Popover>
                   {errors.tanggal && (
                     <p className="text-sm text-red-600">
                       {errors.tanggal.message}
@@ -1570,17 +1756,6 @@ export default function ReturBeliPage() {
           )}
 
           <DialogFooter>
-            {viewingReturBeli &&
-              (viewingReturBeli.status === "approved" ||
-                viewingReturBeli.status === "completed") && (
-                <Button
-                  variant="outline"
-                  onClick={() => handlePrint(viewingReturBeli)}
-                >
-                  <Printer className="mr-2 h-4 w-4" />
-                  Cetak
-                </Button>
-              )}
             <Button variant="outline" onClick={() => setViewDialogOpen(false)}>
               Tutup
             </Button>

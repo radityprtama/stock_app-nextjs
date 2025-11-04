@@ -72,8 +72,8 @@ export async function GET(request: NextRequest) {
           gudang: sj.gudang,
           barang: detail.barang,
           qty: detail.qty,
-          hargaJual: parseFloat(detail.hargaJual.toString()),
-          subtotal: parseFloat(detail.subtotal.toString()),
+          hargaJual: parseFloat(detail.hargaJual?.toString() || '0'),
+          subtotal: parseFloat(detail.subtotal?.toString() || '0'),
           keterangan: sj.keterangan,
           isDropship: detail.isDropship
         })

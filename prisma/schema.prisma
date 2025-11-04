@@ -244,27 +244,19 @@ model DetailDeliveryOrder {
   id              String        @id @default(cuid())
   deliveryOrderId String
   deliveryOrder   DeliveryOrder @relation(fields: [deliveryOrderId], references: [id], onDelete: Cascade)
-  barangId        String?       // nullable for custom items
-  barang          Barang?       @relation(fields: [barangId], references: [id])
+  barangId        String
+  barang          Barang        @relation(fields: [barangId], references: [id])
 
-  // For standard warehouse items
   namaBarang      String        // snapshot untuk history
-
-  // For custom/dropship items
-  isCustom        Boolean       @default(false)
-  customKode      String?       // kode barang custom
-  customNama      String?       // nama barang custom (overrides namaBarang if custom)
-  customSatuan    String?       // satuan custom (overrides satuan if custom)
-  customHarga     Decimal?      @db.Decimal(15,2) // harga beli custom
-
   qty             Int
-  satuan          String        // kept for backward compatibility
+  satuan          String
 
   keterangan      String?
 
   createdAt       DateTime      @default(now())
 
   @@index([deliveryOrderId])
+  @@index([barangId])
 }
 
 model SuratJalan {
@@ -309,12 +301,21 @@ model DetailSuratJalan {
   id            String      @id @default(cuid())
   suratJalanId  String
   suratJalan    SuratJalan  @relation(fields: [suratJalanId], references: [id], onDelete: Cascade)
-  barangId      String
-  barang        Barang      @relation(fields: [barangId], references: [id])
+  barangId      String?     // nullable for custom items
+  barang        Barang?     @relation(fields: [barangId], references: [id])
 
+  // For standard warehouse items
   qty           Int
-  hargaJual     Decimal     @db.Decimal(15,2)
-  subtotal      Decimal     @db.Decimal(15,2)
+  hargaJual     Decimal?    @db.Decimal(15,2) // nullable for custom items
+  subtotal      Decimal?    @db.Decimal(15,2) // nullable for custom items
+  satuan        String?     // nullable for custom items
+
+  // For custom items (barang yang tidak ada di database/gudang)
+  isCustom      Boolean     @default(false)
+  customKode    String?     // kode barang custom
+  customNama    String?     // nama barang custom
+  customSatuan  String?     // satuan custom
+  customHarga   Decimal?    @db.Decimal(15,2) // harga jual custom
 
   // Nama alias per customer untuk produk yang sama
   namaAlias     String?     // nama custom untuk customer

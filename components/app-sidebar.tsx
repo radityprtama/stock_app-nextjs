@@ -151,12 +151,6 @@ const navigation: NavigationSection[] = [
         roles: ["super_admin", "admin", "manager", "staff_gudang", "sales"],
       },
       {
-        title: "Analytics",
-        href: "/dashboard/analytics",
-        icon: ChartLine,
-        roles: ["super_admin", "admin", "manager"],
-      },
-      {
         title: "Mutasi",
         href: "/dashboard/laporan/mutasi",
         icon: ArrowLeftRight,
@@ -250,7 +244,7 @@ export function AppSidebar({ user, ...props }: AppSidebarProps) {
             >
               <Link href="/dashboard" className="flex items-center gap-2">
                 <LayoutDashboard className="h-5 w-5 text-blue-600" />
-                <span>Stocky</span>
+                <span>Inventory</span>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
@@ -284,7 +278,10 @@ export function AppSidebar({ user, ...props }: AppSidebarProps) {
                                 : "text-foreground hover:bg-accent hover:text-foreground"
                             )}
                           >
-                            <Link href={item.href} className="flex w-full items-center">
+                            <Link
+                              href={item.href}
+                              className="flex w-full items-center"
+                            >
                               <item.icon
                                 className={cn(
                                   "h-5 w-5",
@@ -343,7 +340,9 @@ export function AppSidebar({ user, ...props }: AppSidebarProps) {
           >
             <span className="font-semibold text-foreground">{user.name}</span>
             <span className="text-xs text-muted-foreground">{user.email}</span>
-            <span className="text-xs text-blue-600">{getRoleText(user.role)}</span>
+            <span className="text-xs text-blue-600">
+              {getRoleText(user.role)}
+            </span>
           </TooltipContent>
         </Tooltip>
 

@@ -1,8 +1,8 @@
-'use client'
+"use client";
 
-import { Sun, Moon, Bell, User, Settings, LogOut } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Separator } from '@/components/ui/separator'
+import { Sun, Moon, Bell, User, Settings, LogOut } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -10,27 +10,27 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
-import { Avatar, AvatarFallback } from '@/components/ui/avatar'
-import { SidebarTrigger } from '@/components/ui/sidebar'
-import { useTheme } from 'next-themes'
-import { signOut } from 'next-auth/react'
-import { getRoleText } from '@/lib/utils'
-import { NotificationBell } from './notifications/notification-system'
+} from "@/components/ui/dropdown-menu";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { SidebarTrigger } from "@/components/ui/sidebar";
+import { useTheme } from "next-themes";
+import { signOut } from "next-auth/react";
+import { getRoleText } from "@/lib/utils";
+import { NotificationBell } from "./notifications/notification-system";
 
 interface SiteHeaderProps {
   user: {
-    name: string
-    email: string
-    role: string
-  }
+    name: string;
+    email: string;
+    role: string;
+  };
 }
 
 export function SiteHeader({ user }: SiteHeaderProps) {
-  const { setTheme } = useTheme()
+  const { setTheme } = useTheme();
   const handleSignOut = () => {
-    signOut({ callbackUrl: '/auth/login' })
-  }
+    signOut({ callbackUrl: "/auth/login" });
+  };
 
   return (
     <header className="flex h-16 shrink-0 items-center gap-2 border-b bg-background transition-[width,height] ease-linear">
@@ -40,7 +40,7 @@ export function SiteHeader({ user }: SiteHeaderProps) {
           orientation="vertical"
           className="mx-2 data-[orientation=vertical]:h-6"
         />
-        <h1 className="text-base font-medium text-foreground">Stocky</h1>
+        <h1 className="text-base font-medium text-foreground">Inventory</h1>
         <div className="ml-auto flex items-center gap-2">
           {/* Theme Toggle */}
           <DropdownMenu>

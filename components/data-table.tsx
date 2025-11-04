@@ -108,12 +108,17 @@ import {
 
 export const schema = z.object({
   id: z.number(),
-  header: z.string(),
-  type: z.string(),
+  namaBarang: z.string(),
+  kode: z.string(),
+  kategori: z.string(),
+  gudang: z.string(),
+  stok: z.number(),
+  minStok: z.number(),
+  maxStok: z.optional().or(z.literal("")),
   status: z.string(),
-  target: z.string(),
-  limit: z.string(),
-  reviewer: z.string(),
+  satuan: z.string(),
+  hargaBeli: z.number(),
+  hargaJual: z.number(),
 })
 
 // Create a separate component for the drag handle
@@ -169,125 +174,108 @@ const columns: ColumnDef<z.infer<typeof schema>>[] = [
     enableHiding: false,
   },
   {
-    accessorKey: "header",
-    header: "Header",
+    accessorKey: "kode",
+    header: "Kode",
+    cell: ({ row }) => (
+      <div className="font-mono text-sm">{row.original.kode}</div>
+    ),
+  },
+  {
+    accessorKey: "namaBarang",
+    header: "Nama Barang",
     cell: ({ row }) => {
       return <TableCellViewer item={row.original} />
     },
     enableHiding: false,
   },
   {
-    accessorKey: "type",
-    header: "Section Type",
-    cell: ({ row }) => (
-      <div className="w-32">
-        <Badge variant="outline" className="text-muted-foreground px-1.5">
-          {row.original.type}
-        </Badge>
-      </div>
-    ),
-  },
-  {
-    accessorKey: "status",
-    header: "Status",
+    accessorKey: "kategori",
+    header: "Kategori",
     cell: ({ row }) => (
       <Badge variant="outline" className="text-muted-foreground px-1.5">
-        {row.original.status === "Done" ? (
-          <IconCircleCheckFilled className="fill-green-500 dark:fill-green-400" />
-        ) : (
-          <IconLoader />
-        )}
-        {row.original.status}
+        {row.original.kategori}
       </Badge>
     ),
   },
   {
-    accessorKey: "target",
-    header: () => <div className="w-full text-right">Target</div>,
+    accessorKey: "gudang",
+    header: "Gudang",
     cell: ({ row }) => (
-      <form
-        onSubmit={(e) => {
-          e.preventDefault()
-          toast.promise(new Promise((resolve) => setTimeout(resolve, 1000)), {
-            loading: `Saving ${row.original.header}`,
-            success: "Done",
-            error: "Error",
-          })
-        }}
-      >
-        <Label htmlFor={`${row.original.id}-target`} className="sr-only">
-          Target
-        </Label>
-        <Input
-          className="hover:bg-input/30 focus-visible:bg-background dark:hover:bg-input/30 dark:focus-visible:bg-input/30 h-8 w-16 border-transparent bg-transparent text-right shadow-none focus-visible:border dark:bg-transparent"
-          defaultValue={row.original.target}
-          id={`${row.original.id}-target`}
-        />
-      </form>
+      <div className="text-sm">{row.original.gudang}</div>
     ),
   },
   {
-    accessorKey: "limit",
-    header: () => <div className="w-full text-right">Limit</div>,
-    cell: ({ row }) => (
-      <form
-        onSubmit={(e) => {
-          e.preventDefault()
-          toast.promise(new Promise((resolve) => setTimeout(resolve, 1000)), {
-            loading: `Saving ${row.original.header}`,
-            success: "Done",
-            error: "Error",
-          })
-        }}
-      >
-        <Label htmlFor={`${row.original.id}-limit`} className="sr-only">
-          Limit
-        </Label>
-        <Input
-          className="hover:bg-input/30 focus-visible:bg-background dark:hover:bg-input/30 dark:focus-visible:bg-input/30 h-8 w-16 border-transparent bg-transparent text-right shadow-none focus-visible:border dark:bg-transparent"
-          defaultValue={row.original.limit}
-          id={`${row.original.id}-limit`}
-        />
-      </form>
-    ),
-  },
-  {
-    accessorKey: "reviewer",
-    header: "Reviewer",
+    accessorKey: "stok",
+    header: "Stok",
     cell: ({ row }) => {
-      const isAssigned = row.original.reviewer !== "Assign reviewer"
-
-      if (isAssigned) {
-        return row.original.reviewer
-      }
+      const stok = row.original.stok
+      const minStok = row.original.minStok
+      const status = stok === 0 ? "habis" : stok < minStok ? "rendah" : "aman"
 
       return (
-        <>
-          <Label htmlFor={`${row.original.id}-reviewer`} className="sr-only">
-            Reviewer
-          </Label>
-          <Select>
-            <SelectTrigger
-              className="w-38 **:data-[slot=select-value]:block **:data-[slot=select-value]:truncate"
-              size="sm"
-              id={`${row.original.id}-reviewer`}
-            >
-              <SelectValue placeholder="Assign reviewer" />
-            </SelectTrigger>
-            <SelectContent align="end">
-              <SelectItem value="Eddie Lake">Eddie Lake</SelectItem>
-              <SelectItem value="Jamik Tashpulatov">
-                Jamik Tashpulatov
-              </SelectItem>
-            </SelectContent>
-          </Select>
-        </>
+        <div className="text-right">
+          <div className={`font-semibold ${
+            status === "habis" ? "text-red-600" :
+            status === "rendah" ? "text-yellow-600" : "text-green-600"
+          }`}>
+            {stok} {row.original.satuan}
+          </div>
+          <div className="text-xs text-muted-foreground">
+            Min: {minStok} {row.original.satuan}
+          </div>
+        </div>
       )
     },
   },
   {
+    accessorKey: "status",
+    header: "Status",
+    cell: ({ row }) => {
+      const stok = row.original.stok
+      const minStok = row.original.minStok
+      const status = stok === 0 ? "habis" : stok < minStok ? "rendah" : "aman"
+
+      const statusConfig = {
+        habis: { color: "bg-red-100 text-red-800 border-red-200", icon: "❌", text: "Habis" },
+        rendah: { color: "bg-yellow-100 text-yellow-800 border-yellow-200", icon: "⚠️", text: "Rendah" },
+        aman: { color: "bg-green-100 text-green-800 border-green-200", icon: "✅", text: "Aman" }
+      }
+
+      const config = statusConfig[status as keyof typeof statusConfig]
+
+      return (
+        <Badge className={`${config.color} border`} variant="outline">
+          <span className="mr-1">{config.icon}</span>
+          {config.text}
+        </Badge>
+      )
+    },
+  },
+  {
+    accessorKey: "hargaBeli",
+    header: "Harga Beli",
+    cell: ({ row }) => (
+      <div className="text-right">
+        <div className="font-medium">
+          Rp {row.original.hargaBeli.toLocaleString("id-ID")}
+        </div>
+      </div>
+    ),
+  },
+  {
+    accessorKey: "hargaJual",
+    header: "Harga Jual",
+    cell: ({ row }) => (
+      <div className="text-right">
+        <div className="font-medium">
+          Rp {row.original.hargaJual.toLocaleString("id-ID")}
+        </div>
+      </div>
+    ),
+  },
+  {
     id: "actions",
-    cell: () => (
+    cell: ({ row }) => (
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button
@@ -299,12 +287,21 @@ const columns: ColumnDef<z.infer<typeof schema>>[] = [
             <span className="sr-only">Open menu</span>
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-32">
-          <DropdownMenuItem>Edit</DropdownMenuItem>
-          <DropdownMenuItem>Make a copy</DropdownMenuItem>
-          <DropdownMenuItem>Favorite</DropdownMenuItem>
+        <DropdownMenuContent align="end" className="w-40">
+          <DropdownMenuItem>
+            <IconTrendingUp className="w-4 h-4 mr-2" />
+            View History
+          </DropdownMenuItem>
+          <DropdownMenuItem>
+            Edit Stock
+          </DropdownMenuItem>
+          <DropdownMenuItem>
+            Add Stock
+          </DropdownMenuItem>
           <DropdownMenuSeparator />
-          <DropdownMenuItem variant="destructive">Delete</DropdownMenuItem>
+          <DropdownMenuItem variant="destructive">
+            Delete Item
+          </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
     ),
@@ -649,156 +646,138 @@ const chartConfig = {
 
 function TableCellViewer({ item }: { item: z.infer<typeof schema> }) {
   const isMobile = useIsMobile()
+  const stokStatus = item.stok === 0 ? "habis" : item.stok < item.minStok ? "rendah" : "aman"
+
+  const statusConfig = {
+    habis: { color: "text-red-600", bgColor: "bg-red-50", border: "border-red-200", icon: "❌", text: "Stok Habis" },
+    rendah: { color: "text-yellow-600", bgColor: "bg-yellow-50", border: "border-yellow-200", icon: "⚠️", text: "Stok Rendah" },
+    aman: { color: "text-green-600", bgColor: "bg-green-50", border: "border-green-200", icon: "✅", text: "Stok Aman" }
+  }
+
+  const status = statusConfig[stokStatus as keyof typeof statusConfig]
 
   return (
     <Drawer direction={isMobile ? "bottom" : "right"}>
       <DrawerTrigger asChild>
-        <Button variant="link" className="text-foreground w-fit px-0 text-left">
-          {item.header}
+        <Button variant="link" className="text-foreground w-fit px-0 text-left h-auto p-0">
+          <div>
+            <div className="font-medium">{item.namaBarang}</div>
+            <div className="text-xs text-muted-foreground">{item.kode}</div>
+          </div>
         </Button>
       </DrawerTrigger>
       <DrawerContent>
         <DrawerHeader className="gap-1">
-          <DrawerTitle>{item.header}</DrawerTitle>
+          <DrawerTitle className="flex items-center gap-2">
+            {item.namaBarang}
+            <Badge className={`${status.bgColor} ${status.color} ${status.border} border`} variant="outline">
+              <span className="mr-1">{status.icon}</span>
+              {status.text}
+            </Badge>
+          </DrawerTitle>
           <DrawerDescription>
-            Showing total visitors for the last 6 months
+            Kode: {item.kode} • Kategori: {item.kategori} • Gudang: {item.gudang}
           </DrawerDescription>
         </DrawerHeader>
-        <div className="flex flex-col gap-4 overflow-y-auto px-4 text-sm">
-          {!isMobile && (
-            <>
-              <ChartContainer config={chartConfig}>
-                <AreaChart
-                  accessibilityLayer
-                  data={chartData}
-                  margin={{
-                    left: 0,
-                    right: 10,
-                  }}
-                >
-                  <CartesianGrid vertical={false} />
-                  <XAxis
-                    dataKey="month"
-                    tickLine={false}
-                    axisLine={false}
-                    tickMargin={8}
-                    tickFormatter={(value) => value.slice(0, 3)}
-                    hide
-                  />
-                  <ChartTooltip
-                    cursor={false}
-                    content={<ChartTooltipContent indicator="dot" />}
-                  />
-                  <Area
-                    dataKey="mobile"
-                    type="natural"
-                    fill="var(--color-mobile)"
-                    fillOpacity={0.6}
-                    stroke="var(--color-mobile)"
-                    stackId="a"
-                  />
-                  <Area
-                    dataKey="desktop"
-                    type="natural"
-                    fill="var(--color-desktop)"
-                    fillOpacity={0.4}
-                    stroke="var(--color-desktop)"
-                    stackId="a"
-                  />
-                </AreaChart>
-              </ChartContainer>
-              <Separator />
-              <div className="grid gap-2">
-                <div className="flex gap-2 leading-none font-medium">
-                  Trending up by 5.2% this month{" "}
-                  <IconTrendingUp className="size-4" />
-                </div>
-                <div className="text-muted-foreground">
-                  Showing total visitors for the last 6 months. This is just
-                  some random text to test the layout. It spans multiple lines
-                  and should wrap around.
-                </div>
-              </div>
-              <Separator />
-            </>
-          )}
-          <form className="flex flex-col gap-4">
-            <div className="flex flex-col gap-3">
-              <Label htmlFor="header">Header</Label>
-              <Input id="header" defaultValue={item.header} />
+        <div className="flex flex-col gap-6 overflow-y-auto px-4 text-sm">
+          {/* Stock Information */}
+          <div className={`p-4 rounded-lg border ${status.bgColor} ${status.border}`}>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-semibold text-lg">Informasi Stok</h3>
+              <span className="text-2xl">{status.icon}</span>
             </div>
             <div className="grid grid-cols-2 gap-4">
-              <div className="flex flex-col gap-3">
-                <Label htmlFor="type">Type</Label>
-                <Select defaultValue={item.type}>
-                  <SelectTrigger id="type" className="w-full">
-                    <SelectValue placeholder="Select a type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Table of Contents">
-                      Table of Contents
-                    </SelectItem>
-                    <SelectItem value="Executive Summary">
-                      Executive Summary
-                    </SelectItem>
-                    <SelectItem value="Technical Approach">
-                      Technical Approach
-                    </SelectItem>
-                    <SelectItem value="Design">Design</SelectItem>
-                    <SelectItem value="Capabilities">Capabilities</SelectItem>
-                    <SelectItem value="Focus Documents">
-                      Focus Documents
-                    </SelectItem>
-                    <SelectItem value="Narrative">Narrative</SelectItem>
-                    <SelectItem value="Cover Page">Cover Page</SelectItem>
-                  </SelectContent>
-                </Select>
+              <div>
+                <div className="text-muted-foreground text-xs">Stok Saat Ini</div>
+                <div className={`text-2xl font-bold ${status.color}`}>
+                  {item.stok} <span className="text-sm font-normal">{item.satuan}</span>
+                </div>
               </div>
-              <div className="flex flex-col gap-3">
-                <Label htmlFor="status">Status</Label>
-                <Select defaultValue={item.status}>
-                  <SelectTrigger id="status" className="w-full">
-                    <SelectValue placeholder="Select a status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Done">Done</SelectItem>
-                    <SelectItem value="In Progress">In Progress</SelectItem>
-                    <SelectItem value="Not Started">Not Started</SelectItem>
-                  </SelectContent>
-                </Select>
+              <div>
+                <div className="text-muted-foreground text-xs">Stok Minimum</div>
+                <div className="text-xl font-semibold">
+                  {item.minStok} <span className="text-sm font-normal">{item.satuan}</span>
+                </div>
               </div>
             </div>
+            {item.maxStok && (
+              <div className="mt-3">
+                <div className="text-muted-foreground text-xs">Stok Maximum</div>
+                <div className="text-lg font-semibold">
+                  {item.maxStok} <span className="text-sm font-normal">{item.satuan}</span>
+                </div>
+              </div>
+            )}
+            {stokStatus === "rendah" && (
+              <div className="mt-3 p-2 bg-yellow-100 rounded text-yellow-800 text-xs">
+                🔄 Perlu restok {item.minStok - item.stok} {item.satuan} untuk mencapai stok minimum
+              </div>
+            )}
+            {stokStatus === "habis" && (
+              <div className="mt-3 p-2 bg-red-100 rounded text-red-800 text-xs">
+                🚨 Barang habis, perlu restok segera!
+              </div>
+            )}
+          </div>
+
+          {/* Pricing Information */}
+          <div className="p-4 rounded-lg border bg-gray-50">
+            <h3 className="font-semibold mb-3">Informasi Harga</h3>
             <div className="grid grid-cols-2 gap-4">
-              <div className="flex flex-col gap-3">
-                <Label htmlFor="target">Target</Label>
-                <Input id="target" defaultValue={item.target} />
+              <div>
+                <div className="text-muted-foreground text-xs">Harga Beli</div>
+                <div className="text-xl font-semibold text-blue-600">
+                  Rp {item.hargaBeli.toLocaleString("id-ID")}
+                </div>
               </div>
-              <div className="flex flex-col gap-3">
-                <Label htmlFor="limit">Limit</Label>
-                <Input id="limit" defaultValue={item.limit} />
+              <div>
+                <div className="text-muted-foreground text-xs">Harga Jual</div>
+                <div className="text-xl font-semibold text-green-600">
+                  Rp {item.hargaJual.toLocaleString("id-ID")}
+                </div>
               </div>
             </div>
-            <div className="flex flex-col gap-3">
-              <Label htmlFor="reviewer">Reviewer</Label>
-              <Select defaultValue={item.reviewer}>
-                <SelectTrigger id="reviewer" className="w-full">
-                  <SelectValue placeholder="Select a reviewer" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Eddie Lake">Eddie Lake</SelectItem>
-                  <SelectItem value="Jamik Tashpulatov">
-                    Jamik Tashpulatov
-                  </SelectItem>
-                  <SelectItem value="Emily Whalen">Emily Whalen</SelectItem>
-                </SelectContent>
-              </Select>
+            <div className="mt-3 pt-3 border-t">
+              <div className="text-muted-foreground text-xs">Margin</div>
+              <div className="text-lg font-semibold">
+                Rp {((item.hargaJual - item.hargaBeli)).toLocaleString("id-ID")}
+                <span className="text-sm font-normal text-muted-foreground ml-2">
+                  ({(((item.hargaJual - item.hargaBeli) / item.hargaJual) * 100).toFixed(1)}%)
+                </span>
+              </div>
             </div>
-          </form>
+            <div className="mt-2">
+              <div className="text-muted-foreground text-xs">Total Nilai Stok</div>
+              <div className="text-lg font-semibold text-purple-600">
+                Rp {(item.stok * item.hargaBeli).toLocaleString("id-ID")}
+              </div>
+            </div>
+          </div>
+
+          {/* Quick Actions */}
+          <div className="space-y-2">
+            <h3 className="font-semibold">Aksi Cepat</h3>
+            <div className="grid grid-cols-2 gap-2">
+              <Button variant="outline" size="sm" className="h-8">
+                <IconTrendingUp className="w-3 h-3 mr-1" />
+                Lihat Riwayat
+              </Button>
+              <Button variant="outline" size="sm" className="h-8">
+                Edit Stok
+              </Button>
+              <Button variant="outline" size="sm" className="h-8">
+                Tambah Stok
+              </Button>
+              <Button variant="outline" size="sm" className="h-8">
+                Buat PO
+              </Button>
+            </div>
+          </div>
         </div>
         <DrawerFooter>
-          <Button>Submit</Button>
+          <Button className="w-full">Lihat Detail Lengkap</Button>
           <DrawerClose asChild>
-            <Button variant="outline">Done</Button>
+            <Button variant="outline">Tutup</Button>
           </DrawerClose>
         </DrawerFooter>
       </DrawerContent>
