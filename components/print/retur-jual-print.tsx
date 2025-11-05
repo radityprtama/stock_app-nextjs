@@ -2,6 +2,7 @@ import React, { forwardRef, useImperativeHandle } from "react";
 import { useReactToPrint } from "react-to-print";
 import { format } from "date-fns";
 import { id } from "date-fns/locale";
+import { printStyles } from "./print-styles";
 type ReturJualPrintItem = {
   id: string;
   barang: {
@@ -344,6 +345,9 @@ const ReturJualPrint = forwardRef<ReturJualPrintRef, ReturJualPrintProps>(
             {format(new Date(), "dd MMMM yyyy HH:mm:ss", { locale: id })}
           </div>
         </div>
+
+        {/* Print Styles */}
+        <style jsx>{printStyles}</style>
       </div>
     );
   }

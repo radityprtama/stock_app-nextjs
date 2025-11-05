@@ -75,7 +75,7 @@ export async function GET(
       suratJalan.detail.map(async (item) => {
         // Skip stock check for custom items
         let stokBarang = null;
-        if (!item.isCustom && item.barangId) {
+        if (!(item as any).isCustom && item.barangId) {
           stokBarang = await prisma.stokBarang.findUnique({
             where: {
               barangId_gudangId: {
@@ -103,8 +103,8 @@ export async function GET(
 
         return {
           ...item,
-          currentStock: item.isCustom ? null : (stokBarang?.qty || 0),
-          stockStatus: item.isCustom ? 'custom_item' : (stokBarang ? (stokBarang.qty >= item.qty ? 'sufficient' : 'insufficient') : 'out_of_stock'),
+          currentStock: (item as any).isCustom ? null : (stokBarang?.qty || 0),
+          stockStatus: (item as any).isCustom ? 'custom_item' : (stokBarang ? (stokBarang.qty >= item.qty ? 'sufficient' : 'insufficient') : 'out_of_stock'),
           supplier
         }
       })
@@ -116,8 +116,8 @@ export async function GET(
       detail: itemsWithStock,
       dropshipSummary: {
         totalItems: itemsWithStock.length,
-        normalItems: itemsWithStock.filter(item => !item.isDropship && !item.isCustom).length,
-        customItems: itemsWithStock.filter(item => item.isCustom).length,
+        normalItems: itemsWithStock.filter(item => !item.isDropship && !(item as any).isCustom).length,
+        customItems: itemsWithStock.filter(item => (item as any).isCustom).length,
         dropshipItems: itemsWithStock.filter(item => item.isDropship).length,
         readyItems: itemsWithStock.filter(item => !item.isDropship && (item.stockStatus === 'sufficient' || item.stockStatus === 'custom_item')).length,
         pendingDropship: itemsWithStock.filter(item => item.isDropship && item.statusDropship !== 'received').length,
@@ -212,7 +212,7 @@ export async function PUT(
     // Calculate totals
     const totalQty = processedItems.reduce((sum, item) => sum + item.qty, 0)
     const totalNilai = processedItems.reduce((sum, item) => {
-      const harga = item.isCustom ? (item.customHarga || 0) : (item.hargaJual || 0)
+      const harga = (item as any).isCustom ? ((item as any).customHarga || 0) : (item.hargaJual || 0)
       return sum + (item.qty * harga)
     }, 0)
 
@@ -258,14 +258,13 @@ export async function PUT(
             suratJalanId: id,
             barangId: item.barangId,
             qty: item.qty,
-            hargaJual: item.isCustom ? (item.customHarga || 0) : item.hargaJual,
-            subtotal: item.qty * (item.isCustom ? (item.customHarga || 0) : item.hargaJual),
-            satuan: item.isCustom ? item.customSatuan : item.satuan,
-            isCustom: item.isCustom || false,
-            customKode: item.isCustom ? item.customKode : null,
-            customNama: item.isCustom ? item.customNama : null,
-            customSatuan: item.isCustom ? item.customSatuan : null,
-            customHarga: item.isCustom ? item.customHarga : null,
+            hargaJual: (item as any).isCustom ? ((item as any).customHarga || 0) : item.hargaJual,
+            subtotal: item.qty * ((item as any).isCustom ? ((item as any).customHarga || 0) : item.hargaJual),
+              isCustom: (item as any).isCustom || false,
+            customKode: (item as any).isCustom ? (item as any).customKode : null,
+            customNama: (item as any).isCustom ? (item as any).customNama : null,
+            customSatuan: (item as any).isCustom ? (item as any).customSatuan : null,
+            customHarga: (item as any).isCustom ? (item as any).customHarga : null,
             isDropship: item.isDropship,
             supplierId: item.supplierId,
             statusDropship: item.statusDropship,
@@ -429,7 +428,7 @@ async function checkStockAndDropship(items: any[], gudangId: string) {
   const processedItems = []
 
   for (const item of items) {
-    if (item.isCustom) {
+    if ((item as any).isCustom) {
       // Custom item - no stock checking, no dropship
       processedItems.push({
         ...item,

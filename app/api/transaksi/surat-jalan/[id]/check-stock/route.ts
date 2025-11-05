@@ -54,7 +54,7 @@ export async function POST(
     const stockCheckResults = await Promise.all(
       suratJalan.detail.map(async (detail) => {
         // Handle custom items (no stock check needed)
-        if (detail.isCustom) {
+        if ((detail as any).isCustom) {
           return {
             detailId: detail.id,
             barangId: null,
@@ -69,15 +69,15 @@ export async function POST(
             canFulfill: true,
             alternativeSuppliers: [],
             customItem: {
-              kode: detail.customKode,
-              nama: detail.customNama,
-              satuan: detail.customSatuan,
-              harga: Number(detail.customHarga),
+              kode: (detail as any).customKode,
+              nama: (detail as any).customNama,
+              satuan: (detail as any).customSatuan,
+              harga: Number((detail as any).customHarga),
               alias: detail.namaAlias
             },
             recommendations: [{
               type: 'success',
-              message: `Custom item ${detail.customNama} - tidak memerlukan validasi stok.`,
+              message: `Custom item ${(detail as any).customNama} - tidak memerlukan validasi stok.`,
               action: 'none'
             }]
           }

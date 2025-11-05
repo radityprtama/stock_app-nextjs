@@ -112,12 +112,17 @@ interface RecentActivity {
 
 interface TableRowData {
   id: number;
-  header: string;
-  type: string;
+  namaBarang: string;
+  kode: string;
+  kategori: string;
+  gudang: string;
+  stok: number;
+  minStok: number;
+  maxStok?: number | undefined;
   status: string;
-  target: string;
-  limit: string;
-  reviewer: string;
+  satuan: string;
+  hargaBeli: number;
+  hargaJual: number;
 }
 
 interface CategoryDistribution {
@@ -132,6 +137,7 @@ interface Golongan {
 
 interface Barang {
   id: string;
+  kode: string;
   nama: string;
   minStok: number;
   maxStok?: number;

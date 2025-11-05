@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import {
@@ -89,6 +89,7 @@ import {
   TooltipTrigger,
   Tooltip,
 } from "@/components/ui/tooltip";
+import BarangMasukPrint, { BarangMasukPrintRef } from "@/components/print/barang-masuk-print";
 
 interface BarangMasuk {
   id: string;
@@ -222,6 +223,7 @@ export default function BarangMasukPage() {
   const [items, setItems] = useState<FormData[]>([
     { barangId: "", qty: 1, harga: 0 },
   ]);
+  const printRef = useRef<BarangMasukPrintRef>(null);
 
   const {
     register,
@@ -667,84 +669,23 @@ export default function BarangMasukPage() {
   };
 
   const handlePrint = (barangMasuk: BarangMasuk) => {
-    const printContent = `
-      <html>
-        <head>
-          <title>Bukti Barang Masuk - ${barangMasuk.noDokumen}</title>
-          <style>
-            body { font-family: Arial, sans-serif; padding: 20px; }
-            .header { text-align: center; margin-bottom: 30px; }
-            .info { margin-bottom: 20px; }
-            .table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
-            .table th, .table td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-            .table th { background-color: #f2f2f2; }
-            .total { text-align: right; font-weight: bold; }
-            .footer { margin-top: 50px; text-align: center; }
-          </style>
-        </head>
-        <body>
-          <div class="header">
-            <h1>Bukti Barang Masuk</h1>
-            <h2>${barangMasuk.noDokumen}</h2>
-            <p>${formatDate(barangMasuk.tanggal)}</p>
-          </div>
-
-          <div class="info">
-            <p><strong>Supplier:</strong> ${barangMasuk.supplier.kode} - ${barangMasuk.supplier.nama}</p>
-            <p><strong>Gudang:</strong> ${barangMasuk.gudang.kode} - ${barangMasuk.gudang.nama}</p>
-            ${barangMasuk.keterangan ? `<p><strong>Keterangan:</strong> ${barangMasuk.keterangan}</p>` : ""}
-          </div>
-
-          <table class="table">
-            <thead>
-              <tr>
-                <th>No</th>
-                <th>Kode Barang</th>
-                <th>Nama Barang</th>
-                <th>Qty</th>
-                <th>Harga</th>
-                <th>Subtotal</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${barangMasuk.detail
-                .map(
-                  (item, index) => `
-                <tr>
-                  <td>${index + 1}</td>
-                  <td>${item.barang.kode}</td>
-                  <td>${item.barang.nama}</td>
-                  <td>${item.qty} ${item.barang.satuan}</td>
-                  <td>${formatCurrency(Number(item.harga))}</td>
-                  <td>${formatCurrency(Number(item.subtotal))}</td>
-                </tr>
-              `
-                )
-                .join("")}
-            </tbody>
-            <tfoot>
-              <tr>
-                <td colspan="5" class="total">Total:</td>
-                <td class="total">${formatCurrency(Number(barangMasuk.totalNilai))}</td>
-              </tr>
-            </tfoot>
-          </table>
-
-          <div class="footer">
-            <p>Document printed on ${new Date().toLocaleString("id-ID")}</p>
-          </div>
-        </body>
-      </html>
-    `;
-
-    const printWindow = window.open("", "_blank");
-    if (printWindow) {
-      printWindow.document.write(printContent);
-      printWindow.document.close();
-      printWindow.print();
+    if (barangMasuk.status !== "posted") {
+      toast.error("Hanya transaksi yang sudah diposting yang bisa dicetak");
+      return;
     }
+
+    // Update viewing data if needed and trigger print
+    if (!viewingBarangMasuk || viewingBarangMasuk.id !== barangMasuk.id) {
+      setViewingBarangMasuk(barangMasuk);
+    }
+
+    // Trigger print via ref after a small delay to ensure component is updated
+    setTimeout(() => {
+      printRef.current?.print();
+    }, 100);
   };
 
+  
   return (
     <div className="space-y-6">
       <div>
@@ -754,19 +695,18 @@ export default function BarangMasukPage() {
         </p>
       </div>
 
-      <Tabs defaultValue="browse" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="browse">
-            <Package className="mr-2 h-4 w-4" />
-            Browse Data
-          </TabsTrigger>
-          <TabsTrigger value="input">
-            <Plus className="mr-2 h-4 w-4" />
-            Input Transaksi
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="browse" className="space-y-4">
+      <div className="flex justify-between items-center">
+        <div>
+          <h2 className="text-2xl font-bold tracking-tight">Data Barang Masuk</h2>
+          <p className="text-muted-foreground">
+            Kelola transaksi penerimaan barang dari supplier
+          </p>
+        </div>
+        <Button onClick={openAddDialog} className="bg-blue-600 hover:bg-blue-700">
+          <Plus className="mr-2 h-4 w-4" />
+          Input Barang Masuk Baru
+        </Button>
+      </div>
           {/* Statistics Cards */}
           <div className="w-full overflow-hidden">
             <div
@@ -1142,9 +1082,9 @@ export default function BarangMasukPage() {
                       <p className="text-gray-500 mb-4">
                         Mulai dengan membuat transaksi Barang Masuk pertama
                       </p>
-                      <Button onClick={openAddDialog}>
+                      <Button onClick={openAddDialog} className="bg-blue-600 hover:bg-blue-700">
                         <Plus className="mr-2 h-4 w-4" />
-                        Barang Masuk Baru
+                        Input Barang Masuk Baru
                       </Button>
                     </div>
                   )}
@@ -1191,264 +1131,13 @@ export default function BarangMasukPage() {
               )}
             </CardContent>
           </Card>
-        </TabsContent>
-
-        <TabsContent value="input" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Input Transaksi Barang Masuk Baru</CardTitle>
-              <CardDescription>
-                Buat transaksi penerimaan barang dari supplier
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-                <div className="grid gap-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="grid gap-2">
-                      <Label htmlFor="supplierId-input">Supplier</Label>
-                      <Select
-                        value={watchedValues.supplierId}
-                        onValueChange={(value) => setValue("supplierId", value)}
-                        disabled={submitting}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Pilih Supplier" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {suppliers.map((supplier) => (
-                            <SelectItem key={supplier.id} value={supplier.id}>
-                              {supplier.kode} - {supplier.nama}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      {errors.supplierId && (
-                        <p className="text-sm text-red-600">
-                          {errors.supplierId.message}
-                        </p>
-                      )}
-                    </div>
-                    <div className="grid gap-2">
-                      <Label htmlFor="gudangId-input">Gudang</Label>
-                      <Select
-                        value={watchedValues.gudangId}
-                        onValueChange={(value) => setValue("gudangId", value)}
-                        disabled={submitting}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Pilih Gudang" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {gudangs.map((gudang) => (
-                            <SelectItem key={gudang.id} value={gudang.id}>
-                              {gudang.kode} - {gudang.nama}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      {errors.gudangId && (
-                        <p className="text-sm text-red-600">
-                          {errors.gudangId.message}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="grid gap-2">
-                      <Label>Tanggal</Label>
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <Button
-                            variant="outline"
-                            className="justify-start text-left font-normal"
-                            disabled={submitting}
-                          >
-                            <CalendarIcon className="mr-2 h-4 w-4" />
-                            {watchedValues.tanggal
-                              ? format(
-                                  watchedValues.tanggal instanceof Date
-                                    ? watchedValues.tanggal
-                                    : new Date(watchedValues.tanggal as any),
-                                  "dd MMM yyyy",
-                                  {
-                                    locale: idLocale,
-                                  }
-                                )
-                              : "Pilih tanggal"}
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                          <Calendar
-                            mode="single"
-                            selected={watchedValues.tanggal as Date}
-                            onSelect={(date) =>
-                              setValue("tanggal", date || new Date())
-                            }
-                            locale={idLocale}
-                          />
-                        </PopoverContent>
-                      </Popover>
-                      {errors.tanggal && (
-                        <p className="text-sm text-red-600">
-                          {errors.tanggal.message}
-                        </p>
-                      )}
-                    </div>
-                    <div className="grid gap-2">
-                      <Label htmlFor="keterangan-input">Keterangan</Label>
-                      <Input
-                        id="keterangan-input"
-                        {...register("keterangan")}
-                        placeholder="Opsional"
-                        disabled={submitting}
-                      />
-                      {errors.keterangan && (
-                        <p className="text-sm text-red-600">
-                          {errors.keterangan.message}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Items Section */}
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <Label className="text-base font-semibold">
-                        Detail Barang
-                      </Label>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={addItem}
-                      >
-                        <Plus className="h-4 w-4 mr-1" />
-                        Tambah Item
-                      </Button>
-                    </div>
-
-                    <div className="space-y-2">
-                      {items.map((item, index) => (
-                        <div
-                          key={index}
-                          className="grid grid-cols-12 gap-2 items-end"
-                        >
-                          <div className="col-span-5">
-                            <Label>Barang</Label>
-                            <Select
-                              value={item.barangId}
-                              onValueChange={(value) =>
-                                updateItem(index, "barangId", value)
-                              }
-                              disabled={submitting}
-                            >
-                              <SelectTrigger>
-                                <SelectValue placeholder="Pilih Barang" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {barangs.map((barang) => (
-                                  <SelectItem key={barang.id} value={barang.id}>
-                                    {barang.kode} - {barang.nama}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
-                          <div className="col-span-2">
-                            <Label>Qty</Label>
-                            <Input
-                              type="number"
-                              min="1"
-                              value={item.qty}
-                              onChange={(e) =>
-                                updateItem(index, "qty", e.target.value)
-                              }
-                              disabled={submitting}
-                            />
-                          </div>
-                          <div className="col-span-2">
-                            <Label>Harga</Label>
-                            <Input
-                              type="number"
-                              min="0"
-                              step="0.01"
-                              value={item.harga}
-                              onChange={(e) =>
-                                updateItem(index, "harga", e.target.value)
-                              }
-                              disabled={submitting}
-                            />
-                          </div>
-                          <div className="col-span-2">
-                            <Label>Subtotal</Label>
-                            <div className="flex items-center h-10 px-3 py-2 rounded-md border bg-gray-50">
-                              <span className="text-sm font-medium">
-                                {formatCurrency(calculateSubtotal(item))}
-                              </span>
-                            </div>
-                          </div>
-                          <div className="col-span-1">
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              onClick={() => removeItem(index)}
-                              disabled={items.length === 1 || submitting}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Grand Total */}
-                  <div className="border-t pt-4">
-                    <div className="flex justify-between items-center">
-                      <span className="text-lg font-semibold">
-                        Grand Total:
-                      </span>
-                      <span className="text-xl font-bold text-green-600">
-                        {formatCurrency(calculateGrandTotal())}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex justify-end space-x-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => {
-                      reset({
-                        ...defaultBarangMasukFormValues,
-                        tanggal: new Date(),
-                      });
-                      setItems([{ barangId: "", qty: 1, harga: 0 }]);
-                    }}
-                    disabled={submitting}
-                  >
-                    Reset
-                  </Button>
-                  <Button type="submit" disabled={submitting}>
-                    {submitting ? "Menyimpan..." : "Simpan Transaksi"}
-                  </Button>
-                </div>
-              </form>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
 
       {/* Add/Edit Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
-              {editingBarangMasuk ? "Edit Barang Masuk" : "Barang Masuk Baru"}
+              {editingBarangMasuk ? "Edit Barang Masuk" : "Input Barang Masuk Baru"}
             </DialogTitle>
             <DialogDescription>
               {editingBarangMasuk
@@ -1457,7 +1146,7 @@ export default function BarangMasukPage() {
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleSubmit(onSubmit)}>
-            <div className="grid gap-4 py-4">
+            <div className="grid gap-6 py-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="grid gap-2">
                   <Label htmlFor="supplierId">Supplier</Label>
@@ -1583,7 +1272,7 @@ export default function BarangMasukPage() {
                   </Button>
                 </div>
 
-                <div className="space-y-2">
+                <div className="space-y-2 max-h-64 overflow-y-auto">
                   {items.map((item, index) => (
                     <div
                       key={index}
@@ -1859,6 +1548,17 @@ export default function BarangMasukPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Print Component */}
+      {viewingBarangMasuk && (
+        <BarangMasukPrint
+          ref={printRef}
+          data={viewingBarangMasuk}
+          onPrintComplete={() => {
+            toast.success("Dokumen berhasil dicetak");
+          }}
+        />
+      )}
     </div>
   );
 }

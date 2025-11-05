@@ -2,27 +2,58 @@ import React, { forwardRef, useImperativeHandle } from "react";
 import { useReactToPrint } from "react-to-print";
 import { format } from "date-fns";
 import { id } from "date-fns/locale";
-import type { DeliveryOrderWithDetails } from "@/src/types";
 import { printStyles } from "./print-styles";
 
-interface DeliveryOrderPrintProps {
-  data: DeliveryOrderWithDetails;
+interface BarangMasukPrintData {
+  id: string;
+  noDokumen: string;
+  tanggal: string;
+  supplier: {
+    id: string;
+    kode: string;
+    nama: string;
+  };
+  gudang: {
+    id: string;
+    kode: string;
+    nama: string;
+  };
+  totalQty: number;
+  totalNilai: number;
+  keterangan?: string;
+  status: "draft" | "posted" | "cancelled";
+  detail: Array<{
+    id: string;
+    barang: {
+      id: string;
+      kode: string;
+      nama: string;
+      satuan: string;
+    };
+    qty: number;
+    harga: number;
+    subtotal: number;
+  }>;
+}
+
+interface BarangMasukPrintProps {
+  data: BarangMasukPrintData;
   onPrintComplete?: () => void;
 }
 
-export interface DeliveryOrderPrintRef {
+export interface BarangMasukPrintRef {
   print: () => void;
 }
 
-const DeliveryOrderPrint = forwardRef<
-  DeliveryOrderPrintRef,
-  DeliveryOrderPrintProps
+const BarangMasukPrint = forwardRef<
+  BarangMasukPrintRef,
+  BarangMasukPrintProps
 >(({ data, onPrintComplete }, ref) => {
   const componentRef = React.useRef<HTMLDivElement | null>(null);
 
   const handlePrint = useReactToPrint({
     contentRef: componentRef,
-    documentTitle: `Delivery Order - ${data.noDO}`,
+    documentTitle: `Barang Masuk - ${data.noDokumen}`,
     onAfterPrint: () => {
       onPrintComplete?.();
     },
@@ -59,8 +90,20 @@ const DeliveryOrderPrint = forwardRef<
     print: handlePrint,
   }));
 
-  const calculateTotalQty = () => {
-    return data.detail.reduce((total, item) => total + item.qty, 0);
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat("id-ID", {
+      style: "currency",
+      currency: "IDR",
+      minimumFractionDigits: 0,
+    }).format(amount);
+  };
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString("id-ID", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    });
   };
 
   return (
@@ -78,99 +121,45 @@ const DeliveryOrderPrint = forwardRef<
         </div>
 
         {/* Document Title */}
-        <div className="document-title">DELIVERY ORDER</div>
+        <div className="document-title">BUKTI BARANG MASUK</div>
 
         {/* Document Number and Date */}
-        <div className="delivery-order-info">
-          <div className="delivery-order-title">Nomor: {data.noDO}</div>
-          <div className="info-row" style={{ marginTop: "10px" }}>
-            <span className="info-label">Tanggal:</span>
-            <span className="info-value">
-              {format(new Date(data.tanggal), "dd MMMM yyyy", { locale: id })}
-            </span>
-          </div>
-        </div>
-
-        {/* Delivery Information */}
         <div className="document-info">
           <div className="info-grid">
             <div className="info-row">
-              <span className="info-label">Gudang Asal:</span>
-              <span className="info-value">{data.gudangAsal.nama}</span>
+              <span className="info-label">Nomor Dokumen:</span>
+              <span className="info-value">{data.noDokumen}</span>
             </div>
             <div className="info-row">
-              <span className="info-label">Gudang Tujuan:</span>
-              <span className="info-value">{data.gudangTujuan}</span>
-            </div>
-            <div className="info-row">
-              <span className="info-label">Alamat Gudang Asal:</span>
-              <span className="info-value">{data.gudangAsal.alamat}</span>
-            </div>
-            <div className="info-row">
-              <span className="info-label">Telepon Gudang:</span>
+              <span className="info-label">Tanggal:</span>
               <span className="info-value">
-                {data.gudangAsal.telepon || "-"}
+                {format(new Date(data.tanggal), "dd MMMM yyyy", { locale: id })}
               </span>
             </div>
             <div className="info-row">
-              <span className="info-label">PIC Gudang:</span>
-              <span className="info-value">{data.gudangAsal.pic || "-"}</span>
+              <span className="info-label">Supplier:</span>
+              <span className="info-value">
+                {data.supplier.kode} - {data.supplier.nama}
+              </span>
             </div>
             <div className="info-row">
-              <span className="info-label">Nama Supir:</span>
-              <span className="info-value">{data.namaSupir}</span>
-            </div>
-            <div className="info-row">
-              <span className="info-label">No. Polisi:</span>
-              <span className="info-value">{data.nopolKendaraan}</span>
+              <span className="info-label">Gudang:</span>
+              <span className="info-value">
+                {data.gudang.kode} - {data.gudang.nama}
+              </span>
             </div>
             <div className="info-row">
               <span className="info-label">Status:</span>
               <span className="info-value">
                 {data.status === "draft"
                   ? "Draft"
-                  : data.status === "in_transit"
-                    ? "Dalam Perjalanan"
-                    : data.status === "delivered"
-                      ? "Terkirim"
-                      : "Dibatalkan"}
+                  : data.status === "posted"
+                    ? "Posted"
+                    : "Cancelled"}
               </span>
             </div>
           </div>
         </div>
-
-        {/* Items Table */}
-        <table className="data-table">
-          <thead>
-            <tr>
-              <th>No</th>
-              <th>Nama Barang</th>
-              <th>Satuan</th>
-              <th>Qty</th>
-              <th>Keterangan</th>
-            </tr>
-          </thead>
-          <tbody>
-            {data.detail.map((item, index) => (
-              <tr key={item.id}>
-                <td>{index + 1}</td>
-                <td className="bold">{item.namaBarang}</td>
-                <td className="center">{item.satuan}</td>
-                <td className="center">{item.qty}</td>
-                <td>{item.keterangan || "-"}</td>
-              </tr>
-            ))}
-          </tbody>
-          <tfoot>
-            <tr className="summary-row">
-              <td colSpan={3} className="bold">
-                TOTAL
-              </td>
-              <td className="center bold">{calculateTotalQty()}</td>
-              <td>-</td>
-            </tr>
-          </tfoot>
-        </table>
 
         {/* Notes */}
         {data.keterangan && (
@@ -180,30 +169,54 @@ const DeliveryOrderPrint = forwardRef<
           </div>
         )}
 
-        {/* Timeline Information */}
+        {/* Items Table */}
+        <table className="data-table">
+          <thead>
+            <tr>
+              <th>No</th>
+              <th>Kode Barang</th>
+              <th>Nama Barang</th>
+              <th>Satuan</th>
+              <th>Qty</th>
+              <th>Harga</th>
+              <th>Subtotal</th>
+            </tr>
+          </thead>
+          <tbody>
+            {data.detail.map((item, index) => (
+              <tr key={item.id}>
+                <td>{index + 1}</td>
+                <td>{item.barang.kode}</td>
+                <td className="bold">{item.barang.nama}</td>
+                <td className="center">{item.barang.satuan}</td>
+                <td className="center">{item.qty}</td>
+                <td className="right">{formatCurrency(Number(item.harga))}</td>
+                <td className="right bold">{formatCurrency(Number(item.subtotal))}</td>
+              </tr>
+            ))}
+          </tbody>
+          <tfoot>
+            <tr className="summary-row">
+              <td colSpan={4} className="bold">
+                TOTAL
+              </td>
+              <td className="center bold">{data.totalQty}</td>
+              <td>-</td>
+              <td className="right bold">{formatCurrency(Number(data.totalNilai))}</td>
+            </tr>
+          </tfoot>
+        </table>
+
+        {/* Summary Information */}
         <div className="document-info" style={{ marginTop: "20px" }}>
           <div className="info-grid">
             <div className="info-row">
-              <span className="info-label">Tanggal Berangkat:</span>
-              <span className="info-value">
-                {data.tanggalBerangkat
-                  ? format(
-                      new Date(data.tanggalBerangkat),
-                      "dd MMMM yyyy HH:mm",
-                      { locale: id }
-                    )
-                  : "Belum berangkat"}
-              </span>
+              <span className="info-label">Total Quantity:</span>
+              <span className="info-value">{data.totalQty} unit</span>
             </div>
             <div className="info-row">
-              <span className="info-label">Tanggal Sampai:</span>
-              <span className="info-value">
-                {data.tanggalSampai
-                  ? format(new Date(data.tanggalSampai), "dd MMMM yyyy HH:mm", {
-                      locale: id,
-                    })
-                  : "Belum sampai"}
-              </span>
+              <span className="info-label">Total Nilai:</span>
+              <span className="info-value">{formatCurrency(Number(data.totalNilai))}</span>
             </div>
             <div className="info-row">
               <span className="info-label">Dibuat Oleh:</span>
@@ -212,9 +225,7 @@ const DeliveryOrderPrint = forwardRef<
             <div className="info-row">
               <span className="info-label">Tanggal Dibuat:</span>
               <span className="info-value">
-                {format(new Date(data.createdAt), "dd MMMM yyyy HH:mm", {
-                  locale: id,
-                })}
+                {format(new Date(), "dd MMMM yyyy HH:mm:ss", { locale: id })}
               </span>
             </div>
           </div>
@@ -223,17 +234,17 @@ const DeliveryOrderPrint = forwardRef<
         {/* Signature Section */}
         <div className="signature-section">
           <div className="signature-box">
-            <div className="signature-title">Gudang Asal</div>
+            <div className="signature-title">Supplier</div>
             <div className="signature-line"></div>
             <div className="signature-name">
-              {data.gudangAsal.pic || "________________"}
+              {data.supplier.nama || "________________"}
             </div>
           </div>
 
           <div className="signature-box">
-            <div className="signature-title">Supir</div>
+            <div className="signature-title">Gudang</div>
             <div className="signature-line"></div>
-            <div className="signature-name">{data.namaSupir}</div>
+            <div className="signature-name">________________</div>
           </div>
 
           <div className="signature-box">
@@ -254,7 +265,7 @@ const DeliveryOrderPrint = forwardRef<
             <br />
             2. Pastikan kondisi barang baik saat diterima
             <br />
-            3. Tanda tangani dokumen ini sebagai bukti serah terima
+            3. Tanda tangani dokumen ini sebagai bukti penerimaan
             <br />
             4. Laporkan segera jika ada barang yang rusak atau tidak sesuai
           </div>
@@ -262,7 +273,7 @@ const DeliveryOrderPrint = forwardRef<
 
         {/* Footer */}
         <div className="document-footer">
-          Dokumen ini adalah bukti pengiriman antar gudang yang sah dan harus
+          Dokumen ini adalah bukti penerimaan barang dari supplier yang sah dan harus
           ditandatangani oleh pihak terkait.
           <br />
           Dokumen ini dicetak pada{" "}
@@ -276,6 +287,6 @@ const DeliveryOrderPrint = forwardRef<
   );
 });
 
-DeliveryOrderPrint.displayName = "DeliveryOrderPrint";
+BarangMasukPrint.displayName = "BarangMasukPrint";
 
-export default DeliveryOrderPrint;
+export default BarangMasukPrint;

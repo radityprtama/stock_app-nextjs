@@ -17,6 +17,7 @@ import { useTheme } from "next-themes";
 import { signOut } from "next-auth/react";
 import { getRoleText } from "@/lib/utils";
 import { NotificationBell } from "./notifications/notification-system";
+import { usePathname } from "next/navigation";
 
 interface SiteHeaderProps {
   user: {
@@ -28,6 +29,38 @@ interface SiteHeaderProps {
 
 export function SiteHeader({ user }: SiteHeaderProps) {
   const { setTheme } = useTheme();
+  const pathname = usePathname();
+
+  const getPageTitle = () => {
+    if (pathname === "/dashboard") return "Dashboard";
+    if (pathname.startsWith("/dashboard/master")) {
+      const masterType = pathname.split("/")[3];
+      switch (masterType) {
+        case "barang": return "Master Barang";
+        case "supplier": return "Master Supplier";
+        case "customer": return "Master Customer";
+        case "golongan": return "Master Golongan";
+        case "gudang": return "Master Gudang";
+        default: return "Master Data";
+      }
+    }
+    if (pathname.startsWith("/dashboard/transaksi")) {
+      const transaksiType = pathname.split("/")[3];
+      switch (transaksiType) {
+        case "barang-masuk": return "Barang Masuk";
+        case "delivery-order": return "Delivery Order";
+        case "surat-jalan": return "Surat Jalan";
+        case "retur-beli": return "Retur Pembelian";
+        case "retur-jual": return "Retur Penjualan";
+        default: return "Transaksi";
+      }
+    }
+    if (pathname.startsWith("/dashboard/laporan")) return "Laporan";
+    if (pathname.startsWith("/dashboard/analytics")) return "Analytics";
+    if (pathname.startsWith("/dashboard/settings")) return "Pengaturan";
+    return "Inventory";
+  };
+
   const handleSignOut = () => {
     signOut({ callbackUrl: "/auth/login" });
   };
@@ -40,7 +73,7 @@ export function SiteHeader({ user }: SiteHeaderProps) {
           orientation="vertical"
           className="mx-2 data-[orientation=vertical]:h-6"
         />
-        <h1 className="text-base font-medium text-foreground">Inventory</h1>
+        <h1 className="text-base font-medium text-foreground">{getPageTitle()}</h1>
         <div className="ml-auto flex items-center gap-2">
           {/* Theme Toggle */}
           <DropdownMenu>

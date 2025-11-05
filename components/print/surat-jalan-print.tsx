@@ -2,6 +2,7 @@ import React, { forwardRef, useImperativeHandle } from "react";
 import { useReactToPrint } from "react-to-print";
 import { format } from "date-fns";
 import { id } from "date-fns/locale";
+import { printStyles } from "./print-styles";
 type SuratJalanPrintDetail = {
   id: string;
   barang?: {
@@ -318,6 +319,9 @@ const SuratJalanPrint = forwardRef<SuratJalanPrintRef, SuratJalanPrintProps>(
             {format(new Date(), "dd MMMM yyyy HH:mm:ss", { locale: id })}
           </div>
         </div>
+
+        {/* Print Styles */}
+        <style jsx>{printStyles}</style>
       </div>
     );
   }

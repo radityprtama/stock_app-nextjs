@@ -42,7 +42,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Popover,
   PopoverContent,
@@ -669,26 +668,18 @@ export default function ReturJualPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Retur Jual</h1>
-        <p className="text-muted-foreground">
-          Kelola transaksi pengembalian barang dari customer
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Retur Jual</h1>
+          <p className="text-muted-foreground">
+            Kelola transaksi pengembalian barang dari customer
+          </p>
+        </div>
+        <Button onClick={openAddDialog}>
+          <Plus className="mr-2 h-4 w-4" />
+          Input Retur Jual Baru
+        </Button>
       </div>
-
-      <Tabs defaultValue="browse" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="browse">
-            <Package className="mr-2 h-4 w-4" />
-            Browse Data
-          </TabsTrigger>
-          <TabsTrigger value="input">
-            <Plus className="mr-2 h-4 w-4" />
-            Input Transaksi
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="browse" className="space-y-4">
           {/* Statistics Cards */}
           <div className="w-full overflow-hidden">
             <div
@@ -1110,308 +1101,10 @@ export default function ReturJualPage() {
               )}
             </CardContent>
           </Card>
-        </TabsContent>
-
-        <TabsContent value="input" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Input Transaksi Retur Jual Baru</CardTitle>
-              <CardDescription>
-                Buat transaksi pengembalian barang dari customer
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-                <div className="grid gap-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="grid gap-2">
-                      <Label htmlFor="customerId-input">Customer</Label>
-                      <Select
-                        value={watchedValues.customerId}
-                        onValueChange={(value) => setValue("customerId", value)}
-                        disabled={submitting}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Pilih Customer" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {customers.map((customer) => (
-                            <SelectItem key={customer.id} value={customer.id}>
-                              {customer.kode} - {customer.nama}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      {errors.customerId && (
-                        <p className="text-sm text-red-600">
-                          {errors.customerId.message}
-                        </p>
-                      )}
-                    </div>
-                    <div className="grid gap-2">
-                      <Label>Tanggal</Label>
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <Button
-                            variant="outline"
-                            className="justify-start text-left font-normal"
-                            disabled={submitting}
-                          >
-                            <CalendarIcon className="mr-2 h-4 w-4" />
-                            {watchedValues.tanggal
-                              ? format(
-                                  watchedValues.tanggal instanceof Date
-                                    ? watchedValues.tanggal
-                                    : new Date(watchedValues.tanggal as any),
-                                  "dd MMM yyyy",
-                                  { locale: idLocale }
-                                )
-                              : "Pilih tanggal"}
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                          <Calendar
-                            mode="single"
-                            selected={watchedValues.tanggal as Date}
-                            onSelect={(date) =>
-                              setValue("tanggal", date || new Date())
-                            }
-                            locale={idLocale}
-                          />
-                        </PopoverContent>
-                      </Popover>
-                      {errors.tanggal && (
-                        <p className="text-sm text-red-600">
-                          {errors.tanggal.message}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="grid gap-2">
-                      <Label htmlFor="suratJalanId-input">
-                        Ref. Surat Jalan (Opsional)
-                      </Label>
-                      <Select
-                        value={watchedValues.suratJalanId || "none"}
-                        onValueChange={(value) =>
-                          setValue(
-                            "suratJalanId",
-                            value === "none" ? undefined : value
-                          )
-                        }
-                        disabled={submitting}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Pilih Surat Jalan" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="none">Tanpa Referensi</SelectItem>
-                          {suratJalanList.map((suratJalan) => (
-                            <SelectItem
-                              key={suratJalan.id}
-                              value={suratJalan.id}
-                            >
-                              {suratJalan.noSJ} - {suratJalan.customer.nama}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      {errors.suratJalanId && (
-                        <p className="text-sm text-red-600">
-                          {errors.suratJalanId.message}
-                        </p>
-                      )}
-                    </div>
-                    <div className="grid gap-2">
-                      <Label htmlFor="alasan-input">Alasan Retur</Label>
-                      <Textarea
-                        id="alasan-input"
-                        {...register("alasan")}
-                        placeholder="Jelaskan alasan pengembalian barang"
-                        disabled={submitting}
-                      />
-                      {errors.alasan && (
-                        <p className="text-sm text-red-600">
-                          {errors.alasan.message}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Items Section */}
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <Label className="text-base font-semibold">
-                        Detail Barang
-                      </Label>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={addItem}
-                      >
-                        <Plus className="h-4 w-4 mr-1" />
-                        Tambah Item
-                      </Button>
-                    </div>
-
-                    <div className="space-y-2">
-                      {items.map((item, index) => (
-                        <div
-                          key={index}
-                          className="grid grid-cols-13 gap-2 items-end border rounded-lg p-3"
-                        >
-                          <div className="col-span-3">
-                            <Label>Barang</Label>
-                            <Select
-                              value={item.barangId}
-                              onValueChange={(value) =>
-                                updateItem(index, "barangId", value)
-                              }
-                              disabled={submitting}
-                            >
-                              <SelectTrigger>
-                                <SelectValue placeholder="Pilih Barang" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {barangs.map((barang) => (
-                                  <SelectItem key={barang.id} value={barang.id}>
-                                    {barang.kode} - {barang.nama}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
-                          <div className="col-span-1">
-                            <Label>Qty</Label>
-                            <Input
-                              type="number"
-                              min="1"
-                              value={item.qty}
-                              onChange={(e) =>
-                                updateItem(index, "qty", e.target.value)
-                              }
-                              disabled={submitting}
-                            />
-                          </div>
-                          <div className="col-span-2">
-                            <Label>Harga</Label>
-                            <Input
-                              type="number"
-                              min="0"
-                              step="0.01"
-                              value={item.harga}
-                              onChange={(e) =>
-                                updateItem(index, "harga", e.target.value)
-                              }
-                              disabled={submitting}
-                            />
-                          </div>
-                          <div className="col-span-2">
-                            <Label>Kondisi</Label>
-                            <Select
-                              value={item.kondisi}
-                              onValueChange={(
-                                value: "bisa_dijual_lagi" | "rusak_total"
-                              ) => updateItem(index, "kondisi", value)}
-                              disabled={submitting}
-                            >
-                              <SelectTrigger>
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="bisa_dijual_lagi">
-                                  Bisa Dijual Lagi
-                                </SelectItem>
-                                <SelectItem value="rusak_total">
-                                  Rusak Total
-                                </SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-                          <div className="col-span-3">
-                            <Label>Alasan Item</Label>
-                            <Input
-                              value={item.alasan}
-                              onChange={(e) =>
-                                updateItem(index, "alasan", e.target.value)
-                              }
-                              placeholder="Rusak, Tidak sesuai, dll"
-                              disabled={submitting}
-                            />
-                          </div>
-                          <div className="col-span-2">
-                            <Label>Subtotal</Label>
-                            <div className="flex items-center h-10 px-3 py-2 rounded-md border bg-gray-50">
-                              <span className="text-sm font-medium">
-                                {formatCurrency(calculateSubtotal(item))}
-                              </span>
-                            </div>
-                          </div>
-                          <div className="col-span-1">
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              onClick={() => removeItem(index)}
-                              disabled={items.length === 1 || submitting}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Grand Total */}
-                  <div className="border-t pt-4">
-                    <div className="flex justify-between items-center">
-                      <span className="text-lg font-semibold">
-                        Grand Total:
-                      </span>
-                      <span className="text-xl font-bold text-green-600">
-                        {formatCurrency(calculateGrandTotal())}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex justify-end space-x-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => {
-                      reset(defaultReturJualFormValues);
-                      setItems([
-                        {
-                          barangId: "",
-                          qty: 1,
-                          harga: 0,
-                          alasan: "",
-                          kondisi: "bisa_dijual_lagi",
-                        },
-                      ]);
-                    }}
-                    disabled={submitting}
-                  >
-                    Reset
-                  </Button>
-                  <Button type="submit" disabled={submitting}>
-                    {submitting ? "Menyimpan..." : "Simpan Transaksi"}
-                  </Button>
-                </div>
-              </form>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
 
       {/* Add/Edit Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="sm:max-w-[1000px] max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
               {editingReturJual ? "Edit Retur Jual" : "Retur Jual Baru"}

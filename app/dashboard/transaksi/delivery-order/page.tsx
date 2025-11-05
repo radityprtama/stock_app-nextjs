@@ -54,7 +54,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Popover,
   PopoverContent,
@@ -314,24 +313,16 @@ export default function DeliveryOrderPage() {
 
   return (
     <div className="container mx-auto p-6">
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold">Delivery Order</h1>
-        <p className="text-gray-600">Kelola pengiriman barang antar gudang</p>
+      <div className="mb-6 flex justify-between items-center">
+        <div>
+          <h1 className="text-3xl font-bold">Delivery Order</h1>
+          <p className="text-gray-600">Kelola pengiriman barang antar gudang</p>
+        </div>
+        <Button onClick={openAddDialog} size="lg">
+          <Plus className="mr-2 h-4 w-4" />
+          Input Delivery Order Baru
+        </Button>
       </div>
-
-      <Tabs defaultValue="browse" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="browse">
-            <Package className="mr-2 h-4 w-4" />
-            Browse Data
-          </TabsTrigger>
-          <TabsTrigger value="input">
-            <Plus className="mr-2 h-4 w-4" />
-            Input Transaksi
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="browse" className="space-y-4">
           {/* Filters */}
           <Card className="mb-6">
             <CardHeader>
@@ -596,58 +587,43 @@ export default function DeliveryOrderPage() {
               )}
             </CardContent>
           </Card>
-        </TabsContent>
 
-        <TabsContent value="input" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Input Delivery Order Baru</CardTitle>
-              <CardDescription>
-                Buat transaksi pengiriman barang antar gudang
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid gap-4">
+      {/* Create Modal */}
+      <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Input Delivery Order Baru</DialogTitle>
+            <DialogDescription>
+              Buat transaksi pengiriman barang antar gudang
+            </DialogDescription>
+          </DialogHeader>
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleCreate();
+            }}
+            className="space-y-6"
+          >
+            <div className="grid gap-6">
+              {/* Bagian Gudang & Tanggal */}
+              <div className="grid gap-6">
+                {/* Gudang Asal & Tujuan */}
                 <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label>Tanggal</Label>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          className="w-full justify-start text-left font-normal"
-                        >
-                          <CalendarIcon className="mr-2 h-4 w-4" />
-                          {form.tanggal
-                            ? format(form.tanggal, "dd MMM yyyy", {
-                                locale: id,
-                              })
-                            : "Pilih tanggal"}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                          mode="single"
-                          selected={form.tanggal}
-                          onSelect={(date) =>
-                            setForm({ ...form, tanggal: date || new Date() })
-                          }
-                          locale={id}
-                        />
-                      </PopoverContent>
-                    </Popover>
-                  </div>
-                  <div>
-                    <Label htmlFor="gudangAsal-input">Gudang Asal</Label>
+                  <div className="grid gap-2">
+                    <Label>Gudang Asal</Label>
                     <Select
                       value={form.gudangAsalId}
                       onValueChange={(value) => {
-                        setForm({ ...form, gudangAsalId: value, items: [] });
+                        setForm({
+                          ...form,
+                          gudangAsalId: value,
+                          items: [],
+                        });
                         fetchAvailableBarang(value);
                       }}
                     >
                       <SelectTrigger>
-                        <SelectValue placeholder="Pilih Gudang" />
+                        <SelectValue placeholder="Pilih Gudang Asal" />
                       </SelectTrigger>
                       <SelectContent>
                         {gudangList?.data.map((gudang) => (
@@ -658,8 +634,9 @@ export default function DeliveryOrderPage() {
                       </SelectContent>
                     </Select>
                   </div>
-                  <div>
-                    <Label htmlFor="gudangTujuan-input">Gudang Tujuan</Label>
+
+                  <div className="grid gap-2">
+                    <Label>Gudang Tujuan</Label>
                     <Select
                       value={form.gudangTujuanId}
                       onValueChange={(value) =>
@@ -681,11 +658,12 @@ export default function DeliveryOrderPage() {
                     </Select>
                   </div>
                 </div>
+
+                {/* Nama Supir & Nomor Polisi */}
                 <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="namaSupir-input">Nama Supir</Label>
+                  <div className="grid gap-2">
+                    <Label>Nama Supir</Label>
                     <Input
-                      id="namaSupir-input"
                       placeholder="Masukkan nama supir"
                       value={form.namaSupir}
                       onChange={(e) =>
@@ -693,10 +671,10 @@ export default function DeliveryOrderPage() {
                       }
                     />
                   </div>
-                  <div>
-                    <Label htmlFor="nopolKendaraan-input">Nomor Polisi</Label>
+
+                  <div className="grid gap-2">
+                    <Label>Nomor Polisi</Label>
                     <Input
-                      id="nopolKendaraan-input"
                       placeholder="Masukkan nomor polisi"
                       value={form.nopolKendaraan}
                       onChange={(e) =>
@@ -705,368 +683,182 @@ export default function DeliveryOrderPage() {
                     />
                   </div>
                 </div>
-                <div>
-                  <Label htmlFor="keterangan-input">Keterangan</Label>
-                  <Textarea
-                    id="keterangan-input"
-                    placeholder="Masukkan keterangan (opsional)"
-                    value={form.keterangan}
-                    onChange={(e) =>
-                      setForm({ ...form, keterangan: e.target.value })
-                    }
-                  />
-                </div>
 
-                {/* Barang Selection */}
-                {form.gudangAsalId && (
-                  <div>
-                    <Label>Pilih Barang</Label>
-                    <div className="flex gap-2 mt-2">
-                      <Select
-                        value={selectedBarang?.barangId || ""}
-                        onValueChange={(value) => {
-                          const barang = availableBarang.find(
-                            (b) => b.barangId === value
-                          );
-                          setSelectedBarang(barang || null);
-                        }}
-                      >
-                        <SelectTrigger className="flex-1">
-                          <SelectValue placeholder="Pilih barang yang akan dipindahkan" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {availableBarang.map((barang) => (
-                            <SelectItem
-                              key={barang.barangId}
-                              value={barang.barangId}
-                            >
-                              {barang.barangNama} (Stok: {barang.stok}{" "}
-                              {barang.satuan})
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <Button
-                        onClick={addBarangToForm}
-                        disabled={!selectedBarang}
-                        type="button"
-                      >
-                        Tambah
-                      </Button>
-                    </div>
-                  </div>
-                )}
-
-                {/* Items Table */}
-                {form.items.length > 0 && (
-                  <div>
-                    <Label>Barang yang Akan Dipindahkan</Label>
-                    <Table className="mt-2">
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Barang</TableHead>
-                          <TableHead>Qty</TableHead>
-                          <TableHead>Satuan</TableHead>
-                          <TableHead>Aksi</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {form.items.map((item, index) => (
-                          <TableRow key={index}>
-                            <TableCell>{item.namaBarang}</TableCell>
-                            <TableCell>
-                              <Input
-                                type="number"
-                                min="1"
-                                value={item.qty}
-                                onChange={(e) =>
-                                  updateItemQuantity(
-                                    index,
-                                    parseInt(e.target.value) || 1
-                                  )
-                                }
-                                className="w-20"
-                              />
-                            </TableCell>
-                            <TableCell>{item.satuan}</TableCell>
-                            <TableCell>
-                              <Button
-                                variant="destructive"
-                                size="sm"
-                                onClick={() => removeBarangFromForm(index)}
-                              >
-                                Hapus
-                              </Button>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
-                )}
-              </div>
-              <div className="flex justify-end space-x-2 mt-6">
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setForm({
-                      tanggal: new Date(),
-                      gudangAsalId: "",
-                      gudangTujuanId: "",
-                      namaSupir: "",
-                      nopolKendaraan: "",
-                      keterangan: "",
-                      items: [],
-                    });
-                    setAvailableBarang([]);
-                    setSelectedBarang(null);
-                  }}
-                >
-                  Reset
-                </Button>
-                <Button
-                  onClick={handleCreate}
-                  disabled={
-                    !form.gudangAsalId ||
-                    !form.gudangTujuanId ||
-                    !form.namaSupir ||
-                    !form.nopolKendaraan ||
-                    form.items.length === 0
-                  }
-                >
-                  Simpan Transaksi
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
-
-      {/* Create Modal */}
-      <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Buat Delivery Order Baru</DialogTitle>
-            <DialogDescription>
-              Isi form berikut untuk membuat delivery order baru
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label>Tanggal</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className="w-full justify-start text-left font-normal"
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {form.tanggal
-                        ? format(form.tanggal, "dd MMM yyyy", { locale: id })
-                        : "Pilih tanggal"}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={form.tanggal}
-                      onSelect={(date) =>
-                        setForm({ ...form, tanggal: date || new Date() })
-                      }
-                      locale={id}
-                    />
-                  </PopoverContent>
-                </Popover>
-              </div>
-              <div>
-                <Label htmlFor="gudangAsal">Gudang Asal</Label>
-                <Select
-                  value={form.gudangAsalId}
-                  onValueChange={(value) => {
-                    setForm({ ...form, gudangAsalId: value, items: [] });
-                    fetchAvailableBarang(value);
-                  }}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Pilih Gudang" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {gudangList?.data.map((gudang) => (
-                      <SelectItem key={gudang.id} value={gudang.id}>
-                        {gudang.nama}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label htmlFor="gudangTujuan">Gudang Tujuan</Label>
-                <Select
-                  value={form.gudangTujuanId}
-                  onValueChange={(value) =>
-                    setForm({ ...form, gudangTujuanId: value })
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Pilih Gudang Tujuan" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {gudangList?.data
-                      ?.filter((g) => g.id !== form.gudangAsalId)
-                      .map((gudang) => (
-                        <SelectItem key={gudang.id} value={gudang.id}>
-                          {gudang.nama}
-                        </SelectItem>
-                      ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="namaSupir">Nama Supir</Label>
-                <Input
-                  id="namaSupir"
-                  placeholder="Masukkan nama supir"
-                  value={form.namaSupir}
-                  onChange={(e) =>
-                    setForm({ ...form, namaSupir: e.target.value })
-                  }
-                />
-              </div>
-              <div>
-                <Label htmlFor="nopolKendaraan">Nomor Polisi</Label>
-                <Input
-                  id="nopolKendaraan"
-                  placeholder="Masukkan nomor polisi"
-                  value={form.nopolKendaraan}
-                  onChange={(e) =>
-                    setForm({ ...form, nopolKendaraan: e.target.value })
-                  }
-                />
-              </div>
-            </div>
-            <div>
-              <Label htmlFor="keterangan">Keterangan</Label>
-              <Textarea
-                id="keterangan"
-                placeholder="Masukkan keterangan (opsional)"
-                value={form.keterangan}
-                onChange={(e) =>
-                  setForm({ ...form, keterangan: e.target.value })
-                }
-              />
-            </div>
-
-            {/* Barang Selection */}
-            {form.gudangAsalId && (
-              <div>
-                <Label>Pilih Barang</Label>
-                <div className="flex gap-2 mt-2">
-                  <Select
-                    value={selectedBarang?.barangId || ""}
-                    onValueChange={(value) => {
-                      const barang = availableBarang.find(
-                        (b) => b.barangId === value
-                      );
-                      setSelectedBarang(barang || null);
-                    }}
-                  >
-                    <SelectTrigger className="flex-1">
-                      <SelectValue placeholder="Pilih barang yang akan dipindahkan" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {availableBarang.map((barang) => (
-                        <SelectItem
-                          key={barang.barangId}
-                          value={barang.barangId}
+                {/* Tanggal & Keterangan */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="grid gap-2">
+                    <Label>Tanggal</Label>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className="justify-start text-left font-normal"
                         >
-                          {barang.barangNama} (Stok: {barang.stok}{" "}
-                          {barang.satuan})
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <Button
-                    onClick={addBarangToForm}
-                    disabled={!selectedBarang}
-                    type="button"
-                  >
-                    Tambah
-                  </Button>
-                </div>
-              </div>
-            )}
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {form.tanggal
+                            ? format(form.tanggal, "dd MMM yyyy", {
+                                locale: id,
+                              })
+                            : "Pilih tanggal"}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={form.tanggal}
+                          onSelect={(date) =>
+                            setForm({
+                              ...form,
+                              tanggal: date || new Date(),
+                            })
+                          }
+                          locale={id}
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
 
-            {/* Items Table */}
-            {form.items.length > 0 && (
-              <div>
-                <Label>Barang yang Akan Dipindahkan</Label>
-                <Table className="mt-2">
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Barang</TableHead>
-                      <TableHead>Qty</TableHead>
-                      <TableHead>Satuan</TableHead>
-                      <TableHead>Aksi</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {form.items.map((item, index) => (
-                      <TableRow key={index}>
-                        <TableCell>{item.namaBarang}</TableCell>
-                        <TableCell>
-                          <Input
-                            type="number"
-                            min="1"
-                            value={item.qty}
-                            onChange={(e) =>
-                              updateItemQuantity(
-                                index,
-                                parseInt(e.target.value) || 1
-                              )
-                            }
-                            className="w-20"
-                          />
-                        </TableCell>
-                        <TableCell>{item.satuan}</TableCell>
-                        <TableCell>
-                          <Button
-                            variant="destructive"
-                            size="sm"
-                            onClick={() => removeBarangFromForm(index)}
-                          >
-                            Hapus
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                  <div className="grid gap-2">
+                    <Label>Keterangan</Label>
+                    <Textarea
+                      placeholder="Masukkan keterangan (opsional)"
+                      value={form.keterangan}
+                      onChange={(e) =>
+                        setForm({ ...form, keterangan: e.target.value })
+                      }
+                    />
+                  </div>
+                </div>
+
+                {/* Barang Section */}
+                {form.gudangAsalId && (
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-base font-semibold">
+                        Pilih Barang
+                      </Label>
+                      <div className="flex gap-2">
+                        <Select
+                          value={selectedBarang?.barangId || ""}
+                          onValueChange={(value) => {
+                            const barang = availableBarang.find(
+                              (b) => b.barangId === value
+                            );
+                            setSelectedBarang(barang || null);
+                          }}
+                        >
+                          <SelectTrigger className="w-[260px]">
+                            <SelectValue placeholder="Pilih barang" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {availableBarang.map((barang) => (
+                              <SelectItem
+                                key={barang.barangId}
+                                value={barang.barangId}
+                              >
+                                {barang.barangNama} (Stok: {barang.stok}{" "}
+                                {barang.satuan})
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <Button
+                          onClick={addBarangToForm}
+                          disabled={!selectedBarang}
+                          type="button"
+                        >
+                          Tambah
+                        </Button>
+                      </div>
+                    </div>
+
+                    {form.items.length > 0 && (
+                      <div className="border rounded-md overflow-hidden">
+                        <Table>
+                          <TableHeader>
+                            <TableRow className="bg-muted/50">
+                              <TableHead>Barang</TableHead>
+                              <TableHead>Qty</TableHead>
+                              <TableHead>Satuan</TableHead>
+                              <TableHead>Aksi</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {form.items.map((item, index) => (
+                              <TableRow key={index}>
+                                <TableCell>{item.namaBarang}</TableCell>
+                                <TableCell>
+                                  <Input
+                                    type="number"
+                                    min="1"
+                                    value={item.qty}
+                                    onChange={(e) =>
+                                      updateItemQuantity(
+                                        index,
+                                        parseInt(e.target.value) || 1
+                                      )
+                                    }
+                                    className="w-20"
+                                  />
+                                </TableCell>
+                                <TableCell>{item.satuan}</TableCell>
+                                <TableCell>
+                                  <Button
+                                    variant="destructive"
+                                    size="sm"
+                                    onClick={() =>
+                                      removeBarangFromForm(index)
+                                    }
+                                  >
+                                    Hapus
+                                  </Button>
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
-            )}
-          </div>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setIsCreateModalOpen(false)}
-            >
-              Batal
-            </Button>
-            <Button
-              onClick={handleCreate}
-              disabled={
-                !form.gudangAsalId ||
-                !form.gudangTujuanId ||
-                !form.namaSupir ||
-                !form.nopolKendaraan ||
-                form.items.length === 0
-              }
-            >
-              Simpan
-            </Button>
-          </DialogFooter>
+            </div>
+
+            {/* Buttons */}
+            <div className="flex justify-end space-x-2 pt-4 border-t">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setForm({
+                    tanggal: new Date(),
+                    gudangAsalId: "",
+                    gudangTujuanId: "",
+                    namaSupir: "",
+                    nopolKendaraan: "",
+                    keterangan: "",
+                    items: [],
+                  });
+                  setAvailableBarang([]);
+                  setSelectedBarang(null);
+                }}
+              >
+                Reset
+              </Button>
+              <Button
+                type="submit"
+                disabled={
+                  !form.gudangAsalId ||
+                  !form.gudangTujuanId ||
+                  !form.namaSupir ||
+                  !form.nopolKendaraan ||
+                  form.items.length === 0
+                }
+              >
+                Simpan Transaksi
+              </Button>
+            </div>
+          </form>
         </DialogContent>
       </Dialog>
 

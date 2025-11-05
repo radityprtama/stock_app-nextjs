@@ -58,14 +58,7 @@ export async function GET(request: NextRequest) {
               },
             },
           },
-          user: {
-            select: {
-              id: true,
-              nama: true,
-              email: true,
-            },
           },
-        },
         orderBy: { tanggal: 'desc' },
         take: limit,
       }),
@@ -106,55 +99,14 @@ export async function GET(request: NextRequest) {
               },
             },
           },
-          user: {
-            select: {
-              id: true,
-              nama: true,
-              email: true,
-            },
           },
-        },
         orderBy: { tanggal: 'desc' },
         take: limit,
       }),
     ])
 
-    // Get recent stock adjustments (if any)
-    const stokAdjustments = await prisma.stokHistory.findMany({
-      where: {
-        timestamp: {
-          gte: startDate,
-          lte: endDate,
-        },
-        ...(gudangId && { gudangId }),
-      },
-      include: {
-        barang: {
-          select: {
-            id: true,
-            kode: true,
-            nama: true,
-            satuan: true,
-          },
-        },
-        gudang: {
-          select: {
-            id: true,
-            kode: true,
-            nama: true,
-          },
-        },
-        user: {
-          select: {
-            id: true,
-            nama: true,
-            email: true,
-          },
-        },
-      },
-      orderBy: { timestamp: 'desc' },
-      take: limit,
-    })
+    // Stock adjustments not available - using empty array
+    const stokAdjustments: any[] = []
 
     // Convert all data to unified real-time movement format
     const movements: any[] = []
@@ -174,7 +126,7 @@ export async function GET(request: NextRequest) {
           dokumentType: 'Barang Masuk',
           dokumentNo: bm.noDokumen || `BM-${bm.id}`,
           timestamp: bm.tanggal.toISOString(),
-          user: bm.user?.nama || 'System',
+          user: 'System',
           referensi: bm.supplier?.nama,
         })
       })
@@ -195,30 +147,14 @@ export async function GET(request: NextRequest) {
           dokumentType: 'Surat Jalan',
           dokumentNo: sj.noSJ || `SJ-${sj.id}`,
           timestamp: sj.tanggal.toISOString(),
-          user: sj.user?.nama || 'System',
+          user: 'System',
           referensi: sj.customer?.nama,
         })
       })
     })
 
-    // Process stock adjustments
-    stokAdjustments.forEach((adj) => {
-      movements.push({
-        id: `adj-${adj.id}`,
-        type: adj.tipePerubahan === 'penambahan' ? 'masuk' : 'keluar',
-        barangId: adj.barang?.id || '',
-        barangNama: adj.barang?.nama || 'Unknown',
-        barangKode: adj.barang?.kode || 'N/A',
-        gudangId: adj.gudang?.id || '',
-        gudangNama: adj.gudang?.nama || 'Unknown',
-        qty: Math.abs(adj.perubahan || 0),
-        dokumentType: 'Penyesuaian Stok',
-        dokumentNo: adj.dokumenRef || `ADJ-${adj.id}`,
-        timestamp: adj.timestamp?.toISOString() || new Date().toISOString(),
-        user: adj.user?.nama || 'System',
-        referensi: adj.keterangan,
-      })
-    })
+    // Process stock adjustments (none available)
+    // stokAdjustments.forEach((adj) => { ... })
 
     // Sort by timestamp (most recent first)
     movements.sort((a, b) => {

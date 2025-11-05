@@ -114,7 +114,7 @@ export const schema = z.object({
   gudang: z.string(),
   stok: z.number(),
   minStok: z.number(),
-  maxStok: z.optional().or(z.literal("")),
+  maxStok: z.optional(z.number()),
   status: z.string(),
   satuan: z.string(),
   hargaBeli: z.number(),

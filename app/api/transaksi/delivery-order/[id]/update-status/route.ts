@@ -114,7 +114,7 @@ export async function POST(
           })
 
           if (!stokAsal || stokAsal.qty < detailItem.qty) {
-            throw new Error(`Stok tidak mencukupi untuk ${detailItem.barang.nama} di gudang ${deliveryOrderWithDetails.gudangAsal.nama}`)
+            throw new Error(`Stok tidak mencukupi untuk ${detailItem.barang?.nama || 'Unknown Barang'} di gudang ${deliveryOrderWithDetails.gudangAsal.nama}`)
           }
 
           await tx.stokBarang.update({

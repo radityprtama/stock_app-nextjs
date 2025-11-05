@@ -2,6 +2,7 @@ import React, { forwardRef, useImperativeHandle } from "react";
 import { useReactToPrint } from "react-to-print";
 import { format } from "date-fns";
 import { id } from "date-fns/locale";
+import { printStyles } from "./print-styles";
 export type ReturBeliPrintItem = {
   id: string;
   barangId?: string;
@@ -278,6 +279,9 @@ const ReturBeliPrint = forwardRef<ReturBeliPrintRef, ReturBeliPrintProps>(
             {format(new Date(), "dd MMMM yyyy HH:mm:ss", { locale: id })}
           </div>
         </div>
+
+        {/* Print Styles */}
+        <style jsx>{printStyles}</style>
       </div>
     );
   }
