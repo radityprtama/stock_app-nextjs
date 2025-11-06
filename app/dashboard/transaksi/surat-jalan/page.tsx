@@ -100,6 +100,8 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ButtonGroup } from "@/components/ui/button-group";
 
 type SuratJalanDetail = SuratJalanPrintData["detail"][number] & {
   id: string;
@@ -777,9 +779,9 @@ export default function SuratJalanPage() {
   };
 
   const handleSetAllDropship = (isDropship: boolean) => {
-    const updatedItems = items.map(item => ({
+    const updatedItems = items.map((item) => ({
       ...item,
-      isDropship
+      isDropship,
     }));
     setItems(updatedItems);
   };
@@ -827,7 +829,7 @@ export default function SuratJalanPage() {
   };
 
   const calculateSubtotal = (item: FormData) => {
-    const harga = item.isCustom ? (item.customHarga || 0) : (item.hargaJual || 0);
+    const harga = item.isCustom ? item.customHarga || 0 : item.hargaJual || 0;
     return item.qty * harga;
   };
 
@@ -968,466 +970,428 @@ export default function SuratJalanPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Surat Jalan</h1>
-          <p className="text-muted-foreground">
-            Kelola transaksi pengiriman barang ke customer dengan sistem dropship
-          </p>
-        </div>
-        <Button
-          onClick={() => setInputDialogOpen(true)}
-          className="flex items-center gap-2"
-        >
-          <Plus className="h-4 w-4" />
-          Input Surat Jalan Baru
-        </Button>
-      </div>
       <div className="space-y-4">
-          {/* Statistics Cards */}
-          <ScrollArea className="grid gap-4">
-            <div className="flex gap-4 p-1 min-w-max">
-              {/* Total Transaksi */}
-              <Card className="w-[180px] shrink-0 transition-all duration-200 hover:scale-[1.02] hover:shadow-md">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">
-                    Total Transaksi
-                  </CardTitle>
-                  <FileText className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">
-                    {statistics.totalTransactions}
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    Semua transaksi
-                  </p>
-                </CardContent>
-              </Card>
-
-              {/* Draft */}
-              <Card className="w-[180px] shrink-0 transition-all duration-200 hover:scale-[1.02] hover:shadow-md">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Draft</CardTitle>
-                  <Clock className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-orange-600">
-                    {statistics.draftCount}
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    Menunggu posting
-                  </p>
-                </CardContent>
-              </Card>
-
-              {/* Dalam Pengiriman */}
-              <Card className="w-[180px] shrink-0 transition-all duration-200 hover:scale-[1.02] hover:shadow-md">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">
-                    Dalam Pengiriman
-                  </CardTitle>
-                  <Truck className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-blue-600">
-                    {statistics.inTransitCount}
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    Sedang dikirim
-                  </p>
-                </CardContent>
-              </Card>
-
-              {/* Terkirim */}
-              <Card className="w-[180px] shrink-0 transition-all duration-200 hover:scale-[1.02] hover:shadow-md">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">
-                    Terkirim
-                  </CardTitle>
-                  <CheckCircle className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-green-600">
-                    {statistics.deliveredCount}
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    Selesai dikirim
-                  </p>
-                </CardContent>
-              </Card>
-
-              {/* Total Qty */}
-              <Card className="w-[180px] shrink-0 transition-all duration-200 hover:scale-[1.02] hover:shadow-md">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">
-                    Total Qty
-                  </CardTitle>
-                  <Package className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-blue-600">
-                    {statistics.totalQuantity}
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    Total barang dikirim
-                  </p>
-                </CardContent>
-              </Card>
-
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Card className="w-[180px] shrink-0 transition-all duration-200 hover:scale-[1.02] hover:shadow-md cursor-default">
-                      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">
-                          Total Nilai
-                        </CardTitle>
-                        <TrendingUp className="h-4 w-4 text-muted-foreground" />
-                      </CardHeader>
-                      <CardContent>
-                        <div className="text-2xl font-bold truncate">
-                          {formatCurrency(statistics.totalValue)}
-                        </div>
-                        <p className="text-xs text-muted-foreground">
-                          Nilai total transaksi
-                        </p>
-                      </CardContent>
-                    </Card>
-                  </TooltipTrigger>
-
-                  <TooltipContent side="top" className="text-sm">
-                    {formatCurrency(statistics.totalValue)}
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-
-              {/* Dropship */}
-              <Card className="w-[180px] shrink-0 transition-all duration-200 hover:scale-[1.02] hover:shadow-md">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">
-                    Dropship
-                  </CardTitle>
-                  <ShoppingCart className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-purple-600">
-                    {statistics.dropshipCount}
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    Transaksi dropship
-                  </p>
-                </CardContent>
-              </Card>
-
-              {/* Dibatalkan */}
-              <Card className="w-[180px] shrink-0 transition-all duration-200 hover:scale-[1.02] hover:shadow-md">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">
-                    Dibatalkan
-                  </CardTitle>
-                  <XCircle className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-red-600">
-                    {statistics.cancelledCount}
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    Transaksi dibatalkan
-                  </p>
-                </CardContent>
-              </Card>
-            </div>
-            <ScrollBar orientation="horizontal" />
-          </ScrollArea>
-
-          {/* Filters */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <Filter className="mr-2 h-4 w-4" />
-                Filter & Pencarian
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                  <Input
-                    placeholder="Cari transaksi..."
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    className="pl-10"
-                  />
+        {/* Statistics Cards */}
+        <ScrollArea className="grid gap-4">
+          <div className="flex gap-4 p-1 min-w-max">
+            {/* Total Transaksi */}
+            <Card className="w-[180px] shrink-0 transition-all duration-200 hover:scale-[1.02] hover:shadow-md">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">
+                  Total Transaksi
+                </CardTitle>
+                <FileText className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {statistics.totalTransactions}
                 </div>
+                <p className="text-xs text-muted-foreground">Semua transaksi</p>
+              </CardContent>
+            </Card>
 
-                <Select
-                  value={selectedCustomer || undefined}
-                  onValueChange={(value) =>
-                    setSelectedCustomer(value === "all" ? "" : value)
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Semua Customer" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Semua Customer</SelectItem>
-                    {customers.map((customer) => (
-                      <SelectItem key={customer.id} value={customer.id}>
-                        {customer.kode} - {customer.nama}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+            {/* Draft */}
+            <Card className="w-[180px] shrink-0 transition-all duration-200 hover:scale-[1.02] hover:shadow-md">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Draft</CardTitle>
+                <Clock className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-orange-600">
+                  {statistics.draftCount}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Menunggu posting
+                </p>
+              </CardContent>
+            </Card>
 
-                <Select
-                  value={selectedGudang || undefined}
-                  onValueChange={(value) =>
-                    setSelectedGudang(value === "all" ? "" : value)
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Semua Gudang" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Semua Gudang</SelectItem>
-                    {gudangs.map((gudang) => (
-                      <SelectItem key={gudang.id} value={gudang.id}>
-                        {gudang.kode} - {gudang.nama}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+            {/* Dalam Pengiriman */}
+            <Card className="w-[180px] shrink-0 transition-all duration-200 hover:scale-[1.02] hover:shadow-md">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">
+                  Dalam Pengiriman
+                </CardTitle>
+                <Truck className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-blue-600">
+                  {statistics.inTransitCount}
+                </div>
+                <p className="text-xs text-muted-foreground">Sedang dikirim</p>
+              </CardContent>
+            </Card>
 
-                <Select
-                  value={selectedStatus || undefined}
-                  onValueChange={(value) =>
-                    setSelectedStatus(value === "all" ? "" : value)
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Semua Status</SelectItem>
-                    <SelectItem value="draft">Draft</SelectItem>
-                    <SelectItem value="in_transit">Dalam Pengiriman</SelectItem>
-                    <SelectItem value="delivered">Terkirim</SelectItem>
-                    <SelectItem value="cancelled">Dibatalkan</SelectItem>
-                  </SelectContent>
-                </Select>
+            {/* Terkirim */}
+            <Card className="w-[180px] shrink-0 transition-all duration-200 hover:scale-[1.02] hover:shadow-md">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Terkirim</CardTitle>
+                <CheckCircle className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-green-600">
+                  {statistics.deliveredCount}
+                </div>
+                <p className="text-xs text-muted-foreground">Selesai dikirim</p>
+              </CardContent>
+            </Card>
 
-                {/* Start Date Calendar */}
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className="w-full justify-start text-left font-normal"
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {startDate
-                        ? format(startDate, "dd MMM yyyy", { locale: idLocale })
-                        : "Tanggal Awal"}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={startDate}
-                      onSelect={setStartDate}
-                      disabled={(date) => (endDate ? date > endDate : false)}
-                      locale={idLocale}
-                    />
-                  </PopoverContent>
-                </Popover>
+            {/* Total Qty */}
+            <Card className="w-[180px] shrink-0 transition-all duration-200 hover:scale-[1.02] hover:shadow-md">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Total Qty</CardTitle>
+                <Package className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-blue-600">
+                  {statistics.totalQuantity}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Total barang dikirim
+                </p>
+              </CardContent>
+            </Card>
 
-                {/* End Date Calendar */}
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className="w-full justify-start text-left font-normal"
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {endDate
-                        ? format(endDate, "dd MMM yyyy", { locale: idLocale })
-                        : "Tanggal Akhir"}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={endDate}
-                      onSelect={setEndDate}
-                      disabled={(date) =>
-                        startDate ? date < startDate : false
-                      }
-                      locale={idLocale}
-                    />
-                  </PopoverContent>
-                </Popover>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Card className="w-[180px] shrink-0 transition-all duration-200 hover:scale-[1.02] hover:shadow-md cursor-default">
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                      <CardTitle className="text-sm font-medium">
+                        Total Nilai
+                      </CardTitle>
+                      <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold truncate">
+                        {formatCurrency(statistics.totalValue)}
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Nilai total transaksi
+                      </p>
+                    </CardContent>
+                  </Card>
+                </TooltipTrigger>
 
-                <Button variant="outline" onClick={clearFilters}>
-                  Reset
-                </Button>
+                <TooltipContent side="top" className="text-sm">
+                  {formatCurrency(statistics.totalValue)}
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+
+            {/* Dropship */}
+            <Card className="w-[180px] shrink-0 transition-all duration-200 hover:scale-[1.02] hover:shadow-md">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Dropship</CardTitle>
+                <ShoppingCart className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-purple-600">
+                  {statistics.dropshipCount}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Transaksi dropship
+                </p>
+              </CardContent>
+            </Card>
+
+            {/* Dibatalkan */}
+            <Card className="w-[180px] shrink-0 transition-all duration-200 hover:scale-[1.02] hover:shadow-md">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">
+                  Dibatalkan
+                </CardTitle>
+                <XCircle className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-red-600">
+                  {statistics.cancelledCount}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Transaksi dibatalkan
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+          <ScrollBar orientation="horizontal" />
+        </ScrollArea>
+
+        {/* Filters */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center">
+              <Filter className="mr-2 h-4 w-4" />
+              Filter & Pencarian
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Input
+                  placeholder="Cari transaksi..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="pl-10"
+                />
               </div>
-            </CardContent>
-          </Card>
 
-          {/* Main Table */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Daftar Transaksi Surat Jalan</CardTitle>
+              <Select
+                value={selectedCustomer || undefined}
+                onValueChange={(value) =>
+                  setSelectedCustomer(value === "all" ? "" : value)
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Semua Customer" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Semua Customer</SelectItem>
+                  {customers.map((customer) => (
+                    <SelectItem key={customer.id} value={customer.id}>
+                      {customer.kode} - {customer.nama}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <Select
+                value={selectedGudang || undefined}
+                onValueChange={(value) =>
+                  setSelectedGudang(value === "all" ? "" : value)
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Semua Gudang" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Semua Gudang</SelectItem>
+                  {gudangs.map((gudang) => (
+                    <SelectItem key={gudang.id} value={gudang.id}>
+                      {gudang.kode} - {gudang.nama}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <Select
+                value={selectedStatus || undefined}
+                onValueChange={(value) =>
+                  setSelectedStatus(value === "all" ? "" : value)
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Semua Status</SelectItem>
+                  <SelectItem value="draft">Draft</SelectItem>
+                  <SelectItem value="in_transit">Dalam Pengiriman</SelectItem>
+                  <SelectItem value="delivered">Terkirim</SelectItem>
+                  <SelectItem value="cancelled">Dibatalkan</SelectItem>
+                </SelectContent>
+              </Select>
+
+              {/* Start Date Calendar */}
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start text-left font-normal"
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {startDate
+                      ? format(startDate, "dd MMM yyyy", { locale: idLocale })
+                      : "Tanggal Awal"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={startDate}
+                    onSelect={setStartDate}
+                    disabled={(date) => (endDate ? date > endDate : false)}
+                    locale={idLocale}
+                  />
+                </PopoverContent>
+              </Popover>
+
+              {/* End Date Calendar */}
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start text-left font-normal"
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {endDate
+                      ? format(endDate, "dd MMM yyyy", { locale: idLocale })
+                      : "Tanggal Akhir"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={endDate}
+                    onSelect={setEndDate}
+                    disabled={(date) => (startDate ? date < startDate : false)}
+                    locale={idLocale}
+                  />
+                </PopoverContent>
+              </Popover>
+
+              <Button variant="outline" onClick={clearFilters}>
+                Reset
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Main Table */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Daftar Transaksi Surat Jalan</CardTitle>
+            <div className="flex justify-between items-center">
               <CardDescription>
                 Total {pagination.total} transaksi terdaftar
               </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {loading ? (
-                <div className="flex items-center justify-center py-8">
-                  <div className="text-sm text-gray-500">Memuat data...</div>
-                </div>
-              ) : (
-                <>
-                  <div className="rounded-md border">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>No SJ</TableHead>
-                          <TableHead>Tanggal</TableHead>
-                          <TableHead>Customer</TableHead>
-                          <TableHead>Gudang</TableHead>
-                          <TableHead>Total Qty</TableHead>
-                          <TableHead>Total Nilai</TableHead>
-                          <TableHead>Status</TableHead>
-                          <TableHead>Dropship</TableHead>
-                          <TableHead className="text-right">Aksi</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {suratJalans.map((suratJalan) => (
-                          <TableRow key={suratJalan.id}>
-                            <TableCell className="font-medium">
-                              {suratJalan.noSJ}
-                            </TableCell>
-                            <TableCell>
-                              {formatDate(suratJalan.tanggal)}
-                            </TableCell>
-                            <TableCell>
-                              <div>
-                                <div className="font-medium">
-                                  {suratJalan.customer.nama}
-                                </div>
-                                <div className="text-sm text-gray-500">
-                                  {suratJalan.customer.kode}
-                                </div>
+              <Button
+                onClick={openAddDialog}
+                className="bg-blue-600 hover:bg-blue-700"
+                size="sm"
+              >
+                <Plus className="mr-2 h-4 w-4" />
+                Input Surat Jalan Baru
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {loading ? (
+              <div className="flex items-center justify-center py-8">
+                <div className="text-sm text-gray-500">Memuat data...</div>
+              </div>
+            ) : (
+              <>
+                <div className="rounded-md border">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>No SJ</TableHead>
+                        <TableHead>Tanggal</TableHead>
+                        <TableHead>Customer</TableHead>
+                        <TableHead>Gudang</TableHead>
+                        <TableHead>Total Qty</TableHead>
+                        <TableHead>Total Nilai</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Dropship</TableHead>
+                        <TableHead className="text-right">Aksi</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {suratJalans.map((suratJalan) => (
+                        <TableRow key={suratJalan.id}>
+                          <TableCell className="font-medium">
+                            {suratJalan.noSJ}
+                          </TableCell>
+                          <TableCell>
+                            {formatDate(suratJalan.tanggal)}
+                          </TableCell>
+                          <TableCell>
+                            <div>
+                              <div className="font-medium">
+                                {suratJalan.customer.nama}
                               </div>
-                            </TableCell>
-                            <TableCell>
-                              <div>
-                                <div className="font-medium">
-                                  {suratJalan.gudang.nama}
-                                </div>
-                                <div className="text-sm text-gray-500">
-                                  {suratJalan.gudang.kode}
-                                </div>
+                              <div className="text-sm text-gray-500">
+                                {suratJalan.customer.kode}
                               </div>
-                            </TableCell>
-                            <TableCell>{suratJalan.totalQty}</TableCell>
-                            <TableCell>
-                              {formatCurrency(Number(suratJalan.totalNilai))}
-                            </TableCell>
-                            <TableCell>
-                              {getStatusBadge(suratJalan.status)}
-                            </TableCell>
-                            <TableCell>
-                              {suratJalan.detail.some((d) => d.isDropship) ? (
-                                <Badge variant="outline">
-                                  <ShoppingCart className="w-3 h-3 mr-1" />
-                                  {
-                                    suratJalan.detail.filter(
-                                      (d) => d.isDropship
-                                    ).length
-                                  }{" "}
-                                  Item
-                                </Badge>
-                              ) : (
-                                <span className="text-gray-400">-</span>
-                              )}
-                            </TableCell>
-                            <TableCell className="text-right">
-                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                  <Button variant="ghost" size="sm">
-                                    <MoreHorizontal className="h-4 w-4" />
-                                  </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
-                                  <DropdownMenuItem
-                                    onClick={() => handleView(suratJalan)}
-                                  >
-                                    <Eye className="mr-2 h-4 w-4" />
-                                    Detail
-                                  </DropdownMenuItem>
-                                  {suratJalan.status === "draft" && (
-                                    <>
-                                      <DropdownMenuItem
-                                        onClick={() => handleEdit(suratJalan)}
-                                      >
-                                        <Edit className="mr-2 h-4 w-4" />
-                                        Edit
-                                      </DropdownMenuItem>
-                                      <DropdownMenuItem
-                                        onClick={() =>
-                                          handleCheckStock(suratJalan)
-                                        }
-                                      >
-                                        <Search className="mr-2 h-4 w-4" />
-                                        Cek Stok
-                                      </DropdownMenuItem>
-                                      <DropdownMenuItem
-                                        onClick={() => handlePost(suratJalan)}
-                                        className="text-green-600"
-                                        disabled={submitting}
-                                      >
-                                        <Send className="mr-2 h-4 w-4" />
-                                        {submitting ? "Posting..." : "Post"}
-                                      </DropdownMenuItem>
-                                      <DropdownMenuItem
-                                        onClick={() => handleDelete(suratJalan)}
-                                        className="text-red-600"
-                                      >
-                                        <Trash2 className="mr-2 h-4 w-4" />
-                                        Hapus
-                                      </DropdownMenuItem>
-                                    </>
-                                  )}
-                                  {suratJalan.status === "in_transit" && (
-                                    <>
-                                      <DropdownMenuItem
-                                        onClick={() =>
-                                          handleDeliver(suratJalan)
-                                        }
-                                      >
-                                        <CheckCircle className="mr-2 h-4 w-4" />
-                                        Tandai Selesai
-                                      </DropdownMenuItem>
-                                      <DropdownMenuItem
-                                        onClick={() => {
-                                          setViewingSuratJalan(suratJalan);
-                                          setTimeout(() => {
-                                            if (printRef.current) {
-                                              printRef.current.print();
-                                            }
-                                          }, 100);
-                                        }}
-                                      >
-                                        <Printer className="mr-2 h-4 w-4" />
-                                        Cetak
-                                      </DropdownMenuItem>
-                                    </>
-                                  )}
-                                  {suratJalan.status === "delivered" && (
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div>
+                              <div className="font-medium">
+                                {suratJalan.gudang.nama}
+                              </div>
+                              <div className="text-sm text-gray-500">
+                                {suratJalan.gudang.kode}
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell>{suratJalan.totalQty}</TableCell>
+                          <TableCell>
+                            {formatCurrency(Number(suratJalan.totalNilai))}
+                          </TableCell>
+                          <TableCell>
+                            {getStatusBadge(suratJalan.status)}
+                          </TableCell>
+                          <TableCell>
+                            {suratJalan.detail.some((d) => d.isDropship) ? (
+                              <Badge variant="outline">
+                                <ShoppingCart className="w-3 h-3 mr-1" />
+                                {
+                                  suratJalan.detail.filter((d) => d.isDropship)
+                                    .length
+                                }{" "}
+                                Item
+                              </Badge>
+                            ) : (
+                              <span className="text-gray-400">-</span>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="sm">
+                                  <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem
+                                  onClick={() => handleView(suratJalan)}
+                                >
+                                  <Eye className="mr-2 h-4 w-4" />
+                                  Detail
+                                </DropdownMenuItem>
+                                {suratJalan.status === "draft" && (
+                                  <>
+                                    <DropdownMenuItem
+                                      onClick={() => handleEdit(suratJalan)}
+                                    >
+                                      <Edit className="mr-2 h-4 w-4" />
+                                      Edit
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                      onClick={() =>
+                                        handleCheckStock(suratJalan)
+                                      }
+                                    >
+                                      <Search className="mr-2 h-4 w-4" />
+                                      Cek Stok
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                      onClick={() => handlePost(suratJalan)}
+                                      className="text-green-600"
+                                      disabled={submitting}
+                                    >
+                                      <Send className="mr-2 h-4 w-4" />
+                                      {submitting ? "Posting..." : "Post"}
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                      onClick={() => handleDelete(suratJalan)}
+                                      className="text-red-600"
+                                    >
+                                      <Trash2 className="mr-2 h-4 w-4" />
+                                      Hapus
+                                    </DropdownMenuItem>
+                                  </>
+                                )}
+                                {suratJalan.status === "in_transit" && (
+                                  <>
+                                    <DropdownMenuItem
+                                      onClick={() => handleDeliver(suratJalan)}
+                                    >
+                                      <CheckCircle className="mr-2 h-4 w-4" />
+                                      Tandai Selesai
+                                    </DropdownMenuItem>
                                     <DropdownMenuItem
                                       onClick={() => {
                                         setViewingSuratJalan(suratJalan);
@@ -1441,813 +1405,155 @@ export default function SuratJalanPage() {
                                       <Printer className="mr-2 h-4 w-4" />
                                       Cetak
                                     </DropdownMenuItem>
-                                  )}
-                                </DropdownMenuContent>
-                              </DropdownMenu>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
+                                  </>
+                                )}
+                                {suratJalan.status === "delivered" && (
+                                  <DropdownMenuItem
+                                    onClick={() => {
+                                      setViewingSuratJalan(suratJalan);
+                                      setTimeout(() => {
+                                        if (printRef.current) {
+                                          printRef.current.print();
+                                        }
+                                      }, 100);
+                                    }}
+                                  >
+                                    <Printer className="mr-2 h-4 w-4" />
+                                    Cetak
+                                  </DropdownMenuItem>
+                                )}
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
 
-                  {suratJalans.length === 0 && (
-                    <div className="flex flex-col items-center justify-center py-8">
-                      <Package className="h-12 w-12 text-gray-400 mb-4" />
-                      <h3 className="text-lg font-medium text-gray-900 mb-2">
-                        Belum ada transaksi Surat Jalan
-                      </h3>
-                      <p className="text-gray-500 mb-4">
-                        Mulai dengan membuat transaksi Surat Jalan pertama
-                      </p>
-                      <Button onClick={openAddDialog}>
-                        <Plus className="mr-2 h-4 w-4" />
-                        Surat Jalan Baru
+                {suratJalans.length === 0 && (
+                  <div className="flex flex-col items-center justify-center py-8">
+                    <Package className="h-12 w-12 text-gray-400 mb-4" />
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">
+                      Belum ada transaksi Surat Jalan
+                    </h3>
+                    <p className="text-gray-500 mb-4">
+                      Mulai dengan membuat transaksi Surat Jalan pertama
+                    </p>
+                    <Button onClick={openAddDialog}>
+                      <Plus className="mr-2 h-4 w-4" />
+                      Surat Jalan Baru
+                    </Button>
+                  </div>
+                )}
+
+                {pagination.totalPages > 1 && (
+                  <div className="flex items-center justify-between mt-4">
+                    <div className="text-sm text-gray-500">
+                      Menampilkan {suratJalans.length} dari {pagination.total}{" "}
+                      data
+                    </div>
+                    <div className="flex space-x-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() =>
+                          setPagination((prev) => ({
+                            ...prev,
+                            page: Math.max(1, prev.page - 1),
+                          }))
+                        }
+                        disabled={pagination.page === 1}
+                      >
+                        <ArrowLeft className="h-4 w-4 mr-1" />
+                        Sebelumnya
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() =>
+                          setPagination((prev) => ({
+                            ...prev,
+                            page: Math.min(prev.totalPages, prev.page + 1),
+                          }))
+                        }
+                        disabled={pagination.page === pagination.totalPages}
+                      >
+                        Selanjutnya
+                        <ArrowRight className="h-4 w-4 ml-1" />
                       </Button>
                     </div>
-                  )}
-
-                  {pagination.totalPages > 1 && (
-                    <div className="flex items-center justify-between mt-4">
-                      <div className="text-sm text-gray-500">
-                        Menampilkan {suratJalans.length} dari {pagination.total}{" "}
-                        data
-                      </div>
-                      <div className="flex space-x-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() =>
-                            setPagination((prev) => ({
-                              ...prev,
-                              page: Math.max(1, prev.page - 1),
-                            }))
-                          }
-                          disabled={pagination.page === 1}
-                        >
-                          <ArrowLeft className="h-4 w-4 mr-1" />
-                          Sebelumnya
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() =>
-                            setPagination((prev) => ({
-                              ...prev,
-                              page: Math.min(prev.totalPages, prev.page + 1),
-                            }))
-                          }
-                          disabled={pagination.page === pagination.totalPages}
-                        >
-                          Selanjutnya
-                          <ArrowRight className="h-4 w-4 ml-1" />
-                        </Button>
-                      </div>
-                    </div>
-                  )}
-                </>
-              )}
-            </CardContent>
-          </Card>
+                  </div>
+                )}
+              </>
+            )}
+          </CardContent>
+        </Card>
       </div>
 
       {/* Input Surat Jalan Dialog */}
       <Dialog open={inputDialogOpen} onOpenChange={setInputDialogOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Input Surat Jalan Baru</DialogTitle>
-            <DialogDescription>
-              Buat transaksi pengiriman barang ke customer
-            </DialogDescription>
-          </DialogHeader>
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-            <div className="grid gap-6">
-              {/* Customer and Warehouse Selection */}
-              <div className="grid grid-cols-2 gap-4">
+        <DialogContent className="!w-[90vw] !h-[90vh] !max-w-none !max-h-none overflow-y-auto rounded-xl p-0">
+          {/* Sticky Header */}
+          <div className="sticky top-0 z-10 border-b bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60 p-6">
+            <DialogHeader>
+              <DialogTitle className="text-xl font-semibold">
+                Input Surat Jalan Baru
+              </DialogTitle>
+              <DialogDescription className="text-muted-foreground">
+                Buat transaksi pengiriman barang ke customer
+              </DialogDescription>
+            </DialogHeader>
+          </div>
+
+          {/* Body */}
+          <div className="p-6">
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
+              {/* Customer & Gudang */}
+              <div className="grid grid-cols-2 gap-6">
                 <div className="grid gap-2">
-                  <Label htmlFor="customerId-input">Customer</Label>
+                  <Label>Customer</Label>
                   <Select
                     value={watchedValues.customerId}
-                    onValueChange={(value) => handleCustomerChange(value)}
+                    onValueChange={handleCustomerChange}
                     disabled={submitting}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Pilih Customer" />
                     </SelectTrigger>
                     <SelectContent>
-                      {customers.map((customer) => (
-                        <SelectItem key={customer.id} value={customer.id}>
-                          {customer.kode} - {customer.nama}
+                      {customers.map((c) => (
+                        <SelectItem key={c.id} value={c.id}>
+                          {c.kode} - {c.nama}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
-                  {errors.customerId && (
-                    <p className="text-sm text-red-600">
-                      {errors.customerId.message}
-                    </p>
-                  )}
                 </div>
+
                 <div className="grid gap-2">
-                  <Label htmlFor="gudangId-input">Gudang</Label>
+                  <Label>Gudang</Label>
                   <Select
                     value={watchedValues.gudangId}
-                    onValueChange={(value) => setValue("gudangId", value)}
+                    onValueChange={(v) => setValue("gudangId", v)}
                     disabled={submitting}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Pilih Gudang" />
                     </SelectTrigger>
                     <SelectContent>
-                      {gudangs.map((gudang) => (
-                        <SelectItem key={gudang.id} value={gudang.id}>
-                          {gudang.kode} - {gudang.nama}
+                      {gudangs.map((g) => (
+                        <SelectItem key={g.id} value={g.id}>
+                          {g.kode} - {g.nama}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
-                  {errors.gudangId && (
-                    <p className="text-sm text-red-600">
-                      {errors.gudangId.message}
-                    </p>
-                  )}
                 </div>
               </div>
 
-              {/* Transaction Information */}
-              <div className="grid grid-cols-2 gap-4">
-                <div className="grid gap-2">
-                  <Label htmlFor="tanggal-input">Tanggal</Label>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className="w-full justify-start text-left font-normal"
-                        disabled={submitting}
-                      >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {watchedValues.tanggal && typeof watchedValues.tanggal === 'string'
-                          ? format(
-                              new Date(watchedValues.tanggal),
-                              "dd MMM yyyy",
-                              { locale: idLocale }
-                            )
-                          : "Pilih Tanggal"}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={
-                          watchedValues.tanggal && typeof watchedValues.tanggal === 'string'
-                            ? new Date(watchedValues.tanggal)
-                            : undefined
-                        }
-                        onSelect={(date) =>
-                          setValue(
-                            "tanggal",
-                            date ? date.toISOString() : ""
-                          )
-                        }
-                        disabled={submitting}
-                        locale={idLocale}
-                      />
-                    </PopoverContent>
-                  </Popover>
-                  {errors.tanggal && (
-                    <p className="text-sm text-red-600">
-                      {errors.tanggal.message}
-                    </p>
-                  )}
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="keterangan-input">Keterangan</Label>
-                  <Textarea
-                    id="keterangan-input"
-                    {...register("keterangan")}
-                    placeholder="Keterangan transaksi (opsional)"
-                    disabled={submitting}
-                    rows={1}
-                  />
-                  {errors.keterangan && (
-                    <p className="text-sm text-red-600">
-                      {errors.keterangan.message}
-                    </p>
-                  )}
-                </div>
-              </div>
-
-              {/* Dropship Information */}
-              <div className="space-y-4">
-                <div className="flex items-center space-x-2">
-                  <Switch
-                    id="isDropship-input"
-                    checked={isDropship}
-                    onCheckedChange={setIsDropship}
-                    disabled={submitting}
-                  />
-                  <Label htmlFor="isDropship-input">
-                    Transaksi Dropship
-                  </Label>
-                </div>
-
-                {isDropship && (
-                  <div className="grid grid-cols-2 gap-4 border rounded-lg p-4 bg-muted/30">
-                    <div className="grid gap-2">
-                      <Label htmlFor="dropshipName-input">
-                        Nama Pengirim
-                      </Label>
-                      <Input
-                        id="dropshipName-input"
-                        {...register("dropshipName" as any)}
-                        placeholder="Nama pengirim dropship"
-                        disabled={submitting}
-                      />
-                      {(errors as any).dropshipName && (
-                        <p className="text-sm text-red-600">
-                          {(errors as any).dropshipName.message}
-                        </p>
-                      )}
-                    </div>
-                    <div className="grid gap-2">
-                      <Label htmlFor="dropshipPhone-input">
-                        No. HP Pengirim
-                      </Label>
-                      <Input
-                        id="dropshipPhone-input"
-                        {...register("dropshipPhone" as any)}
-                        placeholder="No. HP pengirim dropship"
-                        disabled={submitting}
-                      />
-                      {(errors as any).dropshipPhone && (
-                        <p className="text-sm text-red-600">
-                          {(errors as any).dropshipPhone.message}
-                        </p>
-                      )}
-                    </div>
-                    <div className="grid gap-2 col-span-2">
-                      <Label htmlFor="dropshipAddress-input">
-                        Alamat Pengirim
-                      </Label>
-                      <Textarea
-                        id="dropshipAddress-input"
-                        {...register("dropshipAddress" as any)}
-                        placeholder="Alamat pengirim dropship"
-                        disabled={submitting}
-                        rows={2}
-                      />
-                      {(errors as any).dropshipAddress && (
-                        <p className="text-sm text-red-600">
-                          {(errors as any).dropshipAddress.message}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Items Section */}
-              <div className="space-y-4">
-                <div className="flex justify-between items-center">
-                  <Label className="text-base font-medium">
-                    Detail Barang
-                  </Label>
-                  <Button
-                    type="button"
-                    onClick={addItem}
-                    disabled={submitting}
-                    size="sm"
-                  >
-                    <Plus className="mr-2 h-4 w-4" />
-                    Tambah Barang
-                  </Button>
-                </div>
-
-                {items.length === 0 ? (
-                  <div className="text-center py-8 border rounded-lg border-dashed">
-                    <Package className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">
-                      Belum ada barang
-                    </h3>
-                    <p className="text-gray-500 mb-4">
-                      Tambahkan barang yang akan dikirim
-                    </p>
-                    <Button
-                      type="button"
-                      onClick={addItem}
-                      disabled={submitting}
-                    >
-                      <Plus className="mr-2 h-4 w-4" />
-                      Tambah Barang
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    <div className="rounded-md border">
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead className="w-12 text-center">
-                              No
-                            </TableHead>
-                            <TableHead className="min-w-[250px]">
-                              Barang
-                            </TableHead>
-                            <TableHead className="w-32 text-center">
-                              Stok
-                            </TableHead>
-                            <TableHead className="w-32 text-center">
-                              Qty
-                            </TableHead>
-                            <TableHead className="w-32 text-center">
-                              Dropship
-                            </TableHead>
-                            <TableHead className="w-32 text-right">
-                              Harga
-                            </TableHead>
-                            <TableHead className="w-32 text-right">
-                              Total
-                            </TableHead>
-                            <TableHead className="w-12"></TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {items.map((item, index) => {
-                            const watchedItem = item;
-                            const barang = watchedItem?.barangId
-                              ? barangs.find(
-                                  (b) => b.id === watchedItem.barangId
-                                )
-                              : null;
-                            const availableStock =
-                              (barang as any)?.stokTersedia ?? 0;
-
-                            return (
-                              <TableRow key={index}>
-                                <TableCell className="text-center">
-                                  {index + 1}
-                                </TableCell>
-                                <TableCell>
-                                  <div className="space-y-2">
-                                    <div className="flex gap-2">
-                                      <Select
-                                        value={watchedItem?.barangId || ""}
-                                        onValueChange={(value) => {
-                                          const newItems = [...items];
-                                          newItems[index] = { ...newItems[index], barangId: value };
-                                          setItems(newItems);
-                                          // Reset dropship status when changing barang
-                                          if (
-                                            !watchedItem?.isDropship &&
-                                            value
-                                          ) {
-                                            const newItems = [...items];
-                                              newItems[index] = { ...newItems[index], isDropship: false };
-                                              setItems(newItems);
-                                          }
-                                        }}
-                                        disabled={submitting}
-                                      >
-                                        <SelectTrigger className="flex-1">
-                                          <SelectValue placeholder="Pilih Barang" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                          {barangs.map((barang) => (
-                                            <SelectItem
-                                              key={barang.id}
-                                              value={barang.id}
-                                            >
-                                              <div className="flex flex-col">
-                                                <span>
-                                                  {barang.nama}
-                                                </span>
-                                                <span className="text-sm text-gray-500">
-                                                  {
-                                                    barang.kode
-                                                  } - Stok:{" "}
-                                                  {(barang as any).stokTersedia ||
-                                                    0}{" "}
-                                                  {barang.satuan}
-                                                </span>
-                                              </div>
-                                            </SelectItem>
-                                          ))}
-                                        </SelectContent>
-                                      </Select>
-                                    </div>
-
-                                    {/* Show alias input if barang is selected */}
-                                    {watchedItem?.barangId && (
-                                      <div className="flex gap-2">
-                                        <Input
-                                          {...register(
-                                            `items.${index}.namaAlias` as any
-                                          )}
-                                          placeholder="Nama alias (opsional)"
-                                          disabled={submitting}
-                                          className="flex-1"
-                                        />
-                                        <Button
-                                          type="button"
-                                          variant="outline"
-                                          size="sm"
-                                          onClick={() => {
-                                            // Placeholder for copy alias functionality
-                                            console.log('Copy alias functionality not implemented');
-                                          }}
-                                          disabled={submitting}
-                                          title="Gunakan nama alias ini untuk semua item"
-                                        >
-                                          Copy
-                                        </Button>
-                                      </div>
-                                    )}
-
-                                    {/* Custom Item Section */}
-                                    {watchedItem?.isCustom && (
-                                      <div className="space-y-2 p-3 border rounded-md bg-muted/50">
-                                        <div className="grid grid-cols-2 gap-2">
-                                          <div>
-                                            <Label className="text-xs">
-                                              Nama Barang
-                                            </Label>
-                                            <Input
-                                              {...register(
-                                                `items.${index}.customNama` as any
-                                              )}
-                                              placeholder="Nama barang"
-                                              disabled={submitting}
-                                              className="text-sm"
-                                            />
-                                          </div>
-                                          <div>
-                                            <Label className="text-xs">
-                                              Qty
-                                            </Label>
-                                            <Input
-                                              {...register(
-                                                `items.${index}.customQty`,
-                                                {
-                                                  valueAsNumber: true,
-                                                }
-                                              )}
-                                              type="number"
-                                              placeholder="Qty"
-                                              disabled={submitting}
-                                              className="text-sm"
-                                            />
-                                          </div>
-                                        </div>
-                                      </div>
-                                    )}
-
-                                    {errors.items?.[index]
-                                      ?.barangId && (
-                                      <p className="text-sm text-red-600">
-                                        {
-                                          errors.items[index]?.barangId
-                                            ?.message
-                                        }
-                                      </p>
-                                    )}
-                                  </div>
-                                </TableCell>
-                                <TableCell className="text-center">
-                                  <span
-                                    className={`font-medium ${
-                                      availableStock < 10
-                                        ? "text-red-600"
-                                        : availableStock < 50
-                                        ? "text-yellow-600"
-                                        : "text-green-600"
-                                    }`}
-                                  >
-                                    {availableStock}
-                                  </span>
-                                </TableCell>
-                                <TableCell>
-                                  <div className="flex items-center space-x-2">
-                                    <Input
-                                      {...register(
-                                        `items.${index}.qty`,
-                                        {
-                                          valueAsNumber: true,
-                                        }
-                                      )}
-                                      type="number"
-                                      placeholder="Qty"
-                                      min="1"
-                                      className="w-20 text-center"
-                                      disabled={
-                                        submitting ||
-                                        !watchedItem?.barangId
-                                      }
-                                    />
-                                    <span className="text-sm text-gray-500">
-                                      {barang?.satuan}
-                                    </span>
-                                  </div>
-                                  {errors.items?.[index]?.qty && (
-                                    <p className="text-sm text-red-600">
-                                      {errors.items[index]?.qty?.message}
-                                    </p>
-                                  )}
-                                </TableCell>
-                                <TableCell className="text-center">
-                                  <Switch
-                                    checked={watchedItem?.isDropship}
-                                    onCheckedChange={(checked) => {
-                                      const newItems = [...items];
-                                      newItems[index] = { ...newItems[index], isDropship: checked };
-                                      setItems(newItems);
-                                    }}
-                                    disabled={submitting}
-                                  />
-                                </TableCell>
-                                <TableCell>
-                                  <div className="flex items-center space-x-2">
-                                    <Input
-                                      {...register(
-                                        `items.${index}.harga`,
-                                        {
-                                          valueAsNumber: true,
-                                        }
-                                      )}
-                                      type="number"
-                                      placeholder="0"
-                                      min="0"
-                                      className="w-28 text-right"
-                                      disabled={submitting}
-                                    />
-                                    <Button
-                                      type="button"
-                                      variant="outline"
-                                      size="sm"
-                                      onClick={() =>
-                                        useDefaultPrice(index)
-                                      }
-                                      disabled={
-                                        submitting ||
-                                        !barang?.hargaJual
-                                      }
-                                      title="Gunakan harga jual default"
-                                    >
-                                      <Info className="h-3 w-3" />
-                                    </Button>
-                                  </div>
-                                  {errors.items?.[index]?.harga && (
-                                    <p className="text-sm text-red-600">
-                                      {errors.items[index]?.harga?.message}
-                                    </p>
-                                  )}
-                                </TableCell>
-                                <TableCell className="text-right font-medium">
-                                  {formatCurrency(
-                                    (watchedItem?.qty || 0) *
-                                      (watchedItem?.harga || 0)
-                                  )}
-                                </TableCell>
-                                <TableCell>
-                                  <Button
-                                    type="button"
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => removeItem(index)}
-                                    disabled={submitting}
-                                  >
-                                    <Trash2 className="h-4 w-4" />
-                                  </Button>
-                                </TableCell>
-                              </TableRow>
-                            );
-                          })}
-                        </TableBody>
-                        <tfoot>
-                          <TableRow>
-                            <TableCell
-                              colSpan={6}
-                              className="text-right font-semibold"
-                            >
-                              Total:
-                            </TableCell>
-                            <TableCell className="text-right font-bold text-lg">
-                              {formatCurrency(calculateGrandTotal())}
-                            </TableCell>
-                            <TableCell colSpan={1}></TableCell>
-                          </TableRow>
-                        </tfoot>
-                      </Table>
-                    </div>
-
-                    {/* Quick Actions */}
-                    <div className="flex gap-2">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={handleAddCustomItem}
-                        disabled={submitting}
-                      >
-                        <Plus className="mr-2 h-4 w-4" />
-                        Tambah Barang Custom
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() => handleSetAllDropship(true)}
-                        disabled={submitting}
-                      >
-                        <ShoppingCart className="mr-2 h-4 w-4" />
-                        Semua Dropship
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() => handleSetAllDropship(false)}
-                        disabled={submitting}
-                      >
-                        <Package className="mr-2 h-4 w-4" />
-                        Semua Regular
-                      </Button>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Delivery Options */}
-              <div className="space-y-4 border rounded-lg p-4 bg-muted/30">
-                <Label className="text-base font-medium">
-                  Opsi Pengiriman
-                </Label>
-                <div className="grid grid-cols-1 gap-4">
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="radio"
-                      id="complete"
-                      name="deliveryOption"
-                      value="complete"
-                      checked={deliveryOption === "complete"}
-                      onChange={(e) =>
-                        setDeliveryOption(e.target.value as any)
-                      }
-                      disabled={submitting}
-                    />
-                    <Label htmlFor="complete">
-                      Kirim Semua Barang Sekaligus
-                    </Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="radio"
-                      id="partial"
-                      name="deliveryOption"
-                      value="partial"
-                      checked={deliveryOption === "partial"}
-                      onChange={(e) =>
-                        setDeliveryOption(e.target.value as any)
-                      }
-                      disabled={submitting}
-                    />
-                    <Label htmlFor="partial">
-                      Kirim Sebagian (Split Delivery)
-                    </Label>
-                  </div>
-                </div>
-
-                {deliveryOption === "partial" && (
-                  <div className="mt-4 p-4 border rounded-md bg-yellow-50">
-                    <div className="flex items-center gap-2 mb-2">
-                      <AlertCircle className="h-4 w-4 text-yellow-600" />
-                      <span className="font-medium text-yellow-800">
-                        Konfirmasi Split Delivery
-                      </span>
-                    </div>
-                    <p className="text-sm text-yellow-700 mb-3">
-                      Transaksi ini akan dibagi menjadi beberapa pengiriman.
-                      Sisa barang akan dibuatkan transaksi Surat Jalan baru
-                      secara otomatis.
-                    </p>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <Label className="text-xs font-medium">
-                          Total Dikirim
-                        </Label>
-                        <div className="text-lg font-bold text-green-600">
-                          {calculateTotalQty()} Barang
-                        </div>
-                      </div>
-                      <div>
-                        <Label className="text-xs font-medium">
-                          Estimasi Sisa
-                        </Label>
-                        <div className="text-lg font-bold text-orange-600">
-                          {Math.max(
-                            0,
-                            calculateTotalRequiredStock() -
-                              calculateTotalQty()
-                          )}{" "}
-                          Barang
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          </form>
-
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => {
-                reset();
-                setIsDropship(false);
-                setDeliveryOption("complete");
-                setInputDialogOpen(false);
-              }}
-              disabled={submitting}
-            >
-              Batal
-            </Button>
-            <Button
-              onClick={handleSubmit(onSubmit)}
-              disabled={submitting}
-            >
-              {submitting ? "Menyimpan..." : "Simpan Transaksi"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Add/Edit Dialog */}
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="sm:max-w-[1200px] max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>
-              {editingSuratJalan ? "Edit Surat Jalan" : "Surat Jalan Baru"}
-            </DialogTitle>
-            <DialogDescription>
-              {editingSuratJalan
-                ? "Edit informasi transaksi Surat Jalan yang sudah ada."
-                : "Buat transaksi Surat Jalan baru untuk mengirim barang ke customer."}
-            </DialogDescription>
-          </DialogHeader>
-          <form onSubmit={handleSubmit(onSubmit)}>
-            <div className="grid gap-6 py-4">
-              {/* Customer and Warehouse Selection */}
-              <div className="grid grid-cols-2 gap-4">
-                <div className="grid gap-2">
-                  <Label htmlFor="customerId">Customer</Label>
-                  <Select
-                    value={watchedValues.customerId}
-                    onValueChange={(value) => handleCustomerChange(value)}
-                    disabled={submitting}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Pilih Customer" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {customers.map((customer) => (
-                        <SelectItem key={customer.id} value={customer.id}>
-                          {customer.kode} - {customer.nama}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  {errors.customerId && (
-                    <p className="text-sm text-red-600">
-                      {errors.customerId.message}
-                    </p>
-                  )}
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="gudangId">Gudang</Label>
-                  <Select
-                    value={watchedValues.gudangId}
-                    onValueChange={(value) => setValue("gudangId", value)}
-                    disabled={submitting}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Pilih Gudang" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {gudangs.map((gudang) => (
-                        <SelectItem key={gudang.id} value={gudang.id}>
-                          {gudang.kode} - {gudang.nama}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  {errors.gudangId && (
-                    <p className="text-sm text-red-600">
-                      {errors.gudangId.message}
-                    </p>
-                  )}
-                </div>
-              </div>
-
-              {/* Shipping Information */}
-              <div className="grid grid-cols-2 gap-4">
+              {/* Pengiriman */}
+              <div className="grid grid-cols-2 gap-6">
                 <div className="grid gap-2">
                   <Label>Tanggal</Label>
                   <Popover>
@@ -2280,103 +1586,76 @@ export default function SuratJalanPage() {
                       />
                     </PopoverContent>
                   </Popover>
-                  {errors.tanggal && (
-                    <p className="text-sm text-red-600">
-                      {errors.tanggal.message}
-                    </p>
-                  )}
                 </div>
                 <div className="grid gap-2">
-                  <Label htmlFor="alamatKirim">Alamat Kirim</Label>
+                  <Label>Alamat Kirim</Label>
                   <Input
-                    id="alamatKirim"
                     {...register("alamatKirim")}
                     placeholder="Alamat tujuan pengiriman"
                     disabled={submitting}
                   />
-                  {errors.alamatKirim && (
-                    <p className="text-sm text-red-600">
-                      {errors.alamatKirim.message}
-                    </p>
-                  )}
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              {/* Supir & Kendaraan */}
+              <div className="grid grid-cols-2 gap-6">
                 <div className="grid gap-2">
-                  <Label htmlFor="namaSupir">Nama Supir</Label>
+                  <Label>Nama Supir</Label>
                   <Input
-                    id="namaSupir"
                     {...register("namaSupir")}
                     placeholder="Nama supir pengirim"
                     disabled={submitting}
                   />
-                  {errors.namaSupir && (
-                    <p className="text-sm text-red-600">
-                      {errors.namaSupir.message}
-                    </p>
-                  )}
                 </div>
                 <div className="grid gap-2">
-                  <Label htmlFor="nopolKendaraan">No Pol Kendaraan</Label>
+                  <Label>No. Pol Kendaraan</Label>
                   <Input
-                    id="nopolKendaraan"
                     {...register("nopolKendaraan")}
                     placeholder="Nomor polisi kendaraan"
                     disabled={submitting}
                   />
-                  {errors.nopolKendaraan && (
-                    <p className="text-sm text-red-600">
-                      {errors.nopolKendaraan.message}
-                    </p>
-                  )}
                 </div>
               </div>
 
+              {/* Keterangan */}
               <div className="grid gap-2">
-                <Label htmlFor="keterangan">Keterangan</Label>
+                <Label>Keterangan</Label>
                 <Textarea
-                  id="keterangan"
                   {...register("keterangan")}
                   placeholder="Opsional"
                   disabled={submitting}
                 />
-                {errors.keterangan && (
-                  <p className="text-sm text-red-600">
-                    {errors.keterangan.message}
-                  </p>
-                )}
               </div>
 
-              {/* Delivery Option */}
+              {/* Opsi Pengiriman */}
               <div className="grid gap-2">
                 <Label>Opsi Pengiriman</Label>
                 <Select
                   value={deliveryOption}
-                  onValueChange={(value: "partial" | "complete") =>
-                    setDeliveryOption(value)
+                  onValueChange={(v: "partial" | "complete") =>
+                    setDeliveryOption(v)
                   }
                 >
                   <SelectTrigger>
-                    <SelectValue />
+                    <SelectValue placeholder="Pilih opsi pengiriman" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="complete">
                       Kirim Lengkap (tunggu semua barang ready)
                     </SelectItem>
                     <SelectItem value="partial">
-                      Kirim Partial (kirim barang ready terlebih dahulu)
+                      Kirim Partial (barang ready duluan)
                     </SelectItem>
                   </SelectContent>
                 </Select>
-                <p className="text-sm text-gray-500">
+                <p className="text-sm text-muted-foreground">
                   {deliveryOption === "complete"
-                    ? "Semua barang harus ready (termasuk dropship) sebelum dikirim"
-                    : "Barang yang ready akan dikirim terlebih dahulu, sisanya menyusul"}
+                    ? "Semua barang harus ready sebelum dikirim"
+                    : "Barang yang ready dikirim dulu, sisanya menyusul"}
                 </p>
               </div>
 
-              {/* Items Section */}
+              {/* Detail Barang */}
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <Label className="text-base font-semibold">
@@ -2387,40 +1666,87 @@ export default function SuratJalanPage() {
                     variant="outline"
                     size="sm"
                     onClick={addItem}
+                    className="gap-1"
                   >
-                    <Plus className="h-4 w-4 mr-1" />
+                    <Plus className="h-4 w-4" />
                     Tambah Item
                   </Button>
                 </div>
 
-                <div className="space-y-2">
-                  {items.map((item, index) => (
+                {/* Header Kolom */}
+                <div className="grid grid-cols-12 gap-2 text-xs font-semibold text-muted-foreground border-b pb-2 uppercase tracking-wide">
+                  <div className="col-span-5">Barang</div>
+                  <div className="col-span-2 text-center">Qty</div>
+                  <div className="col-span-2 text-right">Harga</div>
+                  <div className="col-span-2 text-right">Subtotal</div>
+                  <div className="col-span-1 text-center">Aksi</div>
+                </div>
+
+                {items.map((item, index) => (
+                  <div key={index} className="space-y-2">
                     <div
-                      key={index}
-                      className="grid grid-cols-12 gap-2 items-end border rounded-lg p-3"
+                      className="grid grid-cols-12 gap-2 items-center border rounded-md p-2.5 
+        bg-muted/20 hover:bg-muted/40 transition-colors"
                     >
-                      <div className="col-span-4">
-                        <Select
-                          value={item.barangId}
-                          onValueChange={(value) =>
-                            updateItem(index, "barangId", value)
-                          }
-                          disabled={submitting}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Pilih Barang" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {barangs.map((barang) => (
-                              <SelectItem key={barang.id} value={barang.id}>
-                                {barang.kode} - {barang.nama}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                      {/* Barang */}
+                      <div className="col-span-5">
+                        <div className="flex items-center space-x-2 mb-1">
+                          <Switch
+                            checked={item.isCustom || false}
+                            onCheckedChange={(checked) =>
+                              updateItem(index, "isCustom", checked)
+                            }
+                            disabled={submitting}
+                            className="scale-90"
+                          />
+                          <Label className="text-xs text-muted-foreground">
+                            {item.isCustom ? "Custom" : "Gudang"}
+                          </Label>
+                        </div>
+
+                        {item.isCustom ? (
+                          <div className="grid grid-cols-2 gap-1.5">
+                            <Input
+                              placeholder="Kode"
+                              value={item.customKode || ""}
+                              onChange={(e) =>
+                                updateItem(index, "customKode", e.target.value)
+                              }
+                              className="h-8 text-xs"
+                            />
+                            <Input
+                              placeholder="Nama"
+                              value={item.customNama || ""}
+                              onChange={(e) =>
+                                updateItem(index, "customNama", e.target.value)
+                              }
+                              className="h- text-xs"
+                            />
+                          </div>
+                        ) : (
+                          <Select
+                            value={item.barangId}
+                            onValueChange={(v) =>
+                              updateItem(index, "barangId", v)
+                            }
+                            disabled={submitting}
+                          >
+                            <SelectTrigger className="h-8 text-xs">
+                              <SelectValue placeholder="Pilih Barang" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {barangs.map((barang) => (
+                                <SelectItem key={barang.id} value={barang.id}>
+                                  {barang.kode} - {barang.nama}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        )}
                       </div>
-                      <div className="col-span-1">
-                        <Label>Qty</Label>
+
+                      {/* Qty */}
+                      <div className="col-span-2 mt-5">
                         <Input
                           type="number"
                           min="1"
@@ -2428,64 +1754,74 @@ export default function SuratJalanPage() {
                           onChange={(e) =>
                             updateItem(index, "qty", e.target.value)
                           }
-                          disabled={submitting}
+                          className="h-8 text-center text-xs"
                         />
                       </div>
-                      <div className="col-span-2">
-                        <Label>Harga</Label>
-                        <Input
-                          type="number"
-                          min="0"
-                          step="0.01"
-                          value={item.hargaJual}
-                          onChange={(e) =>
-                            updateItem(index, "hargaJual", e.target.value)
-                          }
-                          disabled={submitting}
-                        />
+
+                      {/* Harga */}
+                      <div className="col-span-2 mt-5">
+                        <ButtonGroup className="w-full">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="font-mono text-xs px-2 rounded-none rounded-l-md cursor-default"
+                            disabled
+                          >
+                            Rp
+                          </Button>
+                          <Input
+                            type="number"
+                            min="0"
+                            step="10"
+                            value={
+                              item.isCustom
+                                ? item.customHarga || 0
+                                : item.hargaJual || 0
+                            }
+                            onChange={(e) =>
+                              updateItem(
+                                index,
+                                item.isCustom ? "customHarga" : "hargaJual",
+                                e.target.value
+                              )
+                            }
+                            className="h-8 text-right text-xs rounded-none border-l-0 focus-visible:ring-0 focus-visible:ring-offset-0"
+                          />
+                        </ButtonGroup>
                       </div>
-                      <div className="col-span-1">
-                        <Label>Satuan</Label>
-                        <div className="flex items-center h-10 px-3 py-2 rounded-md border bg-gray-50">
-                          <span className="text-sm">
-                            {barangs.find((b) => b.id === item.barangId)
-                              ?.satuan || "-"}
-                          </span>
-                        </div>
-                      </div>
-                      <div className="col-span-2">
-                        <Label>Subtotal</Label>
-                        <div className="flex items-center h-10 px-3 py-2 rounded-md border bg-gray-50">
-                          <span className="text-sm font-medium">
+
+                      {/* Subtotal */}
+                      <div className="col-span-2 mt-5">
+                        <div className="flex items-center rounded-md border bg-background overflow-hidden h-8">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="font-mono text-xs px-2 rounded-none rounded-l-md cursor-default"
+                            disabled
+                          >
+                            Rp
+                          </Button>
+                          <div className="flex-1 text-right pr-3 text-xs font-medium text-foreground bg-gray-50">
                             {formatCurrency(calculateSubtotal(item))}
-                          </span>
+                          </div>
                         </div>
                       </div>
-                      <div className="col-span-2">
-                        <Label>Keterangan</Label>
-                        <Input
-                          value={item.keterangan || ""}
-                          onChange={(e) =>
-                            updateItem(index, "keterangan", e.target.value)
-                          }
-                          placeholder="Opsional"
-                          disabled={submitting}
-                        />
-                      </div>
-                      <div className="col-span-1">
+
+                      {/* Aksi */}
+                      <div className="col-span-1 flex justify-center">
                         <Button
+                          variant="ghost"
+                          size="icon"
                           type="button"
-                          variant="outline"
-                          size="sm"
                           onClick={() => removeItem(index)}
-                          disabled={items.length === 1 || submitting}
+                          className="h-7 w-7 hover:bg-red-100 hover:text-red-600 transition-colors"
                         >
-                          <Trash2 className="h-4 w-4" />
+                          <Trash2 className="h-3.5 w-3.5" />
                         </Button>
                       </div>
                     </div>
-                  ))}
-                </div>
+                  </div>
+                ))}
               </div>
 
               {/* Grand Total */}
@@ -2497,27 +1833,30 @@ export default function SuratJalanPage() {
                   </span>
                 </div>
               </div>
-            </div>
-            <DialogFooter>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setDialogOpen(false)}
-                disabled={submitting}
-              >
-                Batal
-              </Button>
-              <Button type="submit" disabled={submitting}>
-                {submitting
-                  ? "Menyimpan..."
-                  : editingSuratJalan
-                    ? "Perbarui"
-                    : "Simpan"}
-              </Button>
-            </DialogFooter>
-          </form>
+
+              {/* Footer */}
+              <div className="sticky bottom-0 border-t bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60 p-4 flex justify-end gap-3">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    reset();
+                    setItems([{ barangId: "", qty: 1, hargaJual: 0 }]);
+                    setDeliveryOption("complete");
+                  }}
+                  disabled={submitting}
+                >
+                  Reset
+                </Button>
+                <Button type="submit" disabled={submitting}>
+                  {submitting ? "Menyimpan..." : "Simpan Transaksi"}
+                </Button>
+              </div>
+            </form>
+          </div>
         </DialogContent>
       </Dialog>
+
       {/* View Dialog */}
       <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
         <DialogContent className="sm:max-w-[1200px] max-h-[90vh] overflow-y-auto">
@@ -2641,11 +1980,15 @@ export default function SuratJalanPage() {
                         <TableRow key={item.id}>
                           <TableCell>{index + 1}</TableCell>
                           <TableCell>
-                            {item.isCustom ? (item.customKode || "-") : (item.barang?.kode || "-")}
+                            {item.isCustom
+                              ? item.customKode || "-"
+                              : item.barang?.kode || "-"}
                           </TableCell>
                           <TableCell>
                             <div className="font-medium">
-                              {item.isCustom ? (item.customNama || "-") : (item.barang?.nama || "-")}
+                              {item.isCustom
+                                ? item.customNama || "-"
+                                : item.barang?.nama || "-"}
                             </div>
                             {item.namaAlias && (
                               <div className="text-sm text-gray-500">
@@ -2659,10 +2002,19 @@ export default function SuratJalanPage() {
                             )}
                           </TableCell>
                           <TableCell>
-                            {item.qty} {item.isCustom ? (item.customSatuan || "-") : (item.barang?.satuan || "-")}
+                            {item.qty}{" "}
+                            {item.isCustom
+                              ? item.customSatuan || "-"
+                              : item.barang?.satuan || "-"}
                           </TableCell>
                           <TableCell>
-                            {formatCurrency(Number(item.isCustom ? (item.customHarga || 0) : (item.hargaJual || 0)))}
+                            {formatCurrency(
+                              Number(
+                                item.isCustom
+                                  ? item.customHarga || 0
+                                  : item.hargaJual || 0
+                              )
+                            )}
                           </TableCell>
                           <TableCell>
                             {formatCurrency(Number(item.subtotal))}
@@ -2816,7 +2168,7 @@ export default function SuratJalanPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      {/* Stock Check Dialog */}
+
       {/* Stock Check Dialog */}
       <Dialog
         open={stockCheckDialogOpen}

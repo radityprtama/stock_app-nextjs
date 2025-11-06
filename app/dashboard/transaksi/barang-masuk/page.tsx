@@ -89,7 +89,9 @@ import {
   TooltipTrigger,
   Tooltip,
 } from "@/components/ui/tooltip";
-import BarangMasukPrint, { BarangMasukPrintRef } from "@/components/print/barang-masuk-print";
+import BarangMasukPrint, {
+  BarangMasukPrintRef,
+} from "@/components/print/barang-masuk-print";
 
 interface BarangMasuk {
   id: string;
@@ -685,25 +687,8 @@ export default function BarangMasukPage() {
     }, 100);
   };
 
-  
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Barang Masuk</h1>
-          <p className="text-muted-foreground">
-            Kelola transaksi penerimaan barang dari supplier
-          </p>
-        </div>
-        <Button
-          onClick={openAddDialog}
-          className="bg-blue-600 hover:bg-blue-700"
-        >
-          <Plus className="mr-2 h-4 w-4" />
-          Input Barang Masuk Baru
-        </Button>
-      </div>
-
       {/* Statistics Cards */}
       <div className="w-full overflow-hidden">
         <div
@@ -942,9 +927,20 @@ export default function BarangMasukPage() {
       <Card>
         <CardHeader>
           <CardTitle>Daftar Transaksi Barang Masuk</CardTitle>
-          <CardDescription>
-            Total {pagination.total} transaksi terdaftar
-          </CardDescription>
+          <div className="flex justify-between items-center">
+            <CardDescription>
+              Total {pagination.total} transaksi terdaftar
+            </CardDescription>
+
+            <Button
+              onClick={openAddDialog}
+              className="bg-blue-600 hover:bg-blue-700"
+              size="sm"
+            >
+              <Plus className="mr-2 h-4 w-4" />
+              Input Barang Masuk Baru
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           {loading ? (
@@ -1120,73 +1116,73 @@ export default function BarangMasukPage() {
 
       {/* Add/Edit Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>
-              {editingBarangMasuk
-                ? "Edit Barang Masuk"
-                : "Input Barang Masuk Baru"}
-            </DialogTitle>
-            <DialogDescription>
-              {editingBarangMasuk
-                ? "Edit informasi transaksi Barang Masuk yang sudah ada."
-                : "Buat transaksi Barang Masuk baru untuk menerima barang dari supplier."}
-            </DialogDescription>
-          </DialogHeader>
-          <form onSubmit={handleSubmit(onSubmit)}>
-            <div className="grid gap-6 py-4">
-              <div className="grid grid-cols-2 gap-4">
+        <DialogContent className="!w-[90vw] !h-[90vh] !max-w-none !max-h-none overflow-y-auto rounded-xl p-0">
+          {/* Header sticky biar tetap kelihatan */}
+          <div className="sticky top-0 z-10 border-b bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60 p-6">
+            <DialogHeader>
+              <DialogTitle className="text-xl font-semibold">
+                {editingBarangMasuk
+                  ? "Edit Barang Masuk"
+                  : "Input Barang Masuk Baru"}
+              </DialogTitle>
+              <DialogDescription className="text-muted-foreground">
+                {editingBarangMasuk
+                  ? "Edit informasi transaksi Barang Masuk yang sudah ada."
+                  : "Buat transaksi Barang Masuk baru untuk menerima barang dari supplier."}
+              </DialogDescription>
+            </DialogHeader>
+          </div>
+
+          {/* Body */}
+          <div className="p-6">
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
+              {/* Grid utama */}
+              <div className="grid grid-cols-2 gap-6">
+                {/* Supplier */}
                 <div className="grid gap-2">
-                  <Label htmlFor="supplierId">Supplier</Label>
+                  <Label>Supplier</Label>
                   <Select
                     value={watchedValues.supplierId}
-                    onValueChange={(value) => setValue("supplierId", value)}
+                    onValueChange={(v) => setValue("supplierId", v)}
                     disabled={submitting}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Pilih Supplier" />
                     </SelectTrigger>
                     <SelectContent>
-                      {suppliers.map((supplier) => (
-                        <SelectItem key={supplier.id} value={supplier.id}>
-                          {supplier.kode} - {supplier.nama}
+                      {suppliers.map((s) => (
+                        <SelectItem key={s.id} value={s.id}>
+                          {s.kode} – {s.nama}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
-                  {errors.supplierId && (
-                    <p className="text-sm text-red-600">
-                      {errors.supplierId.message}
-                    </p>
-                  )}
                 </div>
+
+                {/* Gudang */}
                 <div className="grid gap-2">
-                  <Label htmlFor="gudangId">Gudang</Label>
+                  <Label>Gudang</Label>
                   <Select
                     value={watchedValues.gudangId}
-                    onValueChange={(value) => setValue("gudangId", value)}
+                    onValueChange={(v) => setValue("gudangId", v)}
                     disabled={submitting}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Pilih Gudang" />
                     </SelectTrigger>
                     <SelectContent>
-                      {gudangs.map((gudang) => (
-                        <SelectItem key={gudang.id} value={gudang.id}>
-                          {gudang.kode} - {gudang.nama}
+                      {gudangs.map((g) => (
+                        <SelectItem key={g.id} value={g.id}>
+                          {g.kode} – {g.nama}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
-                  {errors.gudangId && (
-                    <p className="text-sm text-red-600">
-                      {errors.gudangId.message}
-                    </p>
-                  )}
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              {/* Grid kedua */}
+              <div className="grid grid-cols-2 gap-6">
                 <div className="grid gap-2">
                   <Label>Tanggal</Label>
                   <Popover>
@@ -1203,9 +1199,7 @@ export default function BarangMasukPage() {
                                 ? watchedValues.tanggal
                                 : new Date(watchedValues.tanggal as any),
                               "dd MMM yyyy",
-                              {
-                                locale: idLocale,
-                              }
+                              { locale: idLocale }
                             )
                           : "Pilih tanggal"}
                       </Button>
@@ -1221,29 +1215,19 @@ export default function BarangMasukPage() {
                       />
                     </PopoverContent>
                   </Popover>
-                  {errors.tanggal && (
-                    <p className="text-sm text-red-600">
-                      {errors.tanggal.message}
-                    </p>
-                  )}
                 </div>
+
                 <div className="grid gap-2">
-                  <Label htmlFor="keterangan">Keterangan</Label>
+                  <Label>Keterangan</Label>
                   <Input
-                    id="keterangan"
                     {...register("keterangan")}
                     placeholder="Opsional"
                     disabled={submitting}
                   />
-                  {errors.keterangan && (
-                    <p className="text-sm text-red-600">
-                      {errors.keterangan.message}
-                    </p>
-                  )}
                 </div>
               </div>
 
-              {/* Items Section */}
+              {/* Detail Barang */}
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <Label className="text-base font-semibold">
@@ -1255,23 +1239,23 @@ export default function BarangMasukPage() {
                     size="sm"
                     onClick={addItem}
                   >
-                    <Plus className="h-4 w-4 mr-1" />
+                    <Plus className="mr-1 h-4 w-4" />
                     Tambah Item
                   </Button>
                 </div>
 
-                <div className="space-y-2 max-h-64 overflow-y-auto">
+                <div className="space-y-3 max-h-64 overflow-y-auto">
                   {items.map((item, index) => (
                     <div
                       key={index}
-                      className="grid grid-cols-12 gap-2 items-end"
+                      className="grid grid-cols-12 gap-3 items-end"
                     >
                       <div className="col-span-5">
                         <Label>Barang</Label>
                         <Select
                           value={item.barangId}
-                          onValueChange={(value) =>
-                            updateItem(index, "barangId", value)
+                          onValueChange={(v) =>
+                            updateItem(index, "barangId", v)
                           }
                           disabled={submitting}
                         >
@@ -1279,9 +1263,9 @@ export default function BarangMasukPage() {
                             <SelectValue placeholder="Pilih Barang" />
                           </SelectTrigger>
                           <SelectContent>
-                            {barangs.map((barang) => (
-                              <SelectItem key={barang.id} value={barang.id}>
-                                {barang.kode} - {barang.nama}
+                            {barangs.map((b) => (
+                              <SelectItem key={b.id} value={b.id}>
+                                {b.kode} – {b.nama}
                               </SelectItem>
                             ))}
                           </SelectContent>
@@ -1296,7 +1280,6 @@ export default function BarangMasukPage() {
                           onChange={(e) =>
                             updateItem(index, "qty", e.target.value)
                           }
-                          disabled={submitting}
                         />
                       </div>
                       <div className="col-span-2">
@@ -1309,24 +1292,23 @@ export default function BarangMasukPage() {
                           onChange={(e) =>
                             updateItem(index, "harga", e.target.value)
                           }
-                          disabled={submitting}
                         />
                       </div>
                       <div className="col-span-2">
                         <Label>Subtotal</Label>
-                        <div className="flex items-center h-10 px-3 py-2 rounded-md border bg-gray-50">
+                        <div className="flex h-10 items-center rounded-md border px-3 bg-muted/30">
                           <span className="text-sm font-medium">
                             {formatCurrency(calculateSubtotal(item))}
                           </span>
                         </div>
                       </div>
-                      <div className="col-span-1">
+                      <div className="col-span-1 flex justify-end">
                         <Button
                           type="button"
                           variant="outline"
                           size="sm"
                           onClick={() => removeItem(index)}
-                          disabled={items.length === 1 || submitting}
+                          disabled={items.length === 1}
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -1337,33 +1319,33 @@ export default function BarangMasukPage() {
               </div>
 
               {/* Grand Total */}
-              <div className="border-t pt-4">
-                <div className="flex justify-between items-center">
-                  <span className="text-lg font-semibold">Grand Total:</span>
-                  <span className="text-xl font-bold text-green-600">
-                    {formatCurrency(calculateGrandTotal())}
-                  </span>
-                </div>
+              <div className="border-t pt-4 flex justify-between items-center">
+                <span className="text-lg font-semibold">Grand Total:</span>
+                <span className="text-xl font-bold text-green-600">
+                  {formatCurrency(calculateGrandTotal())}
+                </span>
               </div>
-            </div>
-            <DialogFooter>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setDialogOpen(false)}
-                disabled={submitting}
-              >
-                Batal
-              </Button>
-              <Button type="submit" disabled={submitting}>
-                {submitting
-                  ? "Menyimpan..."
-                  : editingBarangMasuk
-                    ? "Perbarui"
-                    : "Simpan"}
-              </Button>
-            </DialogFooter>
-          </form>
+            </form>
+          </div>
+
+          {/* Footer sticky */}
+          <div className="sticky bottom-0 border-t bg-background/80 backdrop-blur p-4 flex justify-end gap-3">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setDialogOpen(false)}
+              disabled={submitting}
+            >
+              Batal
+            </Button>
+            <Button type="submit" disabled={submitting}>
+              {submitting
+                ? "Menyimpan..."
+                : editingBarangMasuk
+                  ? "Perbarui"
+                  : "Simpan"}
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
 

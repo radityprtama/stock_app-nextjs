@@ -1,6 +1,6 @@
 "use client";
 
-import { Sun, Moon, Bell, User, Settings, LogOut } from "lucide-react";
+import { Sun, Moon, User, Settings, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import {
@@ -31,49 +31,126 @@ export function SiteHeader({ user }: SiteHeaderProps) {
   const { setTheme } = useTheme();
   const pathname = usePathname();
 
-  const getPageTitle = () => {
-    if (pathname === "/dashboard") return "Dashboard";
-    if (pathname.startsWith("/dashboard/master")) {
-      const masterType = pathname.split("/")[3];
-      switch (masterType) {
-        case "barang": return "Master Barang";
-        case "supplier": return "Master Supplier";
-        case "customer": return "Master Customer";
-        case "golongan": return "Master Golongan";
-        case "gudang": return "Master Gudang";
-        default: return "Master Data";
-      }
+  const getPageInfo = () => {
+    const pageInfo = {
+      title: "Inventory",
+      description: "Kelola inventori sistem Anda",
+    };
+
+    if (pathname === "/dashboard") {
+      return {
+        title: "Dashboard",
+        description: "Ringkasan umum dan statistik utama sistem inventori Anda",
+      };
     }
+
+    if (pathname.startsWith("/dashboard/master")) {
+      const masterType = pathname.split("/")[3] as keyof typeof masterMap;
+      const masterMap: Record<string, { title: string; description: string }> =
+        {
+          barang: {
+            title: "Master Barang",
+            description: "Kelola data barang atau item inventaris",
+          },
+          supplier: {
+            title: "Master Supplier",
+            description: "Kelola data supplier dan vendor",
+          },
+          customer: {
+            title: "Master Customer",
+            description: "Kelola data customer dan pelanggan",
+          },
+          golongan: {
+            title: "Master Golongan",
+            description: "Kelola data golongan atau kategori barang",
+          },
+          gudang: {
+            title: "Master Gudang",
+            description: "Kelola data gudang dan lokasi penyimpanan barang",
+          },
+        };
+      return (
+        masterMap[masterType] || {
+          title: "Master Data",
+          description: "Kelola data master sistem inventori",
+        }
+      );
+    }
+
     if (pathname.startsWith("/dashboard/transaksi")) {
       const transaksiType = pathname.split("/")[3];
-      switch (transaksiType) {
-        case "barang-masuk": return "Barang Masuk";
-        case "delivery-order": return "Delivery Order";
-        case "surat-jalan": return "Surat Jalan";
-        case "retur-beli": return "Retur Pembelian";
-        case "retur-jual": return "Retur Penjualan";
-        default: return "Transaksi";
-      }
+      const transaksiMap = {
+        "barang-masuk": {
+          title: "Barang Masuk",
+          description: "Kelola transaksi penerimaan barang dari supplier",
+        },
+        "delivery-order": {
+          title: "Delivery Order",
+          description: "Kelola pengiriman barang antar gudang",
+        },
+        "surat-jalan": {
+          title: "Surat Jalan",
+          description: "Kelola transaksi pengiriman barang ke customer",
+        },
+        "retur-beli": {
+          title: "Retur Pembelian",
+          description: "Kelola transaksi pengembalian barang dari supplier",
+        },
+        "retur-jual": {
+          title: "Retur Penjualan",
+          description: "Kelola transaksi pengembalian barang dari customer",
+        },
+      };
+      return (
+        transaksiMap[transaksiType as keyof typeof transaksiMap] || {
+          title: "Transaksi",
+          description: "Kelola transaksi inventori",
+        }
+      );
     }
-    if (pathname.startsWith("/dashboard/laporan")) return "Laporan";
-    if (pathname.startsWith("/dashboard/analytics")) return "Analytics";
-    if (pathname.startsWith("/dashboard/settings")) return "Pengaturan";
-    return "Inventory";
+
+    if (pathname.startsWith("/dashboard/laporan")) {
+      return {
+        title: "Laporan",
+        description: "Lihat laporan komprehensif dan analisis data inventori",
+      };
+    }
+
+    if (pathname.startsWith("/dashboard/notifications")) {
+      return {
+        title: "Notifications",
+        description: "Lihat notifikasi sistem",
+      };
+    }
+
+    if (pathname.startsWith("/dashboard/settings")) {
+      return {
+        title: "Pengaturan",
+        description: "Atur preferensi dan konfigurasi sistem inventori",
+      };
+    }
+
+    return pageInfo;
   };
+
+  const { title, description } = getPageInfo();
 
   const handleSignOut = () => {
     signOut({ callbackUrl: "/auth/login" });
   };
 
   return (
-    <header className="flex h-16 shrink-0 items-center gap-2 border-b bg-background transition-[width,height] ease-linear">
-      <div className="flex w-full items-center gap-1 px-6 py-4">
+    <header className="flex h-auto shrink-0 flex-col border-b bg-background transition-[width,height] ease-linear">
+      <div className="flex h-16 items-center gap-2 px-6 py-4">
         <SidebarTrigger className="-ml-1" />
         <Separator
           orientation="vertical"
           className="mx-2 data-[orientation=vertical]:h-6"
         />
-        <h1 className="text-base font-medium text-foreground">{getPageTitle()}</h1>
+        <div className="flex flex-col">
+          <h1 className="text-base font-medium text-foreground">{title}</h1>
+          <p className="text-sm text-muted-foreground">{description}</p>
+        </div>
         <div className="ml-auto flex items-center gap-2">
           {/* Theme Toggle */}
           <DropdownMenu>
