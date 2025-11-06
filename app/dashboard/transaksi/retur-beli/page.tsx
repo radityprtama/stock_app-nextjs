@@ -86,6 +86,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 type ReturBeliDetail = ReturBeliPrintData["detail"][number] & {
   currentStock?: number;
@@ -613,32 +614,26 @@ export default function ReturBeliPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Retur Beli</h1>
-        <p className="text-muted-foreground">
-          Kelola transaksi pengembalian barang ke supplier
-        </p>
-      </div>
-
-      {/* Header with Action Button */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-semibold tracking-tight">Daftar Retur Beli</h2>
-          <p className="text-muted-foreground">
-            Kelola semua transaksi pengembalian barang ke supplier
-          </p>
+        <div className="mb-6 flex justify-between items-center">
+          <div>
+            <h1 className="text-3xl font-bold">Retur Beli</h1>
+            <p className="text-gray-600">
+              Kelola pengembalian barang
+            </p>
+          </div>
+          <Button onClick={openAddDialog} size="lg">
+            <Plus className="mr-2 h-4 w-4" />
+            Input Retur Beli Baru
+          </Button>
         </div>
-        <Button onClick={openAddDialog} size="lg">
-          <Plus className="mr-2 h-4 w-4" />
-          Input Retur Beli Baru
-        </Button>
       </div>
 
       {/* Main Content Area */}
       <div className="space-y-4">
-          {/* Statistics Cards */}
-          <div className="w-full overflow-hidden">
-            <div
-              className="
+        {/* Statistics Cards */}
+        <div className="w-full overflow-hidden">
+          <div
+            className="
       grid gap-4
       grid-cols-1
       sm:grid-cols-2
@@ -648,416 +643,406 @@ export default function ReturBeliPage() {
       2xl:grid-cols-6
       min-w-0
     "
-            >
-              {/* Total Transaksi */}
-              <Card className="min-w-0 transition-all duration-200 hover:scale-[1.02] hover:shadow-md">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">
-                    Total Transaksi
-                  </CardTitle>
-                  <FileText className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">
-                    {statistics.totalTransactions}
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    Semua transaksi
-                  </p>
-                </CardContent>
-              </Card>
-
-              {/* Draft */}
-              <Card className="min-w-0 transition-all duration-200 hover:scale-[1.02] hover:shadow-md">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Draft</CardTitle>
-                  <Clock className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-orange-600">
-                    {statistics.draftCount}
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    Menunggu approve
-                  </p>
-                </CardContent>
-              </Card>
-
-              {/* Approved */}
-              <Card className="min-w-0 transition-all duration-200 hover:scale-[1.02] hover:shadow-md">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">
-                    Approved
-                  </CardTitle>
-                  <CheckCircle className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-blue-600">
-                    {statistics.approvedCount}
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    Stok sudah dikurangi
-                  </p>
-                </CardContent>
-              </Card>
-
-              {/* Completed */}
-              <Card className="min-w-0 transition-all duration-200 hover:scale-[1.02] hover:shadow-md">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">
-                    Completed
-                  </CardTitle>
-                  <CheckCircle className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-green-600">
-                    {statistics.completedCount}
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    Transaksi selesai
-                  </p>
-                </CardContent>
-              </Card>
-
-              {/* Total Qty */}
-              <Card className="min-w-0 transition-all duration-200 hover:scale-[1.02] hover:shadow-md">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">
-                    Total Qty
-                  </CardTitle>
-                  <Package className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-blue-600">
-                    {statistics.totalQuantity}
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    Total barang diretur
-                  </p>
-                </CardContent>
-              </Card>
-
-              {/* Total Nilai */}
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Card className="w-[180px] shrink-0 transition-all duration-200 hover:scale-[1.02] hover:shadow-md cursor-default">
-                      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">
-                          Total Nilai
-                        </CardTitle>
-                        <TrendingUp className="h-4 w-4 text-muted-foreground" />
-                      </CardHeader>
-                      <CardContent>
-                        <div className="text-2xl font-bold truncate">
-                          {formatCurrency(statistics.totalValue)}
-                        </div>
-                        <p className="text-xs text-muted-foreground">
-                          Nilai total retur
-                        </p>
-                      </CardContent>
-                    </Card>
-                  </TooltipTrigger>
-
-                  <TooltipContent side="top" className="text-sm">
-                    {formatCurrency(statistics.totalValue)}
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            </div>
-          </div>
-
-          {/* Filters */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <Filter className="mr-2 h-4 w-4" />
-                Filter & Pencarian
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                  <Input
-                    placeholder="Cari transaksi..."
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    className="pl-10"
-                  />
+          >
+            {/* Total Transaksi */}
+            <Card className="min-w-0 transition-all duration-200 hover:scale-[1.02] hover:shadow-md">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">
+                  Total Transaksi
+                </CardTitle>
+                <FileText className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {statistics.totalTransactions}
                 </div>
+                <p className="text-xs text-muted-foreground">Semua transaksi</p>
+              </CardContent>
+            </Card>
 
-                <Select
-                  value={selectedSupplier || undefined}
-                  onValueChange={(value) =>
-                    setSelectedSupplier(value === "all" ? "" : value)
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Semua Supplier" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Semua Supplier</SelectItem>
-                    {suppliers.map((supplier) => (
-                      <SelectItem key={supplier.id} value={supplier.id}>
-                        {supplier.kode} - {supplier.nama}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+            {/* Draft */}
+            <Card className="min-w-0 transition-all duration-200 hover:scale-[1.02] hover:shadow-md">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Draft</CardTitle>
+                <Clock className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-orange-600">
+                  {statistics.draftCount}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Menunggu approve
+                </p>
+              </CardContent>
+            </Card>
 
-                <Select
-                  value={selectedStatus || undefined}
-                  onValueChange={(value) =>
-                    setSelectedStatus(value === "all" ? "" : value)
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Semua Status</SelectItem>
-                    <SelectItem value="draft">Draft</SelectItem>
-                    <SelectItem value="approved">Approved</SelectItem>
-                    <SelectItem value="completed">Completed</SelectItem>
-                  </SelectContent>
-                </Select>
+            {/* Approved */}
+            <Card className="min-w-0 transition-all duration-200 hover:scale-[1.02] hover:shadow-md">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Approved</CardTitle>
+                <CheckCircle className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-blue-600">
+                  {statistics.approvedCount}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Stok sudah dikurangi
+                </p>
+              </CardContent>
+            </Card>
 
-                {/* Start Date Calendar */}
+            {/* Completed */}
+            <Card className="min-w-0 transition-all duration-200 hover:scale-[1.02] hover:shadow-md">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Completed</CardTitle>
+                <CheckCircle className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-green-600">
+                  {statistics.completedCount}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Transaksi selesai
+                </p>
+              </CardContent>
+            </Card>
+
+            {/* Total Qty */}
+            <Card className="min-w-0 transition-all duration-200 hover:scale-[1.02] hover:shadow-md">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Total Qty</CardTitle>
+                <Package className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-blue-600">
+                  {statistics.totalQuantity}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Total barang diretur
+                </p>
+              </CardContent>
+            </Card>
+
+            {/* Total Nilai */}
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Card className="w-[180px] shrink-0 transition-all duration-200 hover:scale-[1.02] hover:shadow-md cursor-default">
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                      <CardTitle className="text-sm font-medium">
+                        Total Nilai
+                      </CardTitle>
+                      <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold truncate">
+                        {formatCurrency(statistics.totalValue)}
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Nilai total retur
+                      </p>
+                    </CardContent>
+                  </Card>
+                </TooltipTrigger>
+
+                <TooltipContent side="top" className="text-sm">
+                  {formatCurrency(statistics.totalValue)}
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
+        </div>
+
+        {/* Filters */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center">
+              <Filter className="mr-2 h-4 w-4" />
+              Filter & Pencarian
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Input
+                  placeholder="Cari transaksi..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+
+              <Select
+                value={selectedSupplier || undefined}
+                onValueChange={(value) =>
+                  setSelectedSupplier(value === "all" ? "" : value)
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Semua Supplier" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Semua Supplier</SelectItem>
+                  {suppliers.map((supplier) => (
+                    <SelectItem key={supplier.id} value={supplier.id}>
+                      {supplier.kode} - {supplier.nama}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <Select
+                value={selectedStatus || undefined}
+                onValueChange={(value) =>
+                  setSelectedStatus(value === "all" ? "" : value)
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Semua Status</SelectItem>
+                  <SelectItem value="draft">Draft</SelectItem>
+                  <SelectItem value="approved">Approved</SelectItem>
+                  <SelectItem value="completed">Completed</SelectItem>
+                </SelectContent>
+              </Select>
+
+              {/* Start Date Calendar */}
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start text-left font-normal"
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {startDate
+                      ? format(startDate, "dd MMM yyyy", { locale: idLocale })
+                      : "Tanggal Awal"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={startDate}
+                    onSelect={setStartDate}
+                    disabled={(date) => (endDate ? date > endDate : false)}
+                    locale={idLocale}
+                  />
+                </PopoverContent>
+              </Popover>
+
+              {/* End Date Calendar */}
+              <div className="flex gap-2">
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button
                       variant="outline"
-                      className="w-full justify-start text-left font-normal"
+                      className="flex-1 justify-start text-left font-normal"
                     >
                       <CalendarIcon className="mr-2 h-4 w-4" />
-                      {startDate
-                        ? format(startDate, "dd MMM yyyy", { locale: idLocale })
-                        : "Tanggal Awal"}
+                      {endDate
+                        ? format(endDate, "dd MMM yyyy", { locale: idLocale })
+                        : "Tanggal Akhir"}
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0" align="start">
                     <Calendar
                       mode="single"
-                      selected={startDate}
-                      onSelect={setStartDate}
-                      disabled={(date) => (endDate ? date > endDate : false)}
+                      selected={endDate}
+                      onSelect={setEndDate}
+                      disabled={(date) =>
+                        startDate ? date < startDate : false
+                      }
                       locale={idLocale}
                     />
                   </PopoverContent>
                 </Popover>
+                <Button variant="outline" onClick={clearFilters}>
+                  Reset
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
-                {/* End Date Calendar */}
-                <div className="flex gap-2">
-                  <Popover>
-                    <PopoverTrigger asChild>
+        {/* Main Table */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Daftar Transaksi Retur Beli</CardTitle>
+            <CardDescription>
+              Total {pagination.total} transaksi terdaftar
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {loading ? (
+              <div className="flex items-center justify-center py-8">
+                <div className="text-sm text-gray-500">Memuat data...</div>
+              </div>
+            ) : (
+              <>
+                <div className="rounded-md border">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>No Retur</TableHead>
+                        <TableHead>Tanggal</TableHead>
+                        <TableHead>Supplier</TableHead>
+                        <TableHead>Total Qty</TableHead>
+                        <TableHead>Total Nilai</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead className="text-right">Aksi</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {returBelis.map((returBeli) => (
+                        <TableRow key={returBeli.id}>
+                          <TableCell className="font-medium">
+                            {returBeli.noRetur}
+                          </TableCell>
+                          <TableCell>{formatDate(returBeli.tanggal)}</TableCell>
+                          <TableCell>
+                            <div>
+                              <div className="font-medium">
+                                {returBeli.supplier.nama}
+                              </div>
+                              <div className="text-sm text-gray-500">
+                                {returBeli.supplier.kode}
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell>{returBeli.totalQty}</TableCell>
+                          <TableCell>
+                            {formatCurrency(Number(returBeli.totalNilai))}
+                          </TableCell>
+                          <TableCell>
+                            {getStatusBadge(returBeli.status)}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="sm">
+                                  <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem
+                                  onClick={() => handleView(returBeli)}
+                                >
+                                  <Eye className="mr-2 h-4 w-4" />
+                                  Detail
+                                </DropdownMenuItem>
+                                {returBeli.status === "draft" && (
+                                  <>
+                                    <DropdownMenuItem
+                                      onClick={() => handleEdit(returBeli)}
+                                    >
+                                      <Edit className="mr-2 h-4 w-4" />
+                                      Edit
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                      onClick={() => handleApprove(returBeli)}
+                                      className="text-blue-600"
+                                    >
+                                      <Send className="mr-2 h-4 w-4" />
+                                      Approve
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                      onClick={() => handleDelete(returBeli)}
+                                      className="text-red-600"
+                                    >
+                                      <Trash2 className="mr-2 h-4 w-4" />
+                                      Hapus
+                                    </DropdownMenuItem>
+                                  </>
+                                )}
+                                {returBeli.status === "approved" && (
+                                  <DropdownMenuItem
+                                    onClick={() => handleComplete(returBeli)}
+                                    className="text-green-600"
+                                  >
+                                    <CheckCircle className="mr-2 h-4 w-4" />
+                                    Complete
+                                  </DropdownMenuItem>
+                                )}
+                                {(returBeli.status === "approved" ||
+                                  returBeli.status === "completed") && (
+                                  <DropdownMenuItem
+                                    onClick={() => handlePrint(returBeli)}
+                                  >
+                                    <Printer className="mr-2 h-4 w-4" />
+                                    Cetak
+                                  </DropdownMenuItem>
+                                )}
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+
+                {returBelis.length === 0 && (
+                  <div className="flex flex-col items-center justify-center py-8">
+                    <ShoppingCart className="h-12 w-12 text-gray-400 mb-4" />
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">
+                      Belum ada transaksi Retur Beli
+                    </h3>
+                    <p className="text-gray-500 mb-4">
+                      Mulai dengan membuat transaksi Retur Beli pertama
+                    </p>
+                    <Button onClick={openAddDialog}>
+                      <Plus className="mr-2 h-4 w-4" />
+                      Retur Beli Baru
+                    </Button>
+                  </div>
+                )}
+
+                {pagination.totalPages > 1 && (
+                  <div className="flex items-center justify-between mt-4">
+                    <div className="text-sm text-gray-500">
+                      Menampilkan {returBelis.length} dari {pagination.total}{" "}
+                      data
+                    </div>
+                    <div className="flex space-x-2">
                       <Button
                         variant="outline"
-                        className="flex-1 justify-start text-left font-normal"
-                      >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {endDate
-                          ? format(endDate, "dd MMM yyyy", { locale: idLocale })
-                          : "Tanggal Akhir"}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={endDate}
-                        onSelect={setEndDate}
-                        disabled={(date) =>
-                          startDate ? date < startDate : false
+                        size="sm"
+                        onClick={() =>
+                          setPagination((prev) => ({
+                            ...prev,
+                            page: Math.max(1, prev.page - 1),
+                          }))
                         }
-                        locale={idLocale}
-                      />
-                    </PopoverContent>
-                  </Popover>
-                  <Button variant="outline" onClick={clearFilters}>
-                    Reset
-                  </Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Main Table */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Daftar Transaksi Retur Beli</CardTitle>
-              <CardDescription>
-                Total {pagination.total} transaksi terdaftar
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {loading ? (
-                <div className="flex items-center justify-center py-8">
-                  <div className="text-sm text-gray-500">Memuat data...</div>
-                </div>
-              ) : (
-                <>
-                  <div className="rounded-md border">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>No Retur</TableHead>
-                          <TableHead>Tanggal</TableHead>
-                          <TableHead>Supplier</TableHead>
-                          <TableHead>Total Qty</TableHead>
-                          <TableHead>Total Nilai</TableHead>
-                          <TableHead>Status</TableHead>
-                          <TableHead className="text-right">Aksi</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {returBelis.map((returBeli) => (
-                          <TableRow key={returBeli.id}>
-                            <TableCell className="font-medium">
-                              {returBeli.noRetur}
-                            </TableCell>
-                            <TableCell>
-                              {formatDate(returBeli.tanggal)}
-                            </TableCell>
-                            <TableCell>
-                              <div>
-                                <div className="font-medium">
-                                  {returBeli.supplier.nama}
-                                </div>
-                                <div className="text-sm text-gray-500">
-                                  {returBeli.supplier.kode}
-                                </div>
-                              </div>
-                            </TableCell>
-                            <TableCell>{returBeli.totalQty}</TableCell>
-                            <TableCell>
-                              {formatCurrency(Number(returBeli.totalNilai))}
-                            </TableCell>
-                            <TableCell>
-                              {getStatusBadge(returBeli.status)}
-                            </TableCell>
-                            <TableCell className="text-right">
-                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                  <Button variant="ghost" size="sm">
-                                    <MoreHorizontal className="h-4 w-4" />
-                                  </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
-                                  <DropdownMenuItem
-                                    onClick={() => handleView(returBeli)}
-                                  >
-                                    <Eye className="mr-2 h-4 w-4" />
-                                    Detail
-                                  </DropdownMenuItem>
-                                  {returBeli.status === "draft" && (
-                                    <>
-                                      <DropdownMenuItem
-                                        onClick={() => handleEdit(returBeli)}
-                                      >
-                                        <Edit className="mr-2 h-4 w-4" />
-                                        Edit
-                                      </DropdownMenuItem>
-                                      <DropdownMenuItem
-                                        onClick={() => handleApprove(returBeli)}
-                                        className="text-blue-600"
-                                      >
-                                        <Send className="mr-2 h-4 w-4" />
-                                        Approve
-                                      </DropdownMenuItem>
-                                      <DropdownMenuItem
-                                        onClick={() => handleDelete(returBeli)}
-                                        className="text-red-600"
-                                      >
-                                        <Trash2 className="mr-2 h-4 w-4" />
-                                        Hapus
-                                      </DropdownMenuItem>
-                                    </>
-                                  )}
-                                  {returBeli.status === "approved" && (
-                                    <DropdownMenuItem
-                                      onClick={() => handleComplete(returBeli)}
-                                      className="text-green-600"
-                                    >
-                                      <CheckCircle className="mr-2 h-4 w-4" />
-                                      Complete
-                                    </DropdownMenuItem>
-                                  )}
-                                  {(returBeli.status === "approved" ||
-                                    returBeli.status === "completed") && (
-                                    <DropdownMenuItem
-                                      onClick={() => handlePrint(returBeli)}
-                                    >
-                                      <Printer className="mr-2 h-4 w-4" />
-                                      Cetak
-                                    </DropdownMenuItem>
-                                  )}
-                                </DropdownMenuContent>
-                              </DropdownMenu>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
-
-                  {returBelis.length === 0 && (
-                    <div className="flex flex-col items-center justify-center py-8">
-                      <ShoppingCart className="h-12 w-12 text-gray-400 mb-4" />
-                      <h3 className="text-lg font-medium text-gray-900 mb-2">
-                        Belum ada transaksi Retur Beli
-                      </h3>
-                      <p className="text-gray-500 mb-4">
-                        Mulai dengan membuat transaksi Retur Beli pertama
-                      </p>
-                      <Button onClick={openAddDialog}>
-                        <Plus className="mr-2 h-4 w-4" />
-                        Retur Beli Baru
+                        disabled={pagination.page === 1}
+                      >
+                        <ArrowLeft className="h-4 w-4 mr-1" />
+                        Sebelumnya
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() =>
+                          setPagination((prev) => ({
+                            ...prev,
+                            page: Math.min(prev.totalPages, prev.page + 1),
+                          }))
+                        }
+                        disabled={pagination.page === pagination.totalPages}
+                      >
+                        Selanjutnya
+                        <ArrowRight className="h-4 w-4 ml-1" />
                       </Button>
                     </div>
-                  )}
-
-                  {pagination.totalPages > 1 && (
-                    <div className="flex items-center justify-between mt-4">
-                      <div className="text-sm text-gray-500">
-                        Menampilkan {returBelis.length} dari {pagination.total}{" "}
-                        data
-                      </div>
-                      <div className="flex space-x-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() =>
-                            setPagination((prev) => ({
-                              ...prev,
-                              page: Math.max(1, prev.page - 1),
-                            }))
-                          }
-                          disabled={pagination.page === 1}
-                        >
-                          <ArrowLeft className="h-4 w-4 mr-1" />
-                          Sebelumnya
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() =>
-                            setPagination((prev) => ({
-                              ...prev,
-                              page: Math.min(prev.totalPages, prev.page + 1),
-                            }))
-                          }
-                          disabled={pagination.page === pagination.totalPages}
-                        >
-                          Selanjutnya
-                          <ArrowRight className="h-4 w-4 ml-1" />
-                        </Button>
-                      </div>
-                    </div>
-                  )}
-                </>
-              )}
-            </CardContent>
-          </Card>
+                  </div>
+                )}
+              </>
+            )}
+          </CardContent>
+        </Card>
       </div>
 
       {/* Add/Edit Dialog */}
