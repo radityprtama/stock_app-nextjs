@@ -9,7 +9,7 @@ const broadcastSchema = z.object({
   type: z.enum(['info', 'success', 'warning', 'error']).default('info'),
   category: z.enum(['stock', 'transaction', 'system', 'dropship', 'customer']).default('system'),
   actionUrl: z.string().optional(),
-  metadata: z.record(z.any()).optional(),
+  metadata: z.record(z.string(), z.any()).optional(),
 })
 
 // POST /api/notifications/broadcast - Broadcast notification to all users

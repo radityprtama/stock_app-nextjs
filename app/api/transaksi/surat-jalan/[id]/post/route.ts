@@ -95,7 +95,8 @@ export async function POST(
       // Update stock for non-dropship items
       const stockUpdates = []
       for (const item of stockValidation.itemsToShip) {
-        if (!item.isDropship) {
+        // Skip stock updates for custom items (not tracked in stokBarang)
+        if (!item.isDropship && !item.isCustom) {
           // Get current stock
           const currentStok = await tx.stokBarang.findUnique({
             where: {
@@ -199,14 +200,14 @@ export async function POST(
     // Create success notification
     await createNotification({
       title: 'Surat Jalan Diposting',
-      message: `${updatedSJ.noSJ} - ${successMessage}`,
+      message: `${result.suratJalan.noSJ} - ${successMessage}`,
       type: 'success',
       category: 'transaction',
       actionUrl: '/dashboard/transaksi/surat-jalan',
       metadata: {
         suratJalanId: id,
-        noSJ: updatedSJ.noSJ,
-        customerId: updatedSJ.customerId,
+        noSJ: result.suratJalan.noSJ,
+        customerId: result.suratJalan.customerId,
         totalItems: result.shippingSummary.totalItems,
         normalItems: result.shippingSummary.normalItems,
         dropshipItems: result.shippingSummary.dropshipItems,
@@ -291,7 +292,18 @@ async function validateStockForPosting(suratJalan: any, deliveryOption: string) 
   const itemsPending = []
 
   for (const detail of suratJalan.detail) {
-    // Get current stock
+    // Skip custom items: no stock lookup, considered ready to ship
+    if (detail.isCustom || !detail.barangId) {
+      itemsToShip.push({
+        ...detail,
+        isDropship: false,
+        currentStock: 0,
+        status: 'ready',
+      })
+      continue
+    }
+
+    // Get current stock for normal items
     const stokBarang = await prisma.stokBarang.findUnique({
       where: {
         barangId_gudangId: {

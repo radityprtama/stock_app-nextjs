@@ -3,6 +3,7 @@
 
 generator client {
   provider = "prisma-client-js"
+   binaryTargets = ["native", "debian-openssl-1.1.x"]
 }
 
 datasource db {
@@ -24,10 +25,11 @@ model Gudang {
   updatedAt   DateTime @updatedAt
 
   // Relations
-  stokBarang      StokBarang[]
-  barangMasuk     BarangMasuk[]
-  deliveryOrders  DeliveryOrder[]
-  suratJalan      SuratJalan[]
+  stokBarang        StokBarang[]
+  barangMasuk       BarangMasuk[]
+  deliveryOrders    DeliveryOrder[]
+  deliveryOrdersTujuan DeliveryOrder[] @relation("GudangTujuan")
+  suratJalan        SuratJalan[]
 }
 
 model Customer {
@@ -112,6 +114,7 @@ model Barang {
   stokBarang        StokBarang[]
   detailBarangMasuk DetailBarangMasuk[]
   detailSuratJalan  DetailSuratJalan[]
+  detailDeliveryOrder DetailDeliveryOrder[]
   detailReturBeli   DetailReturBeli[]
   detailReturJual   DetailReturJual[]
   supplierBarang    SupplierBarang[]
@@ -213,7 +216,9 @@ model DeliveryOrder {
 
   gudangAsalId    String
   gudangAsal      Gudang   @relation(fields: [gudangAsalId], references: [id])
-  gudangTujuan    String   // bisa nama gudang lain atau alamat
+  gudangTujuan    String   // bisa nama gudang lain atau alamat (legacy)
+  gudangTujuanId  String?
+  gudangTujuanRel Gudang?   @relation("GudangTujuan", fields: [gudangTujuanId], references: [id])
 
   namaSupir       String
   nopolKendaraan  String
@@ -232,6 +237,7 @@ model DeliveryOrder {
   detail          DetailDeliveryOrder[]
 
   @@index([gudangAsalId])
+  @@index([gudangTujuanId])
   @@index([tanggal])
 }
 
@@ -240,8 +246,9 @@ model DetailDeliveryOrder {
   deliveryOrderId String
   deliveryOrder   DeliveryOrder @relation(fields: [deliveryOrderId], references: [id], onDelete: Cascade)
   barangId        String
+  barang          Barang        @relation(fields: [barangId], references: [id])
 
-  namaBarang      String // snapshot untuk history
+  namaBarang      String        // snapshot untuk history
   qty             Int
   satuan          String
 
@@ -250,6 +257,7 @@ model DetailDeliveryOrder {
   createdAt       DateTime      @default(now())
 
   @@index([deliveryOrderId])
+  @@index([barangId])
 }
 
 model SuratJalan {
@@ -294,12 +302,24 @@ model DetailSuratJalan {
   id            String      @id @default(cuid())
   suratJalanId  String
   suratJalan    SuratJalan  @relation(fields: [suratJalanId], references: [id], onDelete: Cascade)
-  barangId      String
-  barang        Barang      @relation(fields: [barangId], references: [id])
+  barangId      String?     // nullable for custom items
+  barang        Barang?     @relation(fields: [barangId], references: [id])
 
+  // For standard warehouse items
   qty           Int
-  hargaJual     Decimal     @db.Decimal(15,2)
-  subtotal      Decimal     @db.Decimal(15,2)
+  hargaJual     Decimal?    @db.Decimal(15,2) // nullable for custom items
+  subtotal      Decimal?    @db.Decimal(15,2) // nullable for custom items
+  satuan        String?     // nullable for custom items
+
+  // For custom items (barang yang tidak ada di database/gudang)
+  isCustom      Boolean     @default(false)
+  customKode    String?     // kode barang custom
+  customNama    String?     // nama barang custom
+  customSatuan  String?     // satuan custom
+  customHarga   Decimal?    @db.Decimal(15,2) // harga jual custom
+
+  // Nama alias per customer untuk produk yang sama
+  namaAlias     String?     // nama custom untuk customer
 
   // Flag untuk barang dropship (ambil dari supplier lain)
   isDropship    Boolean     @default(false)

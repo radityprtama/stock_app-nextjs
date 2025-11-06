@@ -34,7 +34,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Switch } from '@/components/ui/switch'
@@ -106,7 +105,6 @@ export default function GudangPage() {
   const [submitting, setSubmitting] = useState(false)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [selectedGudang, setSelectedGudang] = useState<Gudang | null>(null)
-  const [activeTab, setActiveTab] = useState('browse')
 
   const {
     register,
@@ -148,7 +146,7 @@ export default function GudangPage() {
     fetchGudangs()
   }, [pagination.page, search])
 
-  const onSubmit = async (data: GudangFormValues, isTabSubmit: boolean = false) => {
+  const onSubmit = async (data: GudangFormValues) => {
     setSubmitting(true)
     try {
       const payload: GudangFormData = gudangSchema.parse(data)
@@ -173,15 +171,10 @@ export default function GudangPage() {
             ? 'Gudang berhasil diperbarui'
             : 'Gudang berhasil ditambahkan'
         )
-        if (!isTabSubmit) {
-          setDialogOpen(false)
-        }
+        setDialogOpen(false)
         reset(defaultGudangFormValues)
         setEditingGudang(null)
         fetchGudangs()
-        if (isTabSubmit) {
-          setActiveTab('browse')
-        }
       } else {
         toast.error(result.error || 'Gagal menyimpan data')
       }
@@ -239,26 +232,19 @@ export default function GudangPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Master Gudang</h1>
-        <p className="text-muted-foreground">
-          Kelola data gudang dan lokasi penyimpanan barang
-        </p>
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Master Gudang</h1>
+          <p className="text-muted-foreground">
+            Kelola data gudang dan lokasi penyimpanan barang
+          </p>
+        </div>
+        <Button onClick={openAddDialog}>
+          <Plus className="mr-2 h-4 w-4" />
+          Input Gudang Baru
+        </Button>
       </div>
-
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList>
-          <TabsTrigger value="browse" className="flex items-center gap-2">
-            <Warehouse className="h-4 w-4" />
-            Browse Data
-          </TabsTrigger>
-          <TabsTrigger value="input" className="flex items-center gap-2">
-            <Plus className="h-4 w-4" />
-            Input Gudang
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="browse" className="space-y-6">
           <Card>
             <CardHeader>
               <CardTitle>Daftar Gudang</CardTitle>
@@ -367,7 +353,7 @@ export default function GudangPage() {
                       <p className="text-gray-500 mb-4">
                         Mulai dengan menambahkan gudang pertama
                       </p>
-                      <Button onClick={() => setActiveTab('input')}>
+                      <Button onClick={openAddDialog}>
                         <Plus className="mr-2 h-4 w-4" />
                         Tambah Gudang
                       </Button>
@@ -413,133 +399,27 @@ export default function GudangPage() {
               )}
             </CardContent>
           </Card>
-        </TabsContent>
 
-        <TabsContent value="input" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Input Gudang Baru</CardTitle>
-              <CardDescription>
-                Tambahkan data gudang baru ke sistem
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleSubmit((data) => onSubmit(data, true))} className="space-y-6">
-                <div className="grid gap-6">
-                  <div className="grid gap-2">
-                    <Label htmlFor="kode-tab">Kode Gudang</Label>
-                    <Input
-                      id="kode-tab"
-                      {...register('kode')}
-                      placeholder="Contoh: G001"
-                      disabled={submitting}
-                    />
-                    {errors.kode && (
-                      <p className="text-sm text-red-600">{errors.kode.message}</p>
-                    )}
-                  </div>
-
-                  <div className="grid gap-2">
-                    <Label htmlFor="nama-tab">Nama Gudang</Label>
-                    <Input
-                      id="nama-tab"
-                      {...register('nama')}
-                      placeholder="Contoh: Gudang Utama"
-                      disabled={submitting}
-                    />
-                    {errors.nama && (
-                      <p className="text-sm text-red-600">{errors.nama.message}</p>
-                    )}
-                  </div>
-
-                  <div className="grid gap-2">
-                    <Label htmlFor="alamat-tab">Alamat</Label>
-                    <Textarea
-                      id="alamat-tab"
-                      {...register('alamat')}
-                      placeholder="Masukkan alamat lengkap"
-                      disabled={submitting}
-                      rows={3}
-                    />
-                    {errors.alamat && (
-                      <p className="text-sm text-red-600">{errors.alamat.message}</p>
-                    )}
-                  </div>
-
-                  <div className="grid gap-2">
-                    <Label htmlFor="telepon-tab">Telepon</Label>
-                    <Input
-                      id="telepon-tab"
-                      {...register('telepon')}
-                      placeholder="Contoh: 021-1234567"
-                      disabled={submitting}
-                    />
-                    {errors.telepon && (
-                      <p className="text-sm text-red-600">{errors.telepon.message}</p>
-                    )}
-                  </div>
-
-                  <div className="grid gap-2">
-                    <Label htmlFor="pic-tab">PIC (Person in Charge)</Label>
-                    <Input
-                      id="pic-tab"
-                      {...register('pic')}
-                      placeholder="Nama penanggung jawab"
-                      disabled={submitting}
-                    />
-                    {errors.pic && (
-                      <p className="text-sm text-red-600">{errors.pic.message}</p>
-                    )}
-                  </div>
-
-                  <div className="flex items-center space-x-2">
-                    <Switch
-                      id="aktif-tab"
-                      checked={editingGudang ? editingGudang.aktif : true}
-                      onCheckedChange={(checked) => setValue('aktif', checked)}
-                      disabled={submitting}
-                    />
-                    <Label htmlFor="aktif-tab">Aktif</Label>
-                  </div>
-                </div>
-
-                <div className="flex justify-end space-x-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => {
-                      reset(defaultGudangFormValues)
-                      setActiveTab('browse')
-                    }}
-                    disabled={submitting}
-                  >
-                    Batal
-                  </Button>
-                  <Button type="submit" disabled={submitting}>
-                    {submitting ? 'Menyimpan...' : 'Simpan Gudang'}
-                  </Button>
-                </div>
-              </form>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
-
-      {/* Edit Dialog - preserved for editing functionality */}
+      {/* Add/Edit Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="max-w-4xl">
           <DialogHeader>
-            <DialogTitle>Edit Gudang</DialogTitle>
+            <DialogTitle>
+              {editingGudang ? 'Edit Gudang' : 'Input Gudang Baru'}
+            </DialogTitle>
             <DialogDescription>
-              Edit informasi gudang yang sudah ada.
+              {editingGudang
+                ? 'Edit informasi gudang yang sudah ada.'
+                : 'Tambahkan data gudang baru ke sistem'
+              }
             </DialogDescription>
           </DialogHeader>
-          <form onSubmit={handleSubmit((data) => onSubmit(data, false))}>
-            <div className="grid gap-4 py-4">
+          <form onSubmit={handleSubmit((data) => onSubmit(data))}>
+            <div className="grid gap-6 py-6 max-h-[80vh] overflow-y-auto">
               <div className="grid gap-2">
-                <Label htmlFor="kode-edit">Kode Gudang</Label>
+                <Label htmlFor="kode">Kode Gudang</Label>
                 <Input
-                  id="kode-edit"
+                  id="kode"
                   {...register('kode')}
                   placeholder="Contoh: G001"
                   disabled={submitting}
@@ -548,10 +428,11 @@ export default function GudangPage() {
                   <p className="text-sm text-red-600">{errors.kode.message}</p>
                 )}
               </div>
+
               <div className="grid gap-2">
-                <Label htmlFor="nama-edit">Nama Gudang</Label>
+                <Label htmlFor="nama">Nama Gudang</Label>
                 <Input
-                  id="nama-edit"
+                  id="nama"
                   {...register('nama')}
                   placeholder="Contoh: Gudang Utama"
                   disabled={submitting}
@@ -560,22 +441,25 @@ export default function GudangPage() {
                   <p className="text-sm text-red-600">{errors.nama.message}</p>
                 )}
               </div>
+
               <div className="grid gap-2">
-                <Label htmlFor="alamat-edit">Alamat</Label>
+                <Label htmlFor="alamat">Alamat</Label>
                 <Textarea
-                  id="alamat-edit"
+                  id="alamat"
                   {...register('alamat')}
                   placeholder="Masukkan alamat lengkap"
                   disabled={submitting}
+                  rows={3}
                 />
                 {errors.alamat && (
                   <p className="text-sm text-red-600">{errors.alamat.message}</p>
                 )}
               </div>
+
               <div className="grid gap-2">
-                <Label htmlFor="telepon-edit">Telepon</Label>
+                <Label htmlFor="telepon">Telepon</Label>
                 <Input
-                  id="telepon-edit"
+                  id="telepon"
                   {...register('telepon')}
                   placeholder="Contoh: 021-1234567"
                   disabled={submitting}
@@ -584,10 +468,11 @@ export default function GudangPage() {
                   <p className="text-sm text-red-600">{errors.telepon.message}</p>
                 )}
               </div>
+
               <div className="grid gap-2">
-                <Label htmlFor="pic-edit">PIC (Person in Charge)</Label>
+                <Label htmlFor="pic">PIC (Person in Charge)</Label>
                 <Input
-                  id="pic-edit"
+                  id="pic"
                   {...register('pic')}
                   placeholder="Nama penanggung jawab"
                   disabled={submitting}
@@ -596,14 +481,15 @@ export default function GudangPage() {
                   <p className="text-sm text-red-600">{errors.pic.message}</p>
                 )}
               </div>
+
               <div className="flex items-center space-x-2">
                 <Switch
-                  id="aktif-edit"
+                  id="aktif"
                   checked={editingGudang ? editingGudang.aktif : true}
                   onCheckedChange={(checked) => setValue('aktif', checked)}
                   disabled={submitting}
                 />
-                <Label htmlFor="aktif-edit">Aktif</Label>
+                <Label htmlFor="aktif">Aktif</Label>
               </div>
             </div>
             <DialogFooter>
@@ -616,7 +502,7 @@ export default function GudangPage() {
                 Batal
               </Button>
               <Button type="submit" disabled={submitting}>
-                {submitting ? 'Menyimpan...' : 'Perbarui'}
+                {submitting ? 'Menyimpan...' : (editingGudang ? 'Perbarui' : 'Simpan Gudang')}
               </Button>
             </DialogFooter>
           </form>

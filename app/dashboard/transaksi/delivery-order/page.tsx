@@ -54,7 +54,12 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
 import {
   MoreHorizontal,
   Eye,
@@ -65,6 +70,8 @@ import {
   Package,
   Printer,
   Truck,
+  Calendar as CalendarIcon,
+  SendHorizontal,
 } from "lucide-react";
 import { useDeliveryOrderList } from "@/hooks/use-query-hooks";
 import {
@@ -80,23 +87,7 @@ import { toast } from "sonner";
 import DeliveryOrderPrint, {
   type DeliveryOrderPrintRef,
 } from "@/components/print/delivery-order-print";
-
-type DeliveryOrderForm = {
-  noDO?: string;
-  tanggal?: Date;
-  gudangAsalId: string;
-  gudangTujuan: string;
-  namaSupir: string;
-  nopolKendaraan: string;
-  keterangan?: string;
-  items: {
-    barangId: string;
-    namaBarang: string;
-    qty: number;
-    satuan: string;
-    keterangan?: string;
-  }[];
-};
+import type { DeliveryOrderForm } from "@/src/types";
 
 export default function DeliveryOrderPage() {
   const printRef = useRef<DeliveryOrderPrintRef>(null);
@@ -112,8 +103,9 @@ export default function DeliveryOrderPage() {
   const [page, setPage] = useState(1);
 
   const [form, setForm] = useState<DeliveryOrderForm>({
+    tanggal: new Date(),
     gudangAsalId: "",
-    gudangTujuan: "",
+    gudangTujuanId: "",
     namaSupir: "",
     nopolKendaraan: "",
     keterangan: "",
@@ -134,34 +126,53 @@ export default function DeliveryOrderPage() {
   });
 
   const { data: gudangList } = useGudangList();
+  const [availableBarang, setAvailableBarang] = useState<any[]>([]);
+  const [selectedBarang, setSelectedBarang] = useState<any | null>(null);
 
   // Mutation hooks
   const createDeliveryOrder = useCreateDeliveryOrder();
   const updateStatus = useUpdateDeliveryOrderStatus();
   const deleteDeliveryOrder = useDeleteDeliveryOrder();
 
+  // Fetch available barang when gudang asal changes
+  const fetchAvailableBarang = async (gudangId: string) => {
+    if (!gudangId) {
+      setAvailableBarang([]);
+      return;
+    }
+
+    try {
+      const response = await fetch(
+        `/api/transaksi/delivery-order/stock-info?gudangId=${gudangId}`
+      );
+      const data = await response.json();
+      if (data.success) {
+        setAvailableBarang(data.data);
+      }
+    } catch (error) {
+      console.error("Error fetching available barang:", error);
+    }
+  };
+
   const handleCreate = async () => {
     try {
-      // Convert selected tujuan (id) to gudang name, API expects string name
-      const tujuanGudang = gudangList?.data.find(
-        (g) => g.id === form.gudangTujuan
-      );
       const payload = {
         ...form,
-        gudangTujuan: tujuanGudang ? tujuanGudang.nama : form.gudangTujuan,
       };
       const result = await createDeliveryOrder.mutateAsync(payload);
       if (result.success) {
         toast.success("Delivery Order berhasil dibuat");
         setIsCreateModalOpen(false);
         setForm({
+          tanggal: new Date(),
           gudangAsalId: "",
-          gudangTujuan: "",
+          gudangTujuanId: "",
           namaSupir: "",
           nopolKendaraan: "",
           keterangan: "",
           items: [],
         });
+        setAvailableBarang([]);
         refetch();
       }
     } catch (error) {
@@ -199,15 +210,63 @@ export default function DeliveryOrderPage() {
     }
   };
 
+  const addBarangToForm = () => {
+    if (!selectedBarang) return;
+
+    const existingItemIndex = form.items.findIndex(
+      (item) => item.barangId === selectedBarang.barangId
+    );
+
+    if (existingItemIndex >= 0) {
+      // Update existing item quantity
+      const updatedItems = [...form.items];
+      updatedItems[existingItemIndex].qty += 1;
+      setForm({ ...form, items: updatedItems });
+    } else {
+      // Add new item
+      setForm({
+        ...form,
+        items: [
+          ...form.items,
+          {
+            barangId: selectedBarang.barangId,
+            namaBarang: selectedBarang.barangNama,
+            qty: 1,
+            satuan: selectedBarang.satuan,
+            keterangan: "",
+          },
+        ],
+      });
+    }
+
+    setSelectedBarang(null);
+  };
+
+  const removeBarangFromForm = (index: number) => {
+    const updatedItems = form.items.filter((_, i) => i !== index);
+    setForm({ ...form, items: updatedItems });
+  };
+
+  const updateItemQuantity = (index: number, qty: number) => {
+    if (qty < 1) return;
+
+    const updatedItems = [...form.items];
+    updatedItems[index].qty = qty;
+    setForm({ ...form, items: updatedItems });
+  };
+
   const openAddDialog = () => {
     setForm({
+      tanggal: new Date(),
       gudangAsalId: "",
-      gudangTujuan: "",
+      gudangTujuanId: "",
       namaSupir: "",
       nopolKendaraan: "",
       keterangan: "",
       items: [],
     });
+    setAvailableBarang([]);
+    setSelectedBarang(null);
     setIsCreateModalOpen(true);
   };
 
@@ -253,307 +312,320 @@ export default function DeliveryOrderPage() {
   }
 
   return (
-    <div className="container mx-auto p-6">
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold">Delivery Order</h1>
-        <p className="text-gray-600">Kelola pengiriman barang antar gudang</p>
-      </div>
+    <div>
+      {/* Filters */}
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle>Filter</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div>
+              <Label htmlFor="search">Pencarian</Label>
+              <Input
+                id="search"
+                placeholder="No DO, supir, atau nopol..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+            </div>
+            <div>
+              <Label htmlFor="status">Status</Label>
+              <Select
+                value={statusFilter || "all"}
+                onValueChange={(value) =>
+                  setStatusFilter(value === "all" ? "" : value)
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Semua Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Semua Status</SelectItem>
+                  <SelectItem value={TRANSACTION_STATUS.DRAFT}>
+                    Draft
+                  </SelectItem>
+                  <SelectItem value={TRANSACTION_STATUS.IN_TRANSIT}>
+                    Dalam Perjalanan
+                  </SelectItem>
+                  <SelectItem value={TRANSACTION_STATUS.DELIVERED}>
+                    Terkirim
+                  </SelectItem>
+                  <SelectItem value={TRANSACTION_STATUS.CANCELLED}>
+                    Dibatalkan
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label htmlFor="gudang">Gudang Asal</Label>
+              <Select
+                value={gudangFilter || "all"}
+                onValueChange={(value) =>
+                  setGudangFilter(value === "all" ? "" : value)
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Semua Gudang" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Semua Gudang</SelectItem>
+                  {gudangList?.data.map((gudang) => (
+                    <SelectItem key={gudang.id} value={gudang.id}>
+                      {gudang.nama}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex items-end">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setSearch("");
+                  setStatusFilter("");
+                  setGudangFilter("");
+                  setPage(1);
+                }}
+              >
+                Reset
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
-      <Tabs defaultValue="browse" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="browse">
-            <Package className="mr-2 h-4 w-4" />
-            Browse Data
-          </TabsTrigger>
-          <TabsTrigger value="input">
-            <Plus className="mr-2 h-4 w-4" />
-            Input Transaksi
-          </TabsTrigger>
-        </TabsList>
+      {/* Table */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Daftar Delivery Order</CardTitle>
+          <div className="flex justify-between items-center">
+            <CardDescription>
+              Total {deliveryOrdersData?.pagination.total || 0} delivery order
+            </CardDescription>
+            <Button
+              onClick={openAddDialog}
+              className="bg-blue-600 hover:bg-blue-700"
+              size="sm"
+            >
+              <Plus className="mr-2 h-4 w-4" />
+              Input Delivery Order Baru
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {isLoading ? (
+            <div>Loading...</div>
+          ) : (
+            <>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>No. DO</TableHead>
+                    <TableHead>Tanggal</TableHead>
+                    <TableHead>Gudang Asal</TableHead>
+                    <TableHead>Tujuan</TableHead>
+                    <TableHead>Supir</TableHead>
+                    <TableHead>Kendaraan</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Aksi</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {deliveryOrdersData?.data.map((deliveryOrder: any) => (
+                    <TableRow key={deliveryOrder.id}>
+                      <TableCell className="font-medium">
+                        {deliveryOrder.noDO}
+                      </TableCell>
+                      <TableCell>
+                        {format(
+                          new Date(deliveryOrder.tanggal),
+                          "dd MMM yyyy",
+                          { locale: id }
+                        )}
+                      </TableCell>
+                      <TableCell>{deliveryOrder.gudangAsal.nama}</TableCell>
+                      <TableCell>
+                        {deliveryOrder.gudangTujuanRel?.nama ||
+                          deliveryOrder.gudangTujuan}
+                      </TableCell>
+                      <TableCell>{deliveryOrder.namaSupir}</TableCell>
+                      <TableCell>{deliveryOrder.nopolKendaraan}</TableCell>
+                      <TableCell>
+                        {getStatusBadge(deliveryOrder.status)}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="sm">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem
+                              onClick={() => openDetailModal(deliveryOrder)}
+                            >
+                              <Eye className="mr-2 h-4 w-4" />
+                              Detail
+                            </DropdownMenuItem>
+                            {deliveryOrder.status ===
+                              TRANSACTION_STATUS.DRAFT && (
+                              <DropdownMenuItem
+                                onClick={() =>
+                                  handleStatusUpdate(
+                                    deliveryOrder.id,
+                                    TRANSACTION_STATUS.IN_TRANSIT
+                                  )
+                                }
+                              >
+                                <SendHorizontal className="mr-2 h-4 w-4" />
+                                Kirim
+                              </DropdownMenuItem>
+                            )}
+                            {deliveryOrder.status ===
+                              TRANSACTION_STATUS.IN_TRANSIT && (
+                              <DropdownMenuItem
+                                onClick={() =>
+                                  handleStatusUpdate(
+                                    deliveryOrder.id,
+                                    TRANSACTION_STATUS.DELIVERED
+                                  )
+                                }
+                              >
+                                <Truck className="mr-2 h-4 w-4" />
+                                Terima
+                              </DropdownMenuItem>
+                            )}
+                            {deliveryOrder.status ===
+                              TRANSACTION_STATUS.DELIVERED && (
+                              <DropdownMenuItem
+                                onClick={() => {
+                                  setSelectedDeliveryOrder(deliveryOrder);
+                                  setTimeout(() => {
+                                    if (printRef.current) {
+                                      printRef.current.print();
+                                    }
+                                  }, 100);
+                                }}
+                              >
+                                <Printer className="mr-2 h-4 w-4" />
+                                Cetak
+                              </DropdownMenuItem>
+                            )}
+                            {(deliveryOrder.status ===
+                              TRANSACTION_STATUS.DRAFT ||
+                              deliveryOrder.status ===
+                                TRANSACTION_STATUS.CANCELLED) && (
+                              <DropdownMenuItem
+                                onClick={() => openDeleteDialog(deliveryOrder)}
+                                className="text-red-600"
+                              >
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Hapus
+                              </DropdownMenuItem>
+                            )}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
 
-        <TabsContent value="browse" className="space-y-4">
-          {/* Filters */}
-          <Card className="mb-6">
-            <CardHeader>
-              <CardTitle>Filter</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div>
-                  <Label htmlFor="search">Pencarian</Label>
-                  <Input
-                    id="search"
-                    placeholder="No DO, supir, atau nopol..."
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="status">Status</Label>
-                  <Select
-                    value={statusFilter || "all"}
-                    onValueChange={(value) =>
-                      setStatusFilter(value === "all" ? "" : value)
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Semua Status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Semua Status</SelectItem>
-                      <SelectItem value={TRANSACTION_STATUS.DRAFT}>
-                        Draft
-                      </SelectItem>
-                      <SelectItem value={TRANSACTION_STATUS.IN_TRANSIT}>
-                        Dalam Perjalanan
-                      </SelectItem>
-                      <SelectItem value={TRANSACTION_STATUS.DELIVERED}>
-                        Terkirim
-                      </SelectItem>
-                      <SelectItem value={TRANSACTION_STATUS.CANCELLED}>
-                        Dibatalkan
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label htmlFor="gudang">Gudang Asal</Label>
-                  <Select
-                    value={gudangFilter || "all"}
-                    onValueChange={(value) =>
-                      setGudangFilter(value === "all" ? "" : value)
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Semua Gudang" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Semua Gudang</SelectItem>
-                      {gudangList?.data.map((gudang) => (
-                        <SelectItem key={gudang.id} value={gudang.id}>
-                          {gudang.nama}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="flex items-end">
-                  <Button
-                    variant="outline"
-                    onClick={() => {
-                      setSearch("");
-                      setStatusFilter("");
-                      setGudangFilter("");
-                      setPage(1);
-                    }}
-                  >
-                    Reset
+              {deliveryOrdersData?.data.length === 0 && (
+                <div className="flex flex-col items-center justify-center py-8">
+                  <Truck className="h-12 w-12 text-gray-400 mb-4" />
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">
+                    Belum ada transaksi Delivery Order
+                  </h3>
+                  <p className="text-gray-500 mb-4">
+                    Mulai dengan membuat transaksi Delivery Order pertama
+                  </p>
+                  <Button onClick={openAddDialog}>
+                    <Plus className="mr-2 h-4 w-4" />
+                    Delivery Order Baru
                   </Button>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Table */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Daftar Delivery Order</CardTitle>
-              <CardDescription>
-                Total {deliveryOrdersData?.pagination.total || 0} delivery order
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {isLoading ? (
-                <div>Loading...</div>
-              ) : (
-                <>
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>No. DO</TableHead>
-                        <TableHead>Tanggal</TableHead>
-                        <TableHead>Gudang Asal</TableHead>
-                        <TableHead>Tujuan</TableHead>
-                        <TableHead>Supir</TableHead>
-                        <TableHead>Kendaraan</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Aksi</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {deliveryOrdersData?.data.map((deliveryOrder: any) => (
-                        <TableRow key={deliveryOrder.id}>
-                          <TableCell className="font-medium">
-                            {deliveryOrder.noDO}
-                          </TableCell>
-                          <TableCell>
-                            {format(
-                              new Date(deliveryOrder.tanggal),
-                              "dd MMM yyyy",
-                              { locale: id }
-                            )}
-                          </TableCell>
-                          <TableCell>{deliveryOrder.gudangAsal.nama}</TableCell>
-                          <TableCell>{deliveryOrder.gudangTujuan}</TableCell>
-                          <TableCell>{deliveryOrder.namaSupir}</TableCell>
-                          <TableCell>{deliveryOrder.nopolKendaraan}</TableCell>
-                          <TableCell>
-                            {getStatusBadge(deliveryOrder.status)}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="sm">
-                                  <MoreHorizontal className="h-4 w-4" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end">
-                                <DropdownMenuItem
-                                  onClick={() => openDetailModal(deliveryOrder)}
-                                >
-                                  <Eye className="mr-2 h-4 w-4" />
-                                  Detail
-                                </DropdownMenuItem>
-                                {deliveryOrder.status ===
-                                  TRANSACTION_STATUS.DRAFT && (
-                                  <DropdownMenuItem
-                                    onClick={() =>
-                                      handleStatusUpdate(
-                                        deliveryOrder.id,
-                                        TRANSACTION_STATUS.IN_TRANSIT
-                                      )
-                                    }
-                                  >
-                                    Kirim
-                                  </DropdownMenuItem>
-                                )}
-                                {deliveryOrder.status ===
-                                  TRANSACTION_STATUS.IN_TRANSIT && (
-                                  <DropdownMenuItem
-                                    onClick={() =>
-                                      handleStatusUpdate(
-                                        deliveryOrder.id,
-                                        TRANSACTION_STATUS.DELIVERED
-                                      )
-                                    }
-                                  >
-                                    Terima
-                                  </DropdownMenuItem>
-                                )}
-                                {deliveryOrder.status ===
-                                  TRANSACTION_STATUS.DELIVERED && (
-                                  <DropdownMenuItem
-                                    onClick={() => {
-                                      setSelectedDeliveryOrder(deliveryOrder);
-                                      setTimeout(() => {
-                                        if (printRef.current) {
-                                          printRef.current.print();
-                                        }
-                                      }, 100);
-                                    }}
-                                  >
-                                    <Printer className="mr-2 h-4 w-4" />
-                                    Cetak
-                                  </DropdownMenuItem>
-                                )}
-                                {(deliveryOrder.status ===
-                                  TRANSACTION_STATUS.DRAFT ||
-                                  deliveryOrder.status ===
-                                    TRANSACTION_STATUS.CANCELLED) && (
-                                  <DropdownMenuItem
-                                    onClick={() =>
-                                      openDeleteDialog(deliveryOrder)
-                                    }
-                                    className="text-red-600"
-                                  >
-                                    <Trash2 className="mr-2 h-4 w-4" />
-                                    Hapus
-                                  </DropdownMenuItem>
-                                )}
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-
-                  {deliveryOrdersData?.data.length === 0 && (
-                    <div className="flex flex-col items-center justify-center py-8">
-                      <Truck className="h-12 w-12 text-gray-400 mb-4" />
-                      <h3 className="text-lg font-medium text-gray-900 mb-2">
-                        Belum ada transaksi Delivery Order
-                      </h3>
-                      <p className="text-gray-500 mb-4">
-                        Mulai dengan membuat transaksi Delivery Order pertama
-                      </p>
-                      <Button onClick={openAddDialog}>
-                        <Plus className="mr-2 h-4 w-4" />
-                        Delivery Order Baru
-                      </Button>
-                    </div>
-                  )}
-
-                  {/* Pagination */}
-                  {deliveryOrdersData?.pagination && (
-                    <div className="flex justify-between items-center mt-4">
-                      <div className="text-sm text-gray-600">
-                        Menampilkan {(page - 1) * 10 + 1} -{" "}
-                        {Math.min(
-                          page * 10,
-                          deliveryOrdersData.pagination.total
-                        )}{" "}
-                        dari {deliveryOrdersData.pagination.total}
-                      </div>
-                      <div className="flex gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setPage(page - 1)}
-                          disabled={page === 1}
-                        >
-                          Previous
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setPage(page + 1)}
-                          disabled={
-                            page >= deliveryOrdersData.pagination.totalPages
-                          }
-                        >
-                          Next
-                        </Button>
-                      </div>
-                    </div>
-                  )}
-                </>
               )}
-            </CardContent>
-          </Card>
-        </TabsContent>
 
-        <TabsContent value="input" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Input Delivery Order Baru</CardTitle>
-              <CardDescription>
-                Buat transaksi pengiriman barang antar gudang
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid gap-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="gudangAsal-input">Gudang Asal</Label>
-                    <Select
-                      value={form.gudangAsalId}
-                      onValueChange={(value) =>
-                        setForm({ ...form, gudangAsalId: value })
+              {/* Pagination */}
+              {deliveryOrdersData?.pagination && (
+                <div className="flex justify-between items-center mt-4">
+                  <div className="text-sm text-gray-600">
+                    Menampilkan {(page - 1) * 10 + 1} -{" "}
+                    {Math.min(page * 10, deliveryOrdersData.pagination.total)}{" "}
+                    dari {deliveryOrdersData.pagination.total}
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setPage(page - 1)}
+                      disabled={page === 1}
+                    >
+                      Previous
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setPage(page + 1)}
+                      disabled={
+                        page >= deliveryOrdersData.pagination.totalPages
                       }
                     >
+                      Next
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Create Modal */}
+      <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
+        <DialogContent className="!w-[90vw] !h-[90vh] !max-w-none !max-h-none overflow-y-auto rounded-xl p-0">
+          {/* Header sticky */}
+          <div className="sticky top-0 z-10 border-b bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60 p-6">
+            <DialogHeader>
+              <DialogTitle className="text-xl font-semibold">
+                Input Delivery Order Baru
+              </DialogTitle>
+              <DialogDescription className="text-muted-foreground">
+                Buat transaksi pengiriman barang antar gudang
+              </DialogDescription>
+            </DialogHeader>
+          </div>
+
+          {/* Body */}
+          <div className="p-6">
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                handleCreate();
+              }}
+              className="space-y-8"
+            >
+              {/* Bagian Gudang & Tanggal */}
+              <div className="grid gap-8">
+                {/* Gudang Asal & Tujuan */}
+                <div className="grid grid-cols-2 gap-6">
+                  <div className="grid gap-2">
+                    <Label>Gudang Asal</Label>
+                    <Select
+                      value={form.gudangAsalId}
+                      onValueChange={(value) => {
+                        setForm({
+                          ...form,
+                          gudangAsalId: value,
+                          items: [],
+                        });
+                        fetchAvailableBarang(value);
+                      }}
+                    >
                       <SelectTrigger>
-                        <SelectValue placeholder="Pilih Gudang" />
+                        <SelectValue placeholder="Pilih Gudang Asal" />
                       </SelectTrigger>
                       <SelectContent>
                         {gudangList?.data.map((gudang) => (
@@ -564,12 +636,13 @@ export default function DeliveryOrderPage() {
                       </SelectContent>
                     </Select>
                   </div>
-                  <div>
-                    <Label htmlFor="gudangTujuan-input">Gudang Tujuan</Label>
+
+                  <div className="grid gap-2">
+                    <Label>Gudang Tujuan</Label>
                     <Select
-                      value={form.gudangTujuan}
+                      value={form.gudangTujuanId}
                       onValueChange={(value) =>
-                        setForm({ ...form, gudangTujuan: value })
+                        setForm({ ...form, gudangTujuanId: value })
                       }
                     >
                       <SelectTrigger>
@@ -587,11 +660,12 @@ export default function DeliveryOrderPage() {
                     </Select>
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="namaSupir-input">Nama Supir</Label>
+
+                {/* Nama Supir & Nomor Polisi */}
+                <div className="grid grid-cols-2 gap-6">
+                  <div className="grid gap-2">
+                    <Label>Nama Supir</Label>
                     <Input
-                      id="namaSupir-input"
                       placeholder="Masukkan nama supir"
                       value={form.namaSupir}
                       onChange={(e) =>
@@ -599,10 +673,10 @@ export default function DeliveryOrderPage() {
                       }
                     />
                   </div>
-                  <div>
-                    <Label htmlFor="nopolKendaraan-input">Nomor Polisi</Label>
+
+                  <div className="grid gap-2">
+                    <Label>Nomor Polisi</Label>
                     <Input
-                      id="nopolKendaraan-input"
                       placeholder="Masukkan nomor polisi"
                       value={form.nopolKendaraan}
                       onChange={(e) =>
@@ -611,160 +685,180 @@ export default function DeliveryOrderPage() {
                     />
                   </div>
                 </div>
-                <div>
-                  <Label htmlFor="keterangan-input">Keterangan</Label>
-                  <Textarea
-                    id="keterangan-input"
-                    placeholder="Masukkan keterangan (opsional)"
-                    value={form.keterangan}
-                    onChange={(e) =>
-                      setForm({ ...form, keterangan: e.target.value })
-                    }
-                  />
+
+                {/* Tanggal & Keterangan */}
+                <div className="grid grid-cols-2 gap-6">
+                  <div className="grid gap-2">
+                    <Label>Tanggal</Label>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className="justify-start text-left font-normal"
+                        >
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {form.tanggal
+                            ? format(form.tanggal, "dd MMM yyyy", {
+                                locale: id,
+                              })
+                            : "Pilih tanggal"}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={form.tanggal}
+                          onSelect={(date) =>
+                            setForm({
+                              ...form,
+                              tanggal: date || new Date(),
+                            })
+                          }
+                          locale={id}
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+
+                  <div className="grid gap-2">
+                    <Label>Keterangan</Label>
+                    <Textarea
+                      placeholder="Masukkan keterangan (opsional)"
+                      value={form.keterangan}
+                      onChange={(e) =>
+                        setForm({ ...form, keterangan: e.target.value })
+                      }
+                    />
+                  </div>
                 </div>
+
+                {/* Barang Section */}
+                {form.gudangAsalId && (
+                  <div className="space-y-6">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-base font-semibold">
+                        Pilih Barang
+                      </Label>
+                      <div className="flex gap-2">
+                        <Select
+                          value={selectedBarang?.barangId || ""}
+                          onValueChange={(value) => {
+                            const barang = availableBarang.find(
+                              (b) => b.barangId === value
+                            );
+                            setSelectedBarang(barang || null);
+                          }}
+                        >
+                          <SelectTrigger className="w-[280px]">
+                            <SelectValue placeholder="Pilih barang" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {availableBarang.map((barang) => (
+                              <SelectItem
+                                key={barang.barangId}
+                                value={barang.barangId}
+                              >
+                                {barang.barangNama} (Stok: {barang.stok}{" "}
+                                {barang.satuan})
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <Button
+                          onClick={addBarangToForm}
+                          disabled={!selectedBarang}
+                          type="button"
+                        >
+                          Tambah
+                        </Button>
+                      </div>
+                    </div>
+
+                    {form.items.length > 0 && (
+                      <div className="border rounded-md overflow-hidden">
+                        <Table>
+                          <TableHeader>
+                            <TableRow className="bg-muted/50">
+                              <TableHead>Barang</TableHead>
+                              <TableHead>Qty</TableHead>
+                              <TableHead>Satuan</TableHead>
+                              <TableHead>Aksi</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {form.items.map((item, index) => (
+                              <TableRow key={index}>
+                                <TableCell>{item.namaBarang}</TableCell>
+                                <TableCell>
+                                  <Input
+                                    type="number"
+                                    min="1"
+                                    value={item.qty}
+                                    onChange={(e) =>
+                                      updateItemQuantity(
+                                        index,
+                                        parseInt(e.target.value) || 1
+                                      )
+                                    }
+                                    className="w-24"
+                                  />
+                                </TableCell>
+                                <TableCell>{item.satuan}</TableCell>
+                                <TableCell>
+                                  <Button
+                                    variant="destructive"
+                                    size="sm"
+                                    onClick={() => removeBarangFromForm(index)}
+                                  >
+                                    <Trash2 />
+                                  </Button>
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
-              <div className="flex justify-end space-x-2 mt-6">
+
+              {/* Footer sticky */}
+              <div className="sticky bottom-0 border-t bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60 p-4 flex justify-end gap-3">
                 <Button
+                  type="button"
                   variant="outline"
                   onClick={() => {
                     setForm({
+                      tanggal: new Date(),
                       gudangAsalId: "",
-                      gudangTujuan: "",
+                      gudangTujuanId: "",
                       namaSupir: "",
                       nopolKendaraan: "",
                       keterangan: "",
                       items: [],
                     });
+                    setAvailableBarang([]);
+                    setSelectedBarang(null);
                   }}
                 >
                   Reset
                 </Button>
                 <Button
-                  onClick={handleCreate}
+                  type="submit"
                   disabled={
                     !form.gudangAsalId ||
-                    !form.gudangTujuan ||
+                    !form.gudangTujuanId ||
                     !form.namaSupir ||
-                    !form.nopolKendaraan
+                    !form.nopolKendaraan ||
+                    form.items.length === 0
                   }
                 >
                   Simpan Transaksi
                 </Button>
               </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
-
-      {/* Create Modal */}
-      <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Buat Delivery Order Baru</DialogTitle>
-            <DialogDescription>
-              Isi form berikut untuk membuat delivery order baru
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="gudangAsal">Gudang Asal</Label>
-                <Select
-                  value={form.gudangAsalId}
-                  onValueChange={(value) =>
-                    setForm({ ...form, gudangAsalId: value })
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Pilih Gudang" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {gudangList?.data.map((gudang) => (
-                      <SelectItem key={gudang.id} value={gudang.id}>
-                        {gudang.nama}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label htmlFor="gudangTujuan">Gudang Tujuan</Label>
-                <Select
-                  value={form.gudangTujuan}
-                  onValueChange={(value) =>
-                    setForm({ ...form, gudangTujuan: value })
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Pilih Gudang Tujuan" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {gudangList?.data
-                      ?.filter((g) => g.id !== form.gudangAsalId)
-                      .map((gudang) => (
-                        <SelectItem key={gudang.id} value={gudang.id}>
-                          {gudang.nama}
-                        </SelectItem>
-                      ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="namaSupir">Nama Supir</Label>
-                <Input
-                  id="namaSupir"
-                  placeholder="Masukkan nama supir"
-                  value={form.namaSupir}
-                  onChange={(e) =>
-                    setForm({ ...form, namaSupir: e.target.value })
-                  }
-                />
-              </div>
-              <div>
-                <Label htmlFor="nopolKendaraan">Nomor Polisi</Label>
-                <Input
-                  id="nopolKendaraan"
-                  placeholder="Masukkan nomor polisi"
-                  value={form.nopolKendaraan}
-                  onChange={(e) =>
-                    setForm({ ...form, nopolKendaraan: e.target.value })
-                  }
-                />
-              </div>
-            </div>
-            <div>
-              <Label htmlFor="keterangan">Keterangan</Label>
-              <Textarea
-                id="keterangan"
-                placeholder="Masukkan keterangan (opsional)"
-                value={form.keterangan}
-                onChange={(e) =>
-                  setForm({ ...form, keterangan: e.target.value })
-                }
-              />
-            </div>
+            </form>
           </div>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setIsCreateModalOpen(false)}
-            >
-              Batal
-            </Button>
-            <Button
-              onClick={handleCreate}
-              disabled={
-                !form.gudangAsalId ||
-                !form.gudangTujuan ||
-                !form.namaSupir ||
-                !form.nopolKendaraan
-              }
-            >
-              Simpan
-            </Button>
-          </DialogFooter>
         </DialogContent>
       </Dialog>
 
@@ -803,7 +897,8 @@ export default function DeliveryOrderPage() {
                 <div>
                   <Label>Tujuan</Label>
                   <p className="font-medium">
-                    {selectedDeliveryOrder.gudangTujuan}
+                    {selectedDeliveryOrder.gudangTujuanRel?.nama ||
+                      selectedDeliveryOrder.gudangTujuan}
                   </p>
                 </div>
                 <div>

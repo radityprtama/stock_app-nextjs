@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
 import { z } from 'zod'
 
@@ -7,15 +6,15 @@ const createNotificationSchema = z.object({
   title: z.string().min(1),
   message: z.string().min(1),
   type: z.enum(['info', 'success', 'warning', 'error']).default('info'),
-  category: z.enum(['stock', 'transaction', 'system', 'dropship', 'customer']).default('info'),
+  category: z.enum(['stock', 'transaction', 'system', 'dropship', 'customer']).default('stock'),
   userId: z.string().optional(),
   actionUrl: z.string().optional(),
-  metadata: z.record(z.any()).optional(),
+  metadata: z.record(z.string(), z.any()).optional(),
 })
 
 // In-memory notification storage for real-time notifications
 // In production, you might want to use Redis or a database table
-const notifications = new Map<string, any[]>()
+export const notifications = new Map<string, any[]>()
 
 // GET /api/notifications - Get user notifications
 export async function GET(request: NextRequest) {
@@ -129,82 +128,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// PUT /api/notifications/[id]/read - Mark notification as read
-export async function PUT(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  try {
-    const session = await auth()
-    if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
 
-    const { id } = await params
-    const userId = session.user.id
-    const userNotifications = notifications.get(userId) || []
-
-    const notification = userNotifications.find((n: any) => n.id === id)
-    if (!notification) {
-      return NextResponse.json(
-        { error: 'Notification not found' },
-        { status: 404 }
-      )
-    }
-
-    notification.read = true
-
-    return NextResponse.json({
-      success: true,
-      data: notification,
-      message: 'Notification marked as read',
-    })
-  } catch (error) {
-    console.error('Error marking notification as read:', error)
-    return NextResponse.json(
-      { error: 'Failed to mark notification as read' },
-      { status: 500 }
-    )
-  }
-}
-
-// DELETE /api/notifications/[id] - Delete notification
-export async function DELETE(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  try {
-    const session = await auth()
-    if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    const { id } = await params
-    const userId = session.user.id
-    const userNotifications = notifications.get(userId) || []
-
-    const index = userNotifications.findIndex((n: any) => n.id === id)
-    if (index === -1) {
-      return NextResponse.json(
-        { error: 'Notification not found' },
-        { status: 404 }
-      )
-    }
-
-    userNotifications.splice(index, 1)
-
-    return NextResponse.json({
-      success: true,
-      message: 'Notification deleted successfully',
-    })
-  } catch (error) {
-    console.error('Error deleting notification:', error)
-    return NextResponse.json(
-      { error: 'Failed to delete notification' },
-      { status: 500 }
-    )
-  }
-}
 
 // Helper function to create notifications from other API routes
 export async function createNotification(params: {
@@ -214,7 +138,7 @@ export async function createNotification(params: {
   category?: 'stock' | 'transaction' | 'system' | 'dropship' | 'customer'
   userId?: string
   actionUrl?: string
-  metadata?: Record<string, any>
+  metadata?: Record<string, unknown>
 }) {
   try {
     const notification = {
@@ -290,7 +214,7 @@ export async function BROADCAST(request: NextRequest) {
 }
 
 // PUT /api/notifications/read-all - Mark all notifications as read
-export async function MARK_ALL_READ(request: NextRequest) {
+export async function MARK_ALL_READ() {
   try {
     const session = await auth()
     if (!session) {
@@ -318,7 +242,7 @@ export async function MARK_ALL_READ(request: NextRequest) {
 }
 
 // DELETE /api/notifications/clear - Clear all notifications
-export async function CLEAR_ALL(request: NextRequest) {
+export async function CLEAR_ALL() {
   try {
     const session = await auth()
     if (!session) {

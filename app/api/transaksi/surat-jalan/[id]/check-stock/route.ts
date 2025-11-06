@@ -53,6 +53,59 @@ export async function POST(
     // Check current stock for each item and detect dropship needs
     const stockCheckResults = await Promise.all(
       suratJalan.detail.map(async (detail) => {
+        // Handle custom items (no stock check needed)
+        if ((detail as any).isCustom) {
+          return {
+            detailId: detail.id,
+            barangId: null,
+            barang: null,
+            requestedQty: detail.qty,
+            currentStock: null,
+            stockStatus: 'custom_item',
+            stockShortage: 0,
+            isCurrentlyDropship: false,
+            dropshipStatus: null,
+            needsDropship: false,
+            canFulfill: true,
+            alternativeSuppliers: [],
+            customItem: {
+              kode: (detail as any).customKode,
+              nama: (detail as any).customNama,
+              satuan: (detail as any).customSatuan,
+              harga: Number((detail as any).customHarga),
+              alias: detail.namaAlias
+            },
+            recommendations: [{
+              type: 'success',
+              message: `Custom item ${(detail as any).customNama} - tidak memerlukan validasi stok.`,
+              action: 'none'
+            }]
+          }
+        }
+
+        // For warehouse items - check stock
+        if (!detail.barangId) {
+          return {
+            detailId: detail.id,
+            barangId: null,
+            barang: null,
+            requestedQty: detail.qty,
+            currentStock: null,
+            stockStatus: 'error',
+            stockShortage: detail.qty,
+            isCurrentlyDropship: false,
+            dropshipStatus: null,
+            needsDropship: false,
+            canFulfill: false,
+            alternativeSuppliers: [],
+            recommendations: [{
+              type: 'error',
+              message: 'Item tidak memiliki barang ID',
+              action: 'fix_data'
+            }]
+          }
+        }
+
         // Get current stock
         const stokBarang = await prisma.stokBarang.findUnique({
           where: {
@@ -103,7 +156,7 @@ export async function POST(
               { hargaBeli: 'asc' }
             ],
           })
-          
+
           alternativeSuppliers = supplierBarangs.map(supplierBarang => ({
             ...supplierBarang.supplier,
             leadTime: supplierBarang.leadTime,
@@ -148,11 +201,15 @@ export async function POST(
     // Generate overall summary
     const summary = {
       totalItems: stockCheckResults.length,
+      customItems: stockCheckResults.filter(item => item.stockStatus === 'custom_item').length,
       sufficientStockItems: stockCheckResults.filter(item => item.stockStatus === 'sufficient').length,
       insufficientStockItems: stockCheckResults.filter(item => item.stockStatus === 'insufficient').length,
+      errorItems: stockCheckResults.filter(item => item.stockStatus === 'error').length,
       dropshipItems: stockCheckResults.filter(item => item.isCurrentlyDropship).length,
       needsDropshipItems: stockCheckResults.filter(item => item.needsDropship).length,
-      readyToShipItems: stockCheckResults.filter(item => item.stockStatus === 'sufficient' && !item.isCurrentlyDropship).length,
+      readyToShipItems: stockCheckResults.filter(item =>
+        (item.stockStatus === 'sufficient' || item.stockStatus === 'custom_item') && !item.isCurrentlyDropship
+      ).length,
       pendingDropshipItems: stockCheckResults.filter(item => item.isCurrentlyDropship && item.dropshipStatus !== 'received').length,
       receivedDropshipItems: stockCheckResults.filter(item => item.isCurrentlyDropship && item.dropshipStatus === 'received').length,
       cannotFulfillItems: stockCheckResults.filter(item => !item.canFulfill).length,
@@ -177,8 +234,9 @@ export async function POST(
       postMessage = `${summary.needsDropshipItems} item perlu di-order ke supplier dropship`
     }
 
-    // Check for low stock warnings
+    // Check for low stock warnings (only for warehouse items)
     const lowStockWarnings = stockCheckResults.filter(item =>
+      item.barang && item.currentStock !== null &&
       item.currentStock <= item.barang.minStok && item.currentStock > 0
     )
 
@@ -187,24 +245,26 @@ export async function POST(
       for (const warning of lowStockWarnings) {
         await createNotification({
           title: 'Stok Menipis',
-          message: `${warning.barang.nama} - Stok tersisa: ${warning.currentStock} unit (minimum: ${warning.barang.minStok})`,
+          message: `${warning.barang?.nama || 'Unknown'} - Stok tersisa: ${warning.currentStock} unit (minimum: ${warning.barang?.minStok || 0})`,
           type: 'warning',
           category: 'stock',
           actionUrl: '/dashboard/master/barang',
           metadata: {
             barangId: warning.barangId,
             currentStock: warning.currentStock,
-            minStock: warning.barang.minStok,
+            minStock: warning.barang?.minStok || 0,
             suratJalanId: id
           }
         })
       }
     }
 
-    // Create notification for out of stock items
-    const outOfStockItems = stockCheckResults.filter(item => item.currentStock === 0)
+    // Create notification for out of stock items (only for warehouse items)
+    const outOfStockItems = stockCheckResults.filter(item =>
+      item.barang && item.currentStock === 0
+    )
     if (outOfStockItems.length > 0) {
-      const itemNames = outOfStockItems.map(item => item.barang.nama).join(', ')
+      const itemNames = outOfStockItems.map(item => item.barang?.nama || 'Unknown').join(', ')
       await createNotification({
         title: 'Stok Habis',
         message: `${itemNames} - Stok habis, perlu dropship dari supplier`,
@@ -214,7 +274,7 @@ export async function POST(
         metadata: {
           items: outOfStockItems.map(item => ({
             barangId: item.barangId,
-            barangName: item.barang.nama,
+            barangName: item.barang?.nama || 'Unknown',
             needsDropship: item.needsDropship
           })),
           suratJalanId: id
@@ -253,13 +313,19 @@ export async function POST(
         warnings: {
           lowStockItems: lowStockWarnings.map(item => ({
             barangId: item.barangId,
-            barangName: item.barang.nama,
+            barangName: item.barang?.nama || 'Unknown',
             currentStock: item.currentStock,
-            minStock: item.barang.minStok,
+            minStock: item.barang?.minStok || 0,
           })),
-          outOfStockItems: stockCheckResults.filter(item => item.currentStock === 0).map(item => ({
+          outOfStockItems: stockCheckResults.filter(item => item.barang && item.currentStock === 0).map(item => ({
             barangId: item.barangId,
-            barangName: item.barang.nama,
+            barangName: item.barang?.nama || 'Unknown',
+          })),
+          customItems: stockCheckResults.filter(item => item.stockStatus === 'custom_item').map(item => ({
+            detailId: item.detailId,
+            itemName: item.customItem?.nama || 'Unknown',
+            itemKode: item.customItem?.kode || 'Unknown',
+            itemAlias: item.customItem?.alias || '',
           })),
         },
         actions: generateActions({

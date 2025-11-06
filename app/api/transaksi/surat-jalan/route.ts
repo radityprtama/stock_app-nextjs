@@ -32,70 +32,87 @@ async function generateNomorSJ(): Promise<string> {
   return `SJ/${year}/${month}/${String(sequence).padStart(4, '0')}`
 }
 
-// Helper function to check stock and handle dropship logic
-async function checkStockAndDropship(items: any[], gudangId: string) {
+// Helper function to process items (stock checking and dropship detection)
+async function processSuratJalanItems(items: any[], gudangId: string) {
   const processedItems = []
 
   for (const item of items) {
-    // Get current stock for this item in the specified warehouse
-    const stokBarang = await prisma.stokBarang.findUnique({
-      where: {
-        barangId_gudangId: {
-          barangId: item.barangId,
-          gudangId: gudangId
-        }
-      }
-    })
-
-    const currentStock = stokBarang?.qty || 0
-
-    if (currentStock >= item.qty) {
-      // Sufficient stock available
+    if (item.isCustom) {
+      // Custom item - no stock checking, no dropship
       processedItems.push({
         ...item,
         isDropship: false,
         supplierId: null,
         statusDropship: null,
-        currentStock
+        currentStock: null,
+        barangId: null // Custom items don't have barangId
       })
     } else {
-      // Insufficient stock, check for dropship alternatives
-      const supplierBarangs = await prisma.supplierBarang.findMany({
+      // Warehouse item - check stock
+      if (!item.barangId) {
+        throw new Error('Barang ID wajib diisi untuk barang dari gudang')
+      }
+
+      // Get current stock for this item in the specified warehouse
+      const stokBarang = await prisma.stokBarang.findUnique({
         where: {
-          barangId: item.barangId,
-          supplier: {
-            aktif: true
+          barangId_gudangId: {
+            barangId: item.barangId,
+            gudangId: gudangId
           }
-        },
-        include: {
-          supplier: {
-            select: {
-              id: true,
-              kode: true,
-              nama: true
-            }
-          }
-        },
-        orderBy: [
-          { isPrimary: 'desc' },
-          { leadTime: 'asc' }
-        ]
+        }
       })
 
-      if (supplierBarangs.length > 0) {
-        // Found dropship supplier
-        const primarySupplier = supplierBarangs[0]
+      const currentStock = stokBarang?.qty || 0
+
+      if (currentStock >= item.qty) {
+        // Sufficient stock available
         processedItems.push({
           ...item,
-          isDropship: true,
-          supplierId: primarySupplier.supplierId,
-          statusDropship: 'pending',
-          currentStock,
-          dropshipSupplier: primarySupplier.supplier
+          isDropship: false,
+          supplierId: null,
+          statusDropship: null,
+          currentStock
         })
       } else {
-        // No dropship supplier available
-        throw new Error(`Stok tidak cukup dan tidak ada supplier dropship untuk barang ini`)
+        // Insufficient stock, check for dropship alternatives
+        const supplierBarangs = await prisma.supplierBarang.findMany({
+          where: {
+            barangId: item.barangId,
+            supplier: {
+              aktif: true
+            }
+          },
+          include: {
+            supplier: {
+              select: {
+                id: true,
+                kode: true,
+                nama: true
+              }
+            }
+          },
+          orderBy: [
+            { isPrimary: 'desc' },
+            { leadTime: 'asc' }
+          ]
+        })
+
+        if (supplierBarangs.length > 0) {
+          // Found dropship supplier
+          const primarySupplier = supplierBarangs[0]
+          processedItems.push({
+            ...item,
+            isDropship: true,
+            supplierId: primarySupplier.supplierId,
+            statusDropship: 'pending',
+            currentStock,
+            dropshipSupplier: primarySupplier.supplier
+          })
+        } else {
+          // No dropship supplier available
+          throw new Error(`Stok tidak cukup dan tidak ada supplier dropship untuk barang ini`)
+        }
       }
     }
   }
@@ -322,11 +339,14 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate items and check stock/dropship
-    const processedItems = await checkStockAndDropship(validatedData.items, validatedData.gudangId)
+    const processedItems = await processSuratJalanItems(validatedData.items, validatedData.gudangId)
 
     // Calculate totals
     const totalQty = processedItems.reduce((sum, item) => sum + item.qty, 0)
-    const totalNilai = processedItems.reduce((sum, item) => sum + (item.qty * item.hargaJual), 0)
+    const totalNilai = processedItems.reduce((sum, item) => {
+      const harga = item.isCustom ? (item.customHarga || 0) : (item.hargaJual || 0)
+      return sum + (item.qty * harga)
+    }, 0)
 
     // Generate document number
     const noSJ = await generateNomorSJ()
@@ -375,8 +395,15 @@ export async function POST(request: NextRequest) {
             suratJalanId: newSJ.id,
             barangId: item.barangId,
             qty: item.qty,
-            hargaJual: item.hargaJual,
-            subtotal: item.qty * item.hargaJual,
+            hargaJual: item.isCustom ? (item.customHarga || 0) : item.hargaJual,
+            subtotal: item.qty * (item.isCustom ? (item.customHarga || 0) : item.hargaJual),
+            satuan: item.isCustom ? item.customSatuan : item.satuan,
+            isCustom: item.isCustom || false,
+            customKode: item.isCustom ? item.customKode : null,
+            customNama: item.isCustom ? item.customNama : null,
+            customSatuan: item.isCustom ? item.customSatuan : null,
+            customHarga: item.isCustom ? item.customHarga : null,
+            namaAlias: item.namaAlias || null,
             isDropship: item.isDropship,
             supplierId: item.supplierId,
             statusDropship: item.statusDropship,
@@ -407,8 +434,10 @@ export async function POST(request: NextRequest) {
       }
     })
 
-    // Check if there are dropship items and include notification
+    // Check item types and include notification
     const dropshipItems = processedItems.filter(item => item.isDropship)
+    const normalItems = processedItems.filter(item => !item.isDropship)
+
     let message = 'Surat Jalan berhasil dibuat'
 
     if (dropshipItems.length > 0) {
@@ -419,11 +448,11 @@ export async function POST(request: NextRequest) {
       success: true,
       data: suratJalan,
       message,
-      dropshipSummary: {
+      summary: {
         totalItems: processedItems.length,
-        normalItems: processedItems.filter(item => !item.isDropship).length,
+        normalItems: normalItems.length,
         dropshipItems: dropshipItems.length,
-        readyToShip: processedItems.filter(item => !item.isDropship).length > 0,
+        readyToShip: normalItems.length > 0,
       },
     })
   } catch (error) {

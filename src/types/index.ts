@@ -151,9 +151,9 @@ export interface BarangMasukForm {
 
 export interface DeliveryOrderForm {
   noDO?: string
-  tanggal?: Date
+  tanggal: Date
   gudangAsalId: string
-  gudangTujuan: string
+  gudangTujuanId: string
   namaSupir: string
   nopolKendaraan: string
   keterangan?: string

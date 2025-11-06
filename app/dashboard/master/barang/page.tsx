@@ -1,8 +1,6 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { auth } from '@/lib/auth'
-import { redirect } from 'next/navigation'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -282,7 +280,7 @@ export default function BarangPage() {
           toast.error(result.error || 'Gagal menyimpan data')
         }
       } else {
-        // Add new item from Input tab
+        // Add new item from dialog
         const response = await fetch('/api/master/barang', {
           method: 'POST',
           headers: {
@@ -295,6 +293,7 @@ export default function BarangPage() {
 
         if (result.success) {
           toast.success('Barang berhasil ditambahkan')
+          setDialogOpen(false)
           reset()
           fetchBarangs()
         } else {
@@ -394,26 +393,20 @@ export default function BarangPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Master Barang</h1>
-        <p className="text-muted-foreground">
-          Kelola data barang atau item inventaris
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Master Barang</h1>
+          <p className="text-muted-foreground">
+            Kelola data barang atau item inventaris
+          </p>
+        </div>
+        <Button onClick={openAddDialog}>
+          <Plus className="mr-2 h-4 w-4" />
+          Input Barang Baru
+        </Button>
       </div>
 
-      <Tabs defaultValue="browse" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="browse">
-            <Package className="mr-2 h-4 w-4" />
-            Browse Data
-          </TabsTrigger>
-          <TabsTrigger value="input">
-            <Plus className="mr-2 h-4 w-4" />
-            Input Barang
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="browse" className="space-y-4">
+      <div className="space-y-4">
           {/* Statistics Cards */}
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
@@ -666,7 +659,7 @@ export default function BarangPage() {
                   <p className="text-gray-500 mb-4">
                     Mulai dengan menambahkan barang pertama
                   </p>
-                  <Button onClick={() => {/* Navigate to input tab */}}>
+                  <Button onClick={openAddDialog}>
                     <Plus className="mr-2 h-4 w-4" />
                     Tambah Barang
                   </Button>
@@ -712,234 +705,11 @@ export default function BarangPage() {
           )}
         </CardContent>
       </Card>
-        </TabsContent>
-
-        <TabsContent value="input" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Input Barang Baru</CardTitle>
-              <CardDescription>
-                Tambahkan barang baru ke sistem inventaris
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-                <div className="grid gap-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="grid gap-2">
-                      <Label htmlFor="kode-input">Kode Barang</Label>
-                      <Input
-                        id="kode-input"
-                        {...register('kode')}
-                        placeholder="Contoh: BRG001"
-                        disabled={submitting}
-                      />
-                      {errors.kode && (
-                        <p className="text-sm text-red-600">{errors.kode.message}</p>
-                      )}
-                    </div>
-                    <div className="grid gap-2">
-                      <Label htmlFor="satuan-input">Satuan</Label>
-                      <Input
-                        id="satuan-input"
-                        {...register('satuan')}
-                        placeholder="Contoh: pcs, unit, box"
-                        disabled={submitting}
-                      />
-                      {errors.satuan && (
-                        <p className="text-sm text-red-600">{errors.satuan.message}</p>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="grid gap-2">
-                    <Label htmlFor="nama-input">Nama Barang</Label>
-                    <Input
-                      id="nama-input"
-                      {...register('nama')}
-                      placeholder="Contoh: Laptop ASUS ROG"
-                      disabled={submitting}
-                    />
-                    {errors.nama && (
-                      <p className="text-sm text-red-600">{errors.nama.message}</p>
-                    )}
-                  </div>
-
-                  <div className="grid grid-cols-3 gap-4">
-                    <div className="grid gap-2">
-                      <Label htmlFor="merk-input">Merk</Label>
-                      <Input
-                        id="merk-input"
-                        {...register('merk')}
-                        placeholder="Contoh: ASUS"
-                        disabled={submitting}
-                      />
-                      {errors.merk && (
-                        <p className="text-sm text-red-600">{errors.merk.message}</p>
-                      )}
-                    </div>
-                    <div className="grid gap-2">
-                      <Label htmlFor="tipe-input">Tipe</Label>
-                      <Input
-                        id="tipe-input"
-                        {...register('tipe')}
-                        placeholder="Contoh: Gaming"
-                        disabled={submitting}
-                      />
-                      {errors.tipe && (
-                        <p className="text-sm text-red-600">{errors.tipe.message}</p>
-                      )}
-                    </div>
-                    <div className="grid gap-2">
-                      <Label htmlFor="ukuran-input">Ukuran</Label>
-                      <Input
-                        id="ukuran-input"
-                        {...register('ukuran')}
-                        placeholder="Contoh: 15 inch"
-                        disabled={submitting}
-                      />
-                      {errors.ukuran && (
-                        <p className="text-sm text-red-600">{errors.ukuran.message}</p>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="grid gap-2">
-                    <Label htmlFor="golonganId-input">Golongan</Label>
-                    <Select
-                      value={watchedValues.golonganId}
-                      onValueChange={(value) => setValue('golonganId', value)}
-                      disabled={submitting}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Pilih Golongan" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {golongans.map((golongan) => (
-                          <SelectItem key={golongan.id} value={golongan.id}>
-                            {golongan.kode} - {golongan.nama}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    {errors.golonganId && (
-                      <p className="text-sm text-red-600">{errors.golonganId.message}</p>
-                    )}
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="grid gap-2">
-                      <Label htmlFor="hargaBeli-input">Harga Beli</Label>
-                      <Input
-                        id="hargaBeli-input"
-                        type="number"
-                        step="0.01"
-                        {...register('hargaBeli', { valueAsNumber: true })}
-                        placeholder="0"
-                        disabled={submitting}
-                      />
-                      {errors.hargaBeli && (
-                        <p className="text-sm text-red-600">{errors.hargaBeli.message}</p>
-                      )}
-                    </div>
-                    <div className="grid gap-2">
-                      <Label htmlFor="hargaJual-input">Harga Jual</Label>
-                      <Input
-                        id="hargaJual-input"
-                        type="number"
-                        step="0.01"
-                        {...register('hargaJual', { valueAsNumber: true })}
-                        placeholder="0"
-                        disabled={submitting}
-                      />
-                      {errors.hargaJual && (
-                        <p className="text-sm text-red-600">{errors.hargaJual.message}</p>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="grid gap-2">
-                      <Label htmlFor="minStok-input">Min Stok</Label>
-                      <Input
-                        id="minStok-input"
-                        type="number"
-                        {...register('minStok', { valueAsNumber: true })}
-                        placeholder="0"
-                        disabled={submitting}
-                      />
-                      {errors.minStok && (
-                        <p className="text-sm text-red-600">{errors.minStok.message}</p>
-                      )}
-                    </div>
-                    <div className="grid gap-2">
-                      <Label htmlFor="maxStok-input">Max Stok (Opsional)</Label>
-                      <Input
-                        id="maxStok-input"
-                        type="number"
-                        {...register('maxStok', { valueAsNumber: true })}
-                        placeholder="0"
-                        disabled={submitting}
-                      />
-                      {errors.maxStok && (
-                        <p className="text-sm text-red-600">{errors.maxStok.message}</p>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-2">
-                      <Switch
-                        id="isDropship-input"
-                        checked={watchedValues.isDropship || false}
-                        onCheckedChange={(checked) => setValue('isDropship', checked)}
-                        disabled={submitting}
-                      />
-                      <Label htmlFor="isDropship-input">Barang Dropship</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Switch
-                        id="aktif-input"
-                        checked={watchedValues.aktif !== false}
-                        onCheckedChange={(checked) => setValue('aktif', checked)}
-                        disabled={submitting}
-                      />
-                      <Label htmlFor="aktif-input">Aktif</Label>
-                    </div>
-                  </div>
-
-                  {watchedValues.isDropship && (
-                    <div className="p-3 bg-blue-50 rounded-lg">
-                      <p className="text-sm text-blue-800">
-                        <strong>Info:</strong> Barang dropship adalah barang yang tidak disimpan di gudang
-                        tapi langsung dikirim dari supplier ketika ada pesanan.
-                      </p>
-                    </div>
-                  )}
-                </div>
-
-                <div className="flex justify-end space-x-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => reset(defaultBarangFormValues)}
-                    disabled={submitting}
-                  >
-                    Reset Form
-                  </Button>
-                  <Button type="submit" disabled={submitting}>
-                    {submitting ? 'Menyimpan...' : 'Simpan Barang'}
-                  </Button>
-                </div>
-              </form>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+      </div>
 
       {/* Add/Edit Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
               {editingBarang ? 'Edit Barang' : 'Tambah Barang Baru'}

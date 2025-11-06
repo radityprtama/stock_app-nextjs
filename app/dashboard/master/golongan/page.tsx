@@ -43,18 +43,15 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
   Plus,
   Search,
   MoreHorizontal,
   Edit,
   Trash2,
-  Eye,
   Tag,
   Package,
   BarChart3,
-  Building,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { GolonganFormData, golonganSchema } from '@/lib/validations'
@@ -140,7 +137,7 @@ export default function GolonganPage() {
     fetchGolongans()
   }, [pagination.page, search])
 
-  const onSubmit = async (data: GolonganFormValues, isTabSubmit = false) => {
+  const onSubmit = async (data: GolonganFormValues) => {
     setSubmitting(true)
     try {
       const payload: GolonganFormData = golonganSchema.parse(data)
@@ -165,12 +162,9 @@ export default function GolonganPage() {
             ? 'Golongan berhasil diperbarui'
             : 'Golongan berhasil ditambahkan'
         )
-        if (isTabSubmit) {
-          reset(defaultGolonganFormValues)
-        } else {
-          setDialogOpen(false)
-          setEditingGolongan(null)
-        }
+        setDialogOpen(false)
+        setEditingGolongan(null)
+        reset(defaultGolonganFormValues)
         fetchGolongans()
       } else {
         toast.error(result.error || 'Gagal menyimpan data')
@@ -227,32 +221,25 @@ export default function GolonganPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Master Golongan</h1>
-        <p className="text-muted-foreground">Kelola data golongan atau kategori barang</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Master Golongan</h1>
+          <p className="text-muted-foreground">Kelola data golongan atau kategori barang</p>
+        </div>
+        <Button onClick={openAddDialog}>
+          <Plus className="mr-2 h-4 w-4" />
+          Input Golongan Baru
+        </Button>
       </div>
 
-      <Tabs defaultValue="browse" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="browse">
-            <Building className="mr-2 h-4 w-4" />
-            Browse Data
-          </TabsTrigger>
-          <TabsTrigger value="input">
-            <Plus className="mr-2 h-4 w-4" />
-            Input Golongan
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="browse" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Daftar Golongan</CardTitle>
-              <CardDescription>
-                Total {pagination.total} golongan terdaftar
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
+      <Card>
+        <CardHeader>
+          <CardTitle>Daftar Golongan</CardTitle>
+          <CardDescription>
+            Total {pagination.total} golongan terdaftar
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
               <div className="flex items-center space-x-2 mb-4">
                 <div className="relative flex-1 max-w-sm">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -343,9 +330,7 @@ export default function GolonganPage() {
                       <p className="text-gray-500 mb-4">
                         Mulai dengan menambahkan golongan pertama
                       </p>
-                      <Button onClick={() => {
-                        toast.info('Silakan pindah ke tab "Input Golongan" untuk menambah golongan baru')
-                      }}>
+                      <Button onClick={openAddDialog}>
                         <Plus className="mr-2 h-4 w-4" />
                         Tambah Golongan
                       </Button>
@@ -391,125 +376,48 @@ export default function GolonganPage() {
               )}
             </CardContent>
           </Card>
-        </TabsContent>
 
-        <TabsContent value="input" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Input Golongan Baru</CardTitle>
-              <CardDescription>
-                Tambahkan golongan baru ke sistem
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleSubmit((data) => onSubmit(data, true))} className="space-y-6">
-                <div className="grid gap-4">
-                  <div className="grid gap-2">
-                    <Label htmlFor="kode-input">Kode Golongan</Label>
-                    <Input
-                      id="kode-input"
-                      {...register('kode')}
-                      placeholder="Contoh: GL001"
-                      disabled={submitting}
-                    />
-                    {errors.kode && (
-                      <p className="text-sm text-red-600">{errors.kode.message}</p>
-                    )}
-                  </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="nama-input">Nama Golongan</Label>
-                    <Input
-                      id="nama-input"
-                      {...register('nama')}
-                      placeholder="Contoh: Elektronik"
-                      disabled={submitting}
-                    />
-                    {errors.nama && (
-                      <p className="text-sm text-red-600">{errors.nama.message}</p>
-                    )}
-                  </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="deskripsi-input">Deskripsi</Label>
-                    <Textarea
-                      id="deskripsi-input"
-                      {...register('deskripsi')}
-                      placeholder="Masukkan deskripsi golongan"
-                      disabled={submitting}
-                      rows={3}
-                    />
-                    {errors.deskripsi && (
-                      <p className="text-sm text-red-600">{errors.deskripsi.message}</p>
-                    )}
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Switch
-                      id="aktif-input"
-                      checked={watch('aktif')}
-                      onCheckedChange={(checked) => setValue('aktif', checked)}
-                      disabled={submitting}
-                    />
-                    <Label htmlFor="aktif-input">Aktif</Label>
-                  </div>
-                </div>
-
-                <div className="flex justify-end space-x-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => reset(defaultGolonganFormValues)}
-                    disabled={submitting}
-                  >
-                    Reset Form
-                  </Button>
-                  <Button type="submit" disabled={submitting}>
-                    {submitting ? 'Menyimpan...' : 'Simpan Golongan'}
-                  </Button>
-                </div>
-              </form>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
-
-      {/* Edit Dialog */}
+      {/* Add/Edit Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="max-w-4xl">
           <DialogHeader>
-            <DialogTitle>Edit Golongan</DialogTitle>
+            <DialogTitle>{editingGolongan ? 'Edit Golongan' : 'Input Golongan Baru'}</DialogTitle>
             <DialogDescription>
-              Edit informasi golongan yang sudah ada.
+              {editingGolongan ? 'Edit informasi golongan yang sudah ada.' : 'Tambahkan golongan baru ke sistem.'}
             </DialogDescription>
           </DialogHeader>
-          <form onSubmit={handleSubmit((data) => onSubmit(data, false))}>
-            <div className="grid gap-4 py-4">
-              <div className="grid gap-2">
-                <Label htmlFor="kode-edit">Kode Golongan</Label>
-                <Input
-                  id="kode-edit"
-                  {...register('kode')}
-                  placeholder="Contoh: GL001"
-                  disabled={submitting}
-                />
-                {errors.kode && (
-                  <p className="text-sm text-red-600">{errors.kode.message}</p>
-                )}
+          <form onSubmit={handleSubmit(onSubmit)}>
+            <div className="grid gap-6 py-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="kode-form">Kode Golongan</Label>
+                  <Input
+                    id="kode-form"
+                    {...register('kode')}
+                    placeholder="Contoh: GL001"
+                    disabled={submitting}
+                  />
+                  {errors.kode && (
+                    <p className="text-sm text-red-600">{errors.kode.message}</p>
+                  )}
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="nama-form">Nama Golongan</Label>
+                  <Input
+                    id="nama-form"
+                    {...register('nama')}
+                    placeholder="Contoh: Elektronik"
+                    disabled={submitting}
+                  />
+                  {errors.nama && (
+                    <p className="text-sm text-red-600">{errors.nama.message}</p>
+                  )}
+                </div>
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="nama-edit">Nama Golongan</Label>
-                <Input
-                  id="nama-edit"
-                  {...register('nama')}
-                  placeholder="Contoh: Elektronik"
-                  disabled={submitting}
-                />
-                {errors.nama && (
-                  <p className="text-sm text-red-600">{errors.nama.message}</p>
-                )}
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="deskripsi-edit">Deskripsi</Label>
+                <Label htmlFor="deskripsi-form">Deskripsi</Label>
                 <Textarea
-                  id="deskripsi-edit"
+                  id="deskripsi-form"
                   {...register('deskripsi')}
                   placeholder="Masukkan deskripsi golongan"
                   disabled={submitting}
@@ -521,12 +429,12 @@ export default function GolonganPage() {
               </div>
               <div className="flex items-center space-x-2">
                 <Switch
-                  id="aktif-edit"
-                  checked={editingGolongan ? editingGolongan.aktif : true}
+                  id="aktif-form"
+                  checked={watch('aktif')}
                   onCheckedChange={(checked) => setValue('aktif', checked)}
                   disabled={submitting}
                 />
-                <Label htmlFor="aktif-edit">Aktif</Label>
+                <Label htmlFor="aktif-form">Aktif</Label>
               </div>
             </div>
             <DialogFooter>
@@ -543,7 +451,7 @@ export default function GolonganPage() {
                 Batal
               </Button>
               <Button type="submit" disabled={submitting}>
-                {submitting ? 'Menyimpan...' : 'Perbarui'}
+                {submitting ? 'Menyimpan...' : (editingGolongan ? 'Perbarui' : 'Simpan Golongan')}
               </Button>
             </DialogFooter>
           </form>

@@ -21,7 +21,7 @@ export class NotificationService {
       metadata: {
         barangId: item.barangId,
         currentStock: item.currentStock,
-        minStock: item.minStok,
+        minStock: item.minStock,
         gudangId: item.gudangId
       }
     })
@@ -33,7 +33,7 @@ export class NotificationService {
     needsDropship: boolean
     alternativeSuppliers?: any[]
   }>, context?: string) {
-    const itemNames = items.map(item => item.barang.nama || item.barangName).join(', ')
+    const itemNames = items.map(item => item.barangName).join(', ')
     return await createNotification({
       title: 'Stok Habis',
       message: `${itemNames} - Stok habis${context ? ` (${context})` : ''}${items.some(item => item.needsDropship) ? ', perlu dropship dari supplier' : ''}`,

@@ -1,4 +1,4 @@
-/* Print Styles for Stocky Inventory Management System */
+/* Print Styles for Inventory Inventory Management System */
 
 @media print {
   /* Page settings */
@@ -9,7 +9,7 @@
 
   /* Base styles */
   body {
-    font-family: 'Arial', sans-serif;
+    font-family: "Arial", sans-serif;
     font-size: 12px;
     line-height: 1.4;
     color: #000000;
@@ -285,7 +285,7 @@
 
   /* Barcode and QR code (if needed) */
   .barcode {
-    font-family: 'Courier New', monospace;
+    font-family: "Courier New", monospace;
     font-weight: bold;
     text-align: center;
     margin: 10px 0;
@@ -373,7 +373,7 @@
 @media screen {
   .print-preview {
     border: 1px solid #ccc;
-    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
     margin: 20px auto;
     max-width: 210mm;
     background: white;
@@ -386,7 +386,7 @@
     left: 50%;
     transform: translate(-50%, -50%) rotate(-45deg);
     font-size: 72px;
-    color: rgba(0,0,0,0.1);
+    color: rgba(0, 0, 0, 0.1);
     pointer-events: none;
     z-index: 1;
   }

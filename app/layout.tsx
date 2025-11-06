@@ -13,7 +13,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Stocky - Inventory Management System",
+  title: "Inventory - Inventory Management System",
   description: "Sistem manajemen stok barang dengan fitur lengkap",
 };
 
